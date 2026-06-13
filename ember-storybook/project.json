@@ -1,0 +1,9 @@
+{
+  "name": "ember",
+  "projectType": "library",
+  "targets": {
+    "compile": {},
+    "check": {}
+  },
+  "tags": ["library"]
+}

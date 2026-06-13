@@ -1,0 +1,88 @@
+{
+  "name": "storybook-ember",
+  "version": "10.2.0-alpha.9",
+  "description": "Storybook for Ember: Develop, document, and test UI components in isolation",
+  "keywords": [
+    "storybook",
+    "storybook-framework",
+    "ember",
+    "component",
+    "components"
+  ],
+  "homepage": "https://github.com/storybookjs/storybook/tree/next/code/frameworks/ember",
+  "bugs": {
+    "url": "https://github.com/storybookjs/storybook/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/storybookjs/storybook.git",
+    "directory": "code/frameworks/ember"
+  },
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/storybook"
+  },
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.mjs"
+    },
+    "./client/config": {
+      "types": "./dist/client/config.d.ts",
+      "default": "./dist/client/config.mjs"
+    },
+    "./client/docs/config": {
+      "types": "./dist/client/docs/config.d.ts",
+      "default": "./dist/client/docs/config.mjs"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.mjs"
+    },
+    "./package.json": "./package.json",
+    "./preset": {
+      "types": "./dist/preset.d.ts",
+      "default": "./dist/preset.mjs"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "template/cli/**/*",
+    "addon-main.cjs",
+    "README.md",
+    "*.js",
+    "*.d.ts",
+    "!src/**/*"
+  ],
+  "scripts": {
+    "build": "pnpm tsdown"
+  },
+  "dependencies": {
+    "@storybook/builder-vite": "^10.3.1",
+    "@storybook/global": "^5.0.0",
+    "content-tag": "^4.0.0",
+    "ts-dedent": "^2.0.0",
+    "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ember-source": "^6.8.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4",
+    "tsdown": "^0.21.4"
+  },
+  "peerDependencies": {
+    "ember-source": ">=6.8.0",
+    "storybook": "^10.3.1",
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "types": [
+      "ember-source/types"
+    ],
+    "moduleResolution": "bundler",
+    "module": "esnext"
+  },
+  "include": [
+    "src/**/*"
+  ]
+}
