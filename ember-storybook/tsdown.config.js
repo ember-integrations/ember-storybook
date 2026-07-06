@@ -5,5 +5,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   dts: true,
-  external: [/^@ember/]
+  deps: {
+    neverBundle: [/^@ember/]
+  }
 });

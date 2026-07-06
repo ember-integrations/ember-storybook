@@ -5,7 +5,7 @@ import type {
 
 import type { BuilderOptions, StorybookConfigVite } from '@storybook/builder-vite';
 
-type FrameworkName = CompatibleString<'storybook-ember'>;
+type FrameworkName = CompatibleString<'ember-storybook'>;
 type BuilderName = CompatibleString<'@storybook/builder-vite'>;
 
 export type FrameworkOptions = {
