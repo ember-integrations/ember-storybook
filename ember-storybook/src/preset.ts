@@ -13,14 +13,14 @@ export const previewAnnotations: PresetProperty<'previewAnnotations'> = async (
   entries = [],
   options
 ) => {
-  const config = fileURLToPath(import.meta.resolve('storybook-ember/client/config'));
+  const config = fileURLToPath(import.meta.resolve('ember-storybook/client/config'));
   const annotations = [...entries, config];
 
   const docsConfig = await options.presets.apply('docs', {}, options);
   const docsEnabled = Object.keys(docsConfig).length > 0;
   if (docsEnabled) {
     const docsConfigPath = fileURLToPath(
-      import.meta.resolve('storybook-ember/client/docs/config')
+      import.meta.resolve('ember-storybook/client/docs/config')
     );
     annotations.push(docsConfigPath);
   }
