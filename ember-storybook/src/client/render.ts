@@ -1,9 +1,10 @@
 import type { ArgsStoryFn, RenderContext } from 'storybook/internal/types';
 
 import type { RenderResult } from '@ember/-internals/glimmer/lib/renderer';
-import type Application from '@ember/application';
+import Application from '@ember/application';
 
-import type { EmberRenderer } from './types';
+import type { AppParamater, EmberRenderer, StoryContext } from './types';
+import ApplicationInstance from '@ember/application/instance';
 
 type Args = Record<string, unknown>;
 
@@ -24,14 +25,14 @@ export const render: ArgsStoryFn<EmberRenderer> = (args, context) => {
 const contexts = new Map<
   EmberRenderer['canvasElement'],
   {
-    application: Application | undefined;
+    application: ApplicationInstance | undefined;
     renderer: RenderResult;
     args: Args;
   }
 >();
 
 export async function renderToCanvas(
-  { storyFn, showMain, storyContext, forceRemount }: RenderContext<EmberRenderer>,
+  { storyFn, showMain, storyContext, forceRemount }: RenderContext<EmberRenderer> & {storyContext: StoryContext},
   canvasElement: EmberRenderer['canvasElement']
 ) {
   const { trackedObject } = await import('@ember/reactive/collections');
@@ -62,18 +63,52 @@ export async function renderToCanvas(
     unmount(canvasElement);
   }
 
-  const application: Application | undefined = storyContext.parameters['owner']
-    ? storyContext.parameters['owner'].create({
-        autoboot: false,
-        rootElement: 'body',
-      })
-    : undefined;
+  let application: ApplicationInstance | undefined = undefined;
+  const appOptions = {
+      autoboot: false,
+      rootElement: canvasElement
+    }
+
+  if (storyContext.parameters.ember?.app) {
+    const appOption = storyContext.parameters.ember?.app;
+
+    function isApplication(appOption: object): appOption is Application {
+      // @ts-ignore this is wild
+      return appOption['create'] !== undefined && appOption.superclass && appOption.supeclass.name === 'EmberApp';
+    }
+
+    const initApp = (appOption: AppParamater) => {
+      if (appOption instanceof ApplicationInstance) {
+        return appOption;
+      }
+
+      if (isApplication(appOption)) {
+        // @ts-ignore this is wild
+        return (appOption as Application).create(appOptions).buildInstance();
+      }
+
+      return (appOption as Function)(appOptions);
+    }
+    
+    application = initApp(appOption);
+  }
+
+  if (storyContext.parameters.ember?.owner) {
+    if (!application) {
+      application = Application.create(appOptions).buildInstance();
+    }
+
+    for (const [key, obj] of Object.entries(storyContext.parameters.ember?.owner) as [`${string}:${string}`, object][]) {
+      application.unregister(key);
+      application.register(key, obj);
+    }
+  }
 
   const trackedArgs = trackedObject({ ...args });
   const result = renderComponent(Component, {
     args: trackedArgs,
     into: canvasElement,
-    owner: application ? application.buildInstance() : undefined,
+    owner: application,
   });
 
   contexts.set(canvasElement, { application, renderer: result, args: trackedArgs });
@@ -81,7 +116,8 @@ export async function renderToCanvas(
   showMain();
 
   return () => {
-    unmount(canvasElement);
+    // needs fix:
+    // unmount(canvasElement);
   };
 }
 

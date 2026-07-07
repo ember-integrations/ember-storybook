@@ -1,3 +1,4 @@
+import { t } from 'ember-intl';
 import Button from './button.gts';
 import './header.css';
 import type { TOC } from '@ember/component/template-only';
@@ -5,9 +6,9 @@ import type { TOC } from '@ember/component/template-only';
 export interface Signature {
   Args: {
     user?: { name: string };
-    onLogin: () => void;
-    onLogout: () => void;
-    onCreateAccount: () => void;
+    login: () => void;
+    logout: () => void;
+    createAccount: () => void;
   };
 }
 
@@ -42,14 +43,14 @@ let Header = <template>
       <Logo />
       <div>
         {{#if @user}}
-          <span class="welcome">Welcome, <b>{{@user.name}}</b>!</span>
-          <Button @onClick={{@onLogout}} @size="small" @label="Log out" />
+          <span class="welcome">{{t "welcome"}}, <b>{{@user.name}}</b>!</span>
+          <Button @push={{@logout}} @size="small" @label={{t "actions.logout"}} />
         {{else}}
-          <Button @onClick={{@onLogin}} @size="small" @label="Log in" />
+          <Button @push={{@login}} @size="small" @label={{t "actions.login"}} />
           <Button
-            @onClick={{@onCreateAccount}}
+            @push={{@createAccount}}
             @size="small"
-            @label="Sign up"
+            @label={{t "actions.signup"}}
             @primary={{true}}
           />
         {{/if}}

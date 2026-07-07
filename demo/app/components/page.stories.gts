@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from 'ember-storybook';
 import { expect, userEvent, within } from 'storybook/test';
 
 import Page from './page.gts';
+import Service from '@ember/service';
 
 const meta = {
   title: 'Example/Page',
@@ -30,3 +31,25 @@ export const LoggedIn: StoryObj = {
     await expect(logoutButton).toBeInTheDocument();
   },
 };
+
+export const Japanese: StoryObj = {
+  parameters: {
+    ember: {
+      owner: {
+        'service:intl': class JaIntl extends Service {
+          t = (key: string) => {
+            const map = {
+              'welcome': 'こんにちは',
+              'actions.login': 'ログイン',
+              'actions.logout': 'ログアウト',
+              'actions.signup': 'サインアップ'
+            };
+
+            // @ts-ignore
+            return map[key];
+          }
+        }
+      }
+    }
+  }
+}

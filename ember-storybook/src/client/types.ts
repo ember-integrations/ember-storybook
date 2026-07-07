@@ -1,12 +1,23 @@
 import type { StoryContext as DefaultStoryContext, WebRenderer } from 'storybook/internal/types';
 
 import type Application from '@ember/application';
+import type ApplicationInstance from '@ember/application/instance';
 
 export type { RenderContext } from 'storybook/internal/types';
 
 export interface ShowErrorArgs {
   title: string;
   description: string;
+}
+
+export type AppParamater = typeof Application | typeof ApplicationInstance | ((options?: Record<string, unknown>) => typeof Application | typeof ApplicationInstance)
+
+export interface Parameters {
+  // renderer: 'ember';
+  ember?: {
+      app?: AppParamater;
+      owner?: Record<`${string}:${string}`, object>;
+    }
 }
 
 export interface EmberRenderer extends WebRenderer {
@@ -17,11 +28,8 @@ export interface EmberRenderer extends WebRenderer {
     Component: object;
     args: Record<string, unknown>;
   };
-}
-
-export interface Parameters {
-  renderer: 'ember';
-  application?: typeof Application;
+  csf4: true
+  parameters: Parameters;
 }
 
 export type StoryContext = DefaultStoryContext<EmberRenderer> & {
