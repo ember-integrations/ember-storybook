@@ -6,6 +6,8 @@ settings:
 
 importers:
 
+  .: {}
+
   demo:
     dependencies:
       '@embroider/macros':
@@ -45,6 +47,9 @@ importers:
       '@babel/runtime':
         specifier: 7.29.7
         version: 7.29.7
+      '@ember-intl/vite':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@ember/app-tsconfig':
         specifier: 2.0.0
         version: 2.0.0
@@ -78,6 +83,9 @@ importers:
       babel-plugin-ember-template-compilation:
         specifier: 4.0.0
         version: 4.0.0
+      ember-intl:
+        specifier: ^8.2.9
+        version: 8.2.9(@babel/core@7.29.7)
       storybook:
         specifier: 10.4.6
         version: 10.4.6(@testing-library/dom@10.4.1)(@types/react@19.2.17)(prettier@3.9.4)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -721,6 +729,10 @@ packages:
     resolution: {integrity: sha512-K8ponJDxBwDHigkeFqaqT5wLGl4bTlwMafR8k7b5CPxr6Ww+UG9ls8Yx6Tcpboxu97eeGVEEyKcHmEyOwN1vSw==}
     engines: {node: ^22.18.0 || >=24.11.0}
 
+  '@codemod-utils/files@4.0.1':
+    resolution: {integrity: sha512-zIj3UC3kY0JAyPkkQXwuAiX7bz7+HU/PK9XqytWeaN262JSK858nfFyja0wGqou4rO3O3a3yw1HY7TTEuJZivQ==}
+    engines: {node: 22.* || >= 24}
+
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
     engines: {node: '>=18'}
@@ -751,6 +763,10 @@ packages:
 
   '@ember-data/rfc395-data@0.0.4':
     resolution: {integrity: sha512-tGRdvgC9/QMQSuSuJV45xoyhI0Pzjm7A9o/MVVA3HakXIImJbbzx/k/6dO9CUEQXIyS2y0fW6C1XaYOG7rY0FQ==}
+
+  '@ember-intl/vite@1.1.1':
+    resolution: {integrity: sha512-I15NkaiSoUBXLTDz6IQb2O5rYxZ4xgq2O5syApLOeyVYMzdFNexBIfYGjUNqdcFtUEErRKX+12DQUDyxR3T0Ww==}
+    engines: {node: 20.* || >= 22}
 
   '@ember/app-tsconfig@2.0.0':
     resolution: {integrity: sha512-NmD1OZFtCF49k4WDaPdhGP4OKoRbPaXpTBO3AsJe0okIJeCVUiEiC8YUpfTJmld9EJOEa9mW/p0tJQS70GktOA==}
@@ -979,6 +995,18 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@formatjs/fast-memoize@3.1.6':
+    resolution: {integrity: sha512-H5aexk1Le7T9TPmscacZ+1pR6CTa2n1wq+HDVGXhH8TzUlQQpeXzZs91dRtmFHrbeNbjPFPfQujUqm7MHgVoXQ==}
+
+  '@formatjs/icu-messageformat-parser@3.5.12':
+    resolution: {integrity: sha512-YyzzxVgYJ8DELmmkhn0Yr0rUj0dTJFf9Jp628K3S0ysInBWxLVDOS8i3RP91cCp4DMK4WYb4cVMhWA9i4knSJg==}
+
+  '@formatjs/icu-skeleton-parser@2.1.10':
+    resolution: {integrity: sha512-XuSva+8ZGawk8VnD5VD6UeH8KarQ/Z022zgjHDoHmlNiAewstXuuzXc0Hk5pGFSdG+nNw5bfJKXqj1ZXHn9yUA==}
+
+  '@formatjs/intl@4.1.14':
+    resolution: {integrity: sha512-hl8dgvbV2Te/KPnCud+nuBc+z8qW8fGreiun7ul5LopIHkbP0izylvnhIFDL2dQMeMPdrKCAXhJkYDeoxVuDRw==}
 
   '@glimmer/component@2.1.1':
     resolution: {integrity: sha512-zFZFaMbWy+9WOcDg/kCgrkGgqkLT39EE4FgyFD0MIkQO5coQsrRZyLsiBu1tbchyM+8hT8jAv+EQVUd8u+MdSQ==}
@@ -1891,6 +1919,9 @@ packages:
     resolution: {integrity: sha512-BJ8/l4R5LRE7hW9WdSuGYrLSHi2ynxeFpDFbH0K/CgNeY/tyhk+vO6TYxXC5r5CpUhNVX310xzPsN/H9lCdfOA==}
     engines: {node: '>=14'}
 
+  argparse@2.0.1:
+    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+
   aria-query@5.3.0:
     resolution: {integrity: sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A==}
 
@@ -2001,6 +2032,10 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
+  balanced-match@4.0.4:
+    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+    engines: {node: 18 || 20 || >=22}
+
   baseline-browser-mapping@2.10.37:
     resolution: {integrity: sha512-girxaJ7WZssDOFhzCGZTDKoTa1gk6A1TbflaYTpykLJ4UU9Fz9kx1aREM8JCuoVHbL8X8T/mJg7w2oYSq72Oig==}
     engines: {node: '>=6.0.0'}
@@ -2022,6 +2057,10 @@ packages:
 
   brace-expansion@2.1.1:
     resolution: {integrity: sha512-WR1cURNjuvBLMZBMbqM0UoE+WAfdUcEV1ccD8PVBVOI+Z3ND4+SZbN8RsfT2bMuG1qwz5RFvPukSZm5fF2D5eA==}
+
+  brace-expansion@5.0.7:
+    resolution: {integrity: sha512-7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA==}
+    engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
@@ -2346,6 +2385,15 @@ packages:
     resolution: {integrity: sha512-rk7GY+FmLn/2e22HsZs0Ycrz8HQ1W3Fv+2TFOuEFW9optnDXDgkntPBIl6gact/LHsfBM5RKbM3dHsIIeLgl0Q==}
     engines: {node: 10.* || >= 12.*}
 
+  ember-intl@8.2.9:
+    resolution: {integrity: sha512-WfLBJHbR/EnOdeV6u4BKof3fVOGdDt/OzqXlwhjOie6WEV9xyxpEq6KOVvBw26A14M0DISO9BeSxRrVLgg1b5Q==}
+    engines: {node: 20.* || >= 22}
+    peerDependencies:
+      '@ember/test-helpers': ^4.0.0 || ^5.0.0
+    peerDependenciesMeta:
+      '@ember/test-helpers':
+        optional: true
+
   ember-modifier@4.3.0:
     resolution: {integrity: sha512-O0rirSLQbGg0VJ/NqoQ4uN1bh2iAekZC/Ykma+FkjCM2ofrO38u+d8n3+AK6uVWeMJmogGX2KL+Is5fofoInJg==}
 
@@ -2578,6 +2626,10 @@ packages:
     deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
+  glob@13.0.6:
+    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+    engines: {node: 18 || 20 || >=22}
+
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
     deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
@@ -2680,6 +2732,9 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
+  intl-messageformat@11.2.9:
+    resolution: {integrity: sha512-cGzymZerpDhVXRKjKLgXKda9gI29TU2o88L7gwNMHp3WZVxA/0c5tX52udXbW9JklDApolvMXZG6Dhhdz5eirA==}
+
   is-core-module@2.16.2:
     resolution: {integrity: sha512-evOr8xfXKxE6qSR0hSXL2r3sd7ALj8+7jQEUvPYcm5sgZFdJ+AYzT6yNmJenvIYQBgIGwfwz08sL8zoL7yq2BA==}
     engines: {node: '>= 0.4'}
@@ -2759,6 +2814,10 @@ packages:
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+
+  js-yaml@5.2.1:
+    resolution: {integrity: sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==}
+    hasBin: true
 
   jscodeshift@0.15.2:
     resolution: {integrity: sha512-FquR7Okgmc4Sd0aEDwqho3rEiKR3BdvuG9jfdHjLJ6JQoWSMpavug3AoIfnfWhxFlf+5pzQh8qjqz0DWFrNQzA==}
@@ -2899,6 +2958,10 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
+  lru-cache@11.5.1:
+    resolution: {integrity: sha512-RPimw/7aMdv2oqRrxKwvZXcPfwBrn/JZ2xYcY9Hus/6LaS3VOAKVWKWgNLCFSiOm1ESXinjsDlidVU7JlnCN2A==}
+    engines: {node: 20 || >=22}
+
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
@@ -2970,6 +3033,10 @@ packages:
   min-indent@1.0.1:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
+
+  minimatch@10.2.5:
+    resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
+    engines: {node: 18 || 20 || >=22}
 
   minimatch@3.1.5:
     resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
@@ -3130,6 +3197,10 @@ packages:
   path-scurry@1.11.1:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
+
+  path-scurry@2.0.2:
+    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+    engines: {node: 18 || 20 || >=22}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -4712,6 +4783,10 @@ snapshots:
       '@babel/helper-string-parser': 8.0.0
       '@babel/helper-validator-identifier': 8.0.2
 
+  '@codemod-utils/files@4.0.1':
+    dependencies:
+      glob: 13.0.6
+
   '@csstools/color-helpers@5.1.0': {}
 
   '@csstools/css-calc@2.1.4(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)':
@@ -4733,6 +4808,11 @@ snapshots:
   '@csstools/css-tokenizer@3.0.4': {}
 
   '@ember-data/rfc395-data@0.0.4': {}
+
+  '@ember-intl/vite@1.1.1':
+    dependencies:
+      '@codemod-utils/files': 4.0.1
+      js-yaml: 5.2.1
 
   '@ember/app-tsconfig@2.0.0': {}
 
@@ -4983,6 +5063,20 @@ snapshots:
 
   '@esbuild/win32-x64@0.27.7':
     optional: true
+
+  '@formatjs/fast-memoize@3.1.6': {}
+
+  '@formatjs/icu-messageformat-parser@3.5.12':
+    dependencies:
+      '@formatjs/icu-skeleton-parser': 2.1.10
+
+  '@formatjs/icu-skeleton-parser@2.1.10': {}
+
+  '@formatjs/intl@4.1.14':
+    dependencies:
+      '@formatjs/fast-memoize': 3.1.6
+      '@formatjs/icu-messageformat-parser': 3.5.12
+      intl-messageformat: 11.2.9
 
   '@glimmer/component@2.1.1':
     dependencies:
@@ -5764,6 +5858,8 @@ snapshots:
 
   ansis@4.3.1: {}
 
+  argparse@2.0.1: {}
+
   aria-query@5.3.0:
     dependencies:
       dequal: 2.0.3
@@ -5892,6 +5988,8 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
+  balanced-match@4.0.4: {}
+
   baseline-browser-mapping@2.10.37: {}
 
   better-path-resolve@1.0.0:
@@ -5910,6 +6008,10 @@ snapshots:
   brace-expansion@2.1.1:
     dependencies:
       balanced-match: 1.0.2
+
+  brace-expansion@5.0.7:
+    dependencies:
+      balanced-match: 4.0.4
 
   braces@3.0.3:
     dependencies:
@@ -6297,6 +6399,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  ember-intl@8.2.9(@babel/core@7.29.7):
+    dependencies:
+      '@embroider/addon-shim': 1.10.3
+      '@formatjs/intl': 4.1.14
+      decorator-transforms: 2.4.0(@babel/core@7.29.7)
+    transitivePeerDependencies:
+      - '@babel/core'
+      - supports-color
+
   ember-modifier@4.3.0(@babel/core@7.29.7):
     dependencies:
       '@embroider/addon-shim': 1.10.3
@@ -6638,6 +6749,12 @@ snapshots:
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
+  glob@13.0.6:
+    dependencies:
+      minimatch: 10.2.5
+      minipass: 7.1.3
+      path-scurry: 2.0.2
+
   glob@7.2.3:
     dependencies:
       fs.realpath: 1.0.0
@@ -6754,6 +6871,11 @@ snapshots:
 
   inherits@2.0.4: {}
 
+  intl-messageformat@11.2.9:
+    dependencies:
+      '@formatjs/fast-memoize': 3.1.6
+      '@formatjs/icu-messageformat-parser': 3.5.12
+
   is-core-module@2.16.2:
     dependencies:
       hasown: 2.0.4
@@ -6815,6 +6937,10 @@ snapshots:
   js-string-escape@1.0.1: {}
 
   js-tokens@4.0.0: {}
+
+  js-yaml@5.2.1:
+    dependencies:
+      argparse: 2.0.1
 
   jscodeshift@0.15.2(@babel/preset-env@7.29.7(@babel/core@7.29.7)):
     dependencies:
@@ -6963,6 +7089,8 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
+  lru-cache@11.5.1: {}
+
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
@@ -7029,6 +7157,10 @@ snapshots:
   mimic-fn@3.1.0: {}
 
   min-indent@1.0.1: {}
+
+  minimatch@10.2.5:
+    dependencies:
+      brace-expansion: 5.0.7
 
   minimatch@3.1.5:
     dependencies:
@@ -7191,6 +7323,11 @@ snapshots:
   path-scurry@1.11.1:
     dependencies:
       lru-cache: 10.4.3
+      minipass: 7.1.3
+
+  path-scurry@2.0.2:
+    dependencies:
+      lru-cache: 11.5.1
       minipass: 7.1.3
 
   pathe@2.0.3: {}

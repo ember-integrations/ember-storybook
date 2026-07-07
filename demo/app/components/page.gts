@@ -6,15 +6,15 @@ import './page.css';
 export default class Page extends Component {
   @tracked user?: { name: string };
 
-  onLogin = () => {
+  login = () => {
     this.user = { name: 'Jane Doe' };
   };
 
-  onLogout = () => {
+  logout = () => {
     this.user = undefined;
   };
 
-  onCreateAccount = () => {
+  createAccount = () => {
     this.user = { name: 'Jane Doe' };
   };
 
@@ -22,9 +22,9 @@ export default class Page extends Component {
     <article>
       <Header
         @user={{this.user}}
-        @onLogin={{this.onLogin}}
-        @onLogout={{this.onLogout}}
-        @onCreateAccount={{this.onCreateAccount}}
+        @login={{this.login}}
+        @logout={{this.logout}}
+        @createAccount={{this.createAccount}}
       />
       <section class="storybook-page">
         <h2>Pages in Storybook</h2>

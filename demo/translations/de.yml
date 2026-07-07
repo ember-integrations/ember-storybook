@@ -1,0 +1,6 @@
+welcome: Willkommen
+
+actions:
+  login: Einloggen
+  logout: Ausloggen
+  signup: Registrieren

@@ -9,7 +9,7 @@ export default {
   argTypes: {
     backgroundColor: { control: 'color' },
     label: { control: 'text' },
-    onClick: { action: 'onClick' },
+    push: { action: 'push' },
     primary: { control: 'boolean' },
     size: {
       control: { type: 'select' },
@@ -17,7 +17,7 @@ export default {
     },
   },
   // Use `fn` to spy on the onClick arg, which will appear in the actions panel once invoked: https://storybook.js.org/docs/essentials/actions#story-args
-  args: { onClick: fn() },
+  args: { push: fn() },
 };
 
 export const Primary = {

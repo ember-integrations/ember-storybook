@@ -14,7 +14,7 @@ export interface Signature {
     size?: 'small' | 'medium' | 'large';
     /** Button contents */
     label: string;
-    onClick(): void;
+    push(): void;
   };
 }
 
@@ -36,7 +36,7 @@ export default class Button extends Component<Signature> {
 
   <template>
     <button
-      {{on "click" @onClick}}
+      {{on "click" @push}}
       type="button"
       class={{this.className}}
       {{this.backgroundColor}}

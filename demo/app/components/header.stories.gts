@@ -12,9 +12,9 @@ const meta = {
     layout: 'fullscreen',
   },
   args: {
-    onLogin: fn(),
-    onLogout: fn(),
-    onCreateAccount: fn(),
+    login: fn(),
+    logout: fn(),
+    createAccount: fn(),
   },
 } satisfies Meta<Signature['Args']>;
 

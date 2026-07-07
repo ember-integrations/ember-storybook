@@ -8,12 +8,7 @@
   "author": "",
   "type": "module",
   "imports": {
-    "#app/*": "./app/*",
-    "#config": "./app/config.ts",
-    "#components/*": "./app/components/*",
-    "#services/*": "./app/services/*",
-    "#test-helpers/*": "./tests/helpers/*",
-    "#utils/*": "./app/utils/*"
+    "#app/*": "./app/*"
   },
   "exports": {
     "./tests/*": "./tests/*",
@@ -43,6 +38,7 @@
     "@babel/plugin-transform-typescript": "7.29.7",
     "@babel/runtime": "7.29.7",
     "@ember/app-tsconfig": "2.0.0",
+    "@ember-intl/vite": "^1.1.1",
     "@embroider/core": "4.6.2",
     "@embroider/vite": "^1.7.8",
     "@glint/ember-tsc": "1.8.11",
@@ -53,6 +49,7 @@
     "@storybook/cli": "10.4.6",
     "@rollup/plugin-babel": "7.1.0",
     "babel-plugin-ember-template-compilation": "4.0.0",
+    "ember-intl": "^8.2.9",
     "storybook": "10.4.6",
     "typescript": "5.9.3",
     "vite": "8.1.3"

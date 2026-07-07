@@ -1,5 +1,7 @@
+import Page from '#app/components/page.gts';
+
 <template>
-  <h1>Welcome to Ember</h1>
+  <Page/>
 
   {{outlet}}
 </template>

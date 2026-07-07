@@ -1,17 +1,19 @@
-interface Config {
-  environment: "development" | "production";
-  locationType: "history" | "hash" | "none" | "auto";
-  rootURL: string;
-  EmberENV?: Record<string, unknown>;
-  APP: Record<string, unknown> & { rootElement?: string; autoboot?: boolean };
+import translationsDe from 'virtual:ember-intl/translations/de';
+import translationsEn from 'virtual:ember-intl/translations/en';
+
+import type ApplicationInstance from '@ember/application/instance';
+
+const DEFAULT_LOCALE = 'en';
+
+function configureIntl(app: ApplicationInstance) {
+  const intl = app.lookup('service:intl');
+
+  intl.addTranslations('en', translationsEn);
+  intl.addTranslations('de', translationsDe);
+
+  intl.setLocale(DEFAULT_LOCALE);
 }
 
-const ENV: Config = {
-  environment: import.meta.env.DEV ? "development" : "production",
-  rootURL: "/",
-  locationType: "history",
-  EmberENV: {},
-  APP: {},
-};
-
-export default ENV;
+export function configure(app: ApplicationInstance) {
+  configureIntl(app);
+}

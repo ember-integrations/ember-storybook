@@ -5,7 +5,7 @@ const config: StorybookConfig = {
     '../**/*.stories.g(j|t)s'
   ],
 
-  // addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
 
   framework: {
     name: 'ember-storybook',

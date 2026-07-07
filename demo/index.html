@@ -8,10 +8,13 @@
   </head>
   <body>
     <script type="module">
-      import Application from "#app/app";
-      import environment from "#config";
+      import { createApp, start } from '#app/app';
+      import { configure } from '#app/config';
 
-      Application.create(environment.APP);
+      const app = createApp();
+
+      configure(app);
+      start(app);
     </script>
   </body>
 </html>

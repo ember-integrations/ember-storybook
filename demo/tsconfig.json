@@ -6,7 +6,11 @@
       "ember-source/types",
       "@embroider/core/virtual",
       "vite/client",
-      "@glint/ember-tsc/types"
-    ]
+      "@glint/ember-tsc/types",
+      "@ember-intl/vite/virtual"
+    ],
+    "paths": {
+      "#app/*": ["./app/*"]
+    }
   }
 }
