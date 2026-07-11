@@ -24,10 +24,7 @@ export interface EmberRenderer extends WebRenderer {
   // We are omitting props, as we don't use it internally, and more importantly, it completely changes the assignability of meta.component.
   // Try not omitting, and check the type errros in the test file, if you want to learn more.
   component: object;
-  storyResult: {
-    Component: object;
-    args: Record<string, unknown>;
-  };
+  storyResult: object; // ComponentLike
   csf4: true
   parameters: Parameters;
 }

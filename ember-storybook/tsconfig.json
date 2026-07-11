@@ -1,13 +1,19 @@
 {
   "compilerOptions": {
     "rootDir": "./src",
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "declarations",
     "types": [
       "ember-source/types"
     ],
     "moduleResolution": "bundler",
-    "module": "esnext"
+    "module": "esnext",
+    "skipLibCheck": true
   },
   "include": [
-    "src/**/*"
+    "src"
   ]
 }
