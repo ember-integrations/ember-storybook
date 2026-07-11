@@ -1,6 +1,9 @@
 {
   "private": true,
   "author": "gossi",
+  "scripts": {
+    "build": "pnpm run -r build"
+  },
   "engines": {
     "node": ">=24.0.0"
   },
