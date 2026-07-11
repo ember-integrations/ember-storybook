@@ -1,6 +1,7 @@
 {
   "name": "ember-storybook",
-  "version": "10.2.0-alpha.9",
+  "version": "0.0.0",
+  "license": "MIT",
   "description": "Storybook for Ember: Develop, document, and test UI components in isolation",
   "keywords": [
     "storybook",
@@ -9,20 +10,13 @@
     "component",
     "components"
   ],
-  "homepage": "https://github.com/storybookjs/storybook/tree/next/code/frameworks/ember",
   "bugs": {
-    "url": "https://github.com/storybookjs/storybook/issues"
+    "url": "https://github.com/ember-integrations/ember-storybook/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/storybookjs/storybook.git",
-    "directory": "code/frameworks/ember"
+  "repository": "https://github.com/ember-integrations/ember-storybook",
+  "publishConfig": {
+    "access": "public"
   },
-  "funding": {
-    "type": "opencollective",
-    "url": "https://opencollective.com/storybook"
-  },
-  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -52,13 +46,9 @@
     }
   },
   "files": [
-    "dist/**/*",
-    "template/cli/**/*",
-    "addon-main.cjs",
-    "README.md",
-    "*.js",
-    "*.d.ts",
-    "!src/**/*"
+    "dist",
+    "declarations",
+    "README.md"
   ],
   "scripts": {
     "build": "tsdown",
@@ -67,7 +57,8 @@
     "lint:fix": "pnpm run '/^lint:[^:]*:fix/'",
     "lint:js": "eslint . --cache",
     "lint:js:fix": "eslint . --fix",
-    "lint:types": "ember-tsc --noEmit"
+    "lint:types": "ember-tsc --noEmit",
+    "prepack": "tsdown"
   },
   "dependencies": {
     "@storybook/builder-vite": "^10.5.0",
@@ -104,8 +95,5 @@
   },
   "engines": {
     "node": ">=24.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
