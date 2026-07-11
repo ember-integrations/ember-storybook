@@ -2,6 +2,7 @@ import { SourceType } from 'storybook/internal/docs-tools';
 import type { DecoratorFunction, Parameters } from 'storybook/internal/types';
 
 import { sourceDecorator } from './sourceDecorator';
+import type { EmberRenderer } from '../types';
 
 export const parameters: Parameters = {
   docs: {
@@ -12,4 +13,4 @@ export const parameters: Parameters = {
   },
 };
 
-export const decorators: DecoratorFunction[] = [sourceDecorator];
+export const decorators: DecoratorFunction<EmberRenderer>[] = [sourceDecorator];

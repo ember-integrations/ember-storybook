@@ -9,12 +9,12 @@ import ApplicationInstance from '@ember/application/instance';
 type Args = Record<string, unknown>;
 
 export const render: ArgsStoryFn<EmberRenderer> = (args, context) => {
-  const { id, component: Component } = context;
+  const { id, component } = context;
 
-  if (typeof Component === 'function') {
-    return { Component, args };
-  } else if (typeof Component === 'object') {
-    return { Component, args };
+  if (typeof component === 'function') {
+    return component;
+  } else if (typeof component === 'object') {
+    return component;
   }
 
   throw new Error(
@@ -31,6 +31,17 @@ const contexts = new Map<
   }
 >();
 
+function getAppOptions(opts: { rootElement: HTMLElement}) {
+  return {
+    ...opts,
+    autoboot: false
+  };
+}
+
+function buildAppInstance(application: typeof Application, opts: { rootElement: HTMLElement}) {
+  return application.create(getAppOptions(opts)).buildInstance();
+}
+
 export async function renderToCanvas(
   { storyFn, showMain, storyContext, forceRemount }: RenderContext<EmberRenderer> & {storyContext: StoryContext},
   canvasElement: EmberRenderer['canvasElement']
@@ -39,7 +50,8 @@ export async function renderToCanvas(
   const { renderComponent } = await import('@ember/renderer');
   const { destroy } = await import('@ember/destroyable');
 
-  const { Component, args } = storyFn();
+  const args = storyContext.args;
+  const Component = storyFn();
 
   function unmount(element: EmberRenderer['canvasElement']) {
     const context = contexts.get(element);
@@ -52,27 +64,31 @@ export async function renderToCanvas(
       destroy(context.application);
     }
   }
-
-  const context = contexts.get(canvasElement);
-  if (context && !forceRemount) {
-    updateArgs(context.args, args);
-    return () => {
-      unmount(canvasElement);
-    };
-  } else if (context) {
+  
+  if (forceRemount) {
     unmount(canvasElement);
   }
+  
+  // this check does not work:
+  // when globals are updated, that are interesting for a decorato
+  // this check would prevent that update
 
+  // const context = contexts.get(canvasElement);
+  // if (context && !forceRemount && args) {
+  //   updateArgs(context.args, args);
+  //   return () => {
+  //     unmount(canvasElement);
+  //   };
+  // }
+
+  // find the ember application for the story
   let application: ApplicationInstance | undefined = undefined;
-  const appOptions = {
-      autoboot: false,
-      rootElement: canvasElement
-    }
+  
 
   if (storyContext.parameters.ember?.app) {
     const appOption = storyContext.parameters.ember?.app;
 
-    function isApplication(appOption: object): appOption is Application {
+    function isApplication(appOption: object): appOption is typeof Application {
       // @ts-ignore this is wild
       return appOption['create'] !== undefined && appOption.superclass && appOption.supeclass.name === 'EmberApp';
     }
@@ -83,19 +99,19 @@ export async function renderToCanvas(
       }
 
       if (isApplication(appOption)) {
-        // @ts-ignore this is wild
-        return (appOption as Application).create(appOptions).buildInstance();
+        return buildAppInstance(appOption, {rootElement: canvasElement});
       }
 
-      return (appOption as Function)(appOptions);
+      return (appOption as Function)(getAppOptions({rootElement: canvasElement}));
     }
     
     application = initApp(appOption);
   }
 
+  // modify the owner for the story
   if (storyContext.parameters.ember?.owner) {
     if (!application) {
-      application = Application.create(appOptions).buildInstance();
+      application = buildAppInstance(Application, {rootElement: canvasElement});
     }
 
     for (const [key, obj] of Object.entries(storyContext.parameters.ember?.owner) as [`${string}:${string}`, object][]) {
@@ -104,7 +120,7 @@ export async function renderToCanvas(
     }
   }
 
-  const trackedArgs = trackedObject({ ...args });
+  const trackedArgs = trackedObject({ ...(args ?? {}) });
   const result = renderComponent(Component, {
     args: trackedArgs,
     into: canvasElement,

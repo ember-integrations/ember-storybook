@@ -31,7 +31,7 @@ export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, conte
 
     if (!skipSourceRender(context)) {
       const code =
-        generateGlimmerSource(renderedForSource.Component, context.args, context.argTypes) ??
+        generateGlimmerSource(renderedForSource, context.args, context.argTypes) ??
         undefined;
       emitTransformCode(code, context);
       source.current = code;
