@@ -1,8 +1,9 @@
 import { createApp } from '#app/app.ts';
 import { configure } from '#app/config.ts';
 
-import type { Preview } from 'ember-storybook';
 import { IntlDecorator } from './intl-decorator.gts';
+
+import type { Preview } from 'ember-storybook';
 
 const preview: Preview = {
   globalTypes: {
@@ -13,8 +14,8 @@ const preview: Preview = {
         icon: 'globe',
         items: [
           { value: 'en', right: '🇺🇸', title: 'English' },
-          { value: 'de', right: '🇩🇪', title: 'German' },
-        ],
+          { value: 'de', right: '🇩🇪', title: 'German' }
+        ]
       }
     }
   },
@@ -23,7 +24,7 @@ const preview: Preview = {
   },
   parameters: {
     docs: {
-      codePanel: true,
+      codePanel: true
     },
     controls: {
       matchers: {

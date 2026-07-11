@@ -1,15 +1,15 @@
-import type {
-  NamedOrDefaultProjectAnnotations,
-  NormalizedProjectAnnotations,
-} from 'storybook/internal/types';
-
 import {
-  setProjectAnnotations as originalSetProjectAnnotations,
   setDefaultProjectAnnotations,
+  setProjectAnnotations as originalSetProjectAnnotations
 } from 'storybook/preview-api';
 
 import * as INTERNAL_DEFAULT_PROJECT_ANNOTATIONS from './render';
+
 import type { EmberRenderer } from './types';
+import type {
+  NamedOrDefaultProjectAnnotations,
+  NormalizedProjectAnnotations
+} from 'storybook/internal/types';
 
 /**
  * Function that sets the globalConfig of your storybook. The global config is the preview module of
@@ -32,11 +32,10 @@ import type { EmberRenderer } from './types';
  */
 export function setProjectAnnotations(
   projectAnnotations:
-    | NamedOrDefaultProjectAnnotations<any>
-    | NamedOrDefaultProjectAnnotations<any>[]
+    | NamedOrDefaultProjectAnnotations<EmberRenderer>
+    | NamedOrDefaultProjectAnnotations<EmberRenderer>[]
 ): NormalizedProjectAnnotations<EmberRenderer> {
   setDefaultProjectAnnotations(INTERNAL_DEFAULT_PROJECT_ANNOTATIONS);
-  return originalSetProjectAnnotations(
-    projectAnnotations
-  ) as NormalizedProjectAnnotations<EmberRenderer>;
+
+  return originalSetProjectAnnotations(projectAnnotations);
 }

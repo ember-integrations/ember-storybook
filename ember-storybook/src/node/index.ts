@@ -4,4 +4,4 @@ export function defineMain(config: StorybookConfig) {
   return config;
 }
 
-export type { StorybookConfig };
+export { type StorybookConfig } from '../types';

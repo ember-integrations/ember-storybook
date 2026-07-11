@@ -1,78 +1,38 @@
 import { SourceType } from 'storybook/internal/docs-tools';
-import type { ArgTypes, Args, DecoratorFunction } from 'storybook/internal/types';
-
 import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
+import type { Args, ArgTypes, DecoratorFunction } from 'storybook/internal/types';
 
 function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[1]) {
-  const sourceParams = context?.parameters.docs?.source;
-  const isArgsStory = context?.parameters.__isArgsStory;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const sourceParams = context.parameters.docs?.source;
 
   // always render if the user forces it
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (sourceParams?.type === SourceType.DYNAMIC) {
     return false;
   }
 
+  const isArgsStory = context.parameters.__isArgsStory as boolean;
+
   // never render if the user is forcing the block to render code, or
   // if the user provides code, or if it's not an args story.
-  return !isArgsStory || sourceParams?.code || sourceParams?.type === SourceType.CODE;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+  return (!isArgsStory || sourceParams?.code) ?? sourceParams?.type === SourceType.CODE;
 }
 
-export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, context) => {
-  const source = useRef<string | undefined>(undefined);
-  const story = storyFn();
-
-  useEffect(() => {
-    const renderedForSource = context?.parameters.docs?.source?.excludeDecorators
-      ? (context.originalStoryFn as StoryFn)(context.args, context)
-      : story;
-
-    if (!skipSourceRender(context)) {
-      const code =
-        generateGlimmerSource(renderedForSource, context.args, context.argTypes) ??
-        undefined;
-      emitTransformCode(code, context);
-      source.current = code;
-    }
-  });
-
-  return story;
-};
-
-export function generateGlimmerSource(
-  component: object & { name?: string },
-  args: Args,
-  argTypes: ArgTypes
-): string | null {
-  const name = component.name;
-  if (!name) {
-    return null;
-  }
-
-  const propsArray = Object.entries(args)
-    .map(([k, v]) => toArgument(k, v, argTypes))
-    .filter((p) => p);
-
-  if (propsArray.length === 0) {
-    return `<${name} />`;
-  } else if (propsArray.length > 3) {
-    return `<${name}\n  ${propsArray.join('\n  ')}\n/>`;
-  }
-  return `<${name} ${propsArray.join(' ')} />`;
-}
-
-function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | null {
+function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
   if (value === undefined || value === null) {
-    return null;
+    return undefined;
   }
 
   const argType = argTypes[key];
 
   // event should be skipped
-  if (argType && argType.action) {
-    return null;
+  if (argType.action) {
+    return undefined;
   }
 
   if (typeof value === 'string') {
@@ -83,5 +43,53 @@ function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | n
     return `@${key}={{${JSON.stringify(value)}}}`;
   }
 
-  return null;
+  return undefined;
 }
+
+export function generateGlimmerSource(
+  component: object & { name?: string },
+  args: Args,
+  argTypes: ArgTypes
+): string | undefined {
+  const name = component.name;
+
+  if (!name) {
+    return undefined;
+  }
+
+  const propsArray = Object.entries(args)
+    .map(([k, v]) => toArgument(k, v, argTypes))
+    .filter(Boolean);
+
+  if (propsArray.length === 0) {
+    return `<${name} />`;
+  }
+
+  if (propsArray.length > 3) {
+    return `<${name}\n  ${propsArray.join('\n  ')}\n/>`;
+  }
+
+  return `<${name} ${propsArray.join(' ')} />`;
+}
+
+export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, context) => {
+  const source = useRef<string | undefined>(undefined);
+  const story = storyFn();
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const renderedForSource = context.parameters.docs?.source?.excludeDecorators
+      ? (context.originalStoryFn as StoryFn)(context.args, context)
+      : story;
+
+    if (!skipSourceRender(context)) {
+      const code =
+        generateGlimmerSource(renderedForSource, context.args, context.argTypes) ?? undefined;
+
+      void emitTransformCode(code, context);
+      source.current = code;
+    }
+  });
+
+  return story;
+};

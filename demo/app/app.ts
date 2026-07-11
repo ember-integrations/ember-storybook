@@ -10,11 +10,11 @@
  * - https://ember-primitives.pages.dev/6-utils/createService.md
  *   - https://ember-primitives.pages.dev/6-utils/createAsyncService.md
  */
+import EmbroiderRouter from '@embroider/router';
+
 import IntlService from 'ember-intl/services/intl';
+import Application from 'ember-strict-application-resolver';
 
-import Application from "ember-strict-application-resolver";
-
-import EmbroiderRouter from "@embroider/router";
 import type ApplicationInstance from '@ember/application/instance';
 
 export class Router extends EmbroiderRouter {
@@ -22,15 +22,16 @@ export class Router extends EmbroiderRouter {
   rootURL = '/';
 }
 
-Router.map(function() { });
+// eslint-disable-next-line unicorn/no-top-level-side-effects, @typescript-eslint/no-empty-function
+Router.map(function () {});
 
 export class App extends Application {
   modules = {
     './router': { default: Router },
     './services/intl': IntlService,
-    ...import.meta.glob("./routes/*", { eager: true }),
-    ...import.meta.glob("./templates/**/*", { eager: true }),
-    ...import.meta.glob("./services/**/*", { eager: true }),
+    ...import.meta.glob('./routes/*', { eager: true }),
+    ...import.meta.glob('./templates/**/*', { eager: true }),
+    ...import.meta.glob('./services/**/*', { eager: true })
   };
 }
 

@@ -1,12 +1,12 @@
-import type { Meta, StoryObj } from 'ember-storybook';
-
 import { Greeting } from './greeting.gts';
+
+import type { Meta, StoryObj } from 'ember-storybook';
 
 export default {
   title: 'Greetings',
   component: Greeting,
   parameters: {
-    layout: 'fullscreen',
+    layout: 'fullscreen'
   },
   argTypes: {
     name: {
@@ -19,15 +19,11 @@ export default {
 } satisfies Meta;
 
 export const LTR: StoryObj = {
-  render: (args) => <template>
-    <Greeting @name={{args.name}} />
-  </template>
-}
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+};
 
 export const RTL: StoryObj = {
-  render: (args) => <template>
-    <Greeting @name={{args.name}} dir="rtl"/>
-  </template>
-}
+  render: (args) => <template><Greeting @name={{args.name}} dir="rtl" /></template>
+};
 
 export const Plain: StoryObj = {};

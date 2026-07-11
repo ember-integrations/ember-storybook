@@ -1,7 +1,7 @@
 import Page from '#app/components/page.gts';
 
 <template>
-  <Page/>
+  <Page />
 
   {{outlet}}
 </template>

@@ -1,9 +1,8 @@
+import type { BuilderOptions, StorybookConfigVite } from '@storybook/builder-vite';
 import type {
   CompatibleString,
-  StorybookConfig as StorybookConfigBase,
+  StorybookConfig as StorybookConfigBase
 } from 'storybook/internal/types';
-
-import type { BuilderOptions, StorybookConfigVite } from '@storybook/builder-vite';
 
 type FrameworkName = CompatibleString<'ember-storybook'>;
 type BuilderName = CompatibleString<'@storybook/builder-vite'>;

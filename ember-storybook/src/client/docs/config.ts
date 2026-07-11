@@ -1,16 +1,17 @@
 import { SourceType } from 'storybook/internal/docs-tools';
-import type { DecoratorFunction, Parameters } from 'storybook/internal/types';
 
 import { sourceDecorator } from './sourceDecorator';
+
 import type { EmberRenderer } from '../types';
+import type { DecoratorFunction, Parameters } from 'storybook/internal/types';
 
 export const parameters: Parameters = {
   docs: {
     source: {
       type: SourceType.DYNAMIC,
-      language: 'html',
-    },
-  },
+      language: 'html'
+    }
+  }
 };
 
 export const decorators: DecoratorFunction<EmberRenderer>[] = [sourceDecorator];

@@ -12,5 +12,9 @@
     "paths": {
       "#app/*": ["./app/*"]
     }
-  }
+  },
+  "include": [
+    "app/",
+    ".storybook/**/*"
+  ]
 }

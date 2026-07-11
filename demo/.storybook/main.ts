@@ -1,21 +1,19 @@
 import type { StorybookConfig } from 'ember-storybook';
 
 const config: StorybookConfig = {
-  stories: [
-    '../**/*.stories.g(j|t)s'
-  ],
+  stories: ['../**/*.stories.g(j|t)s'],
 
   addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
 
   framework: {
     name: 'ember-storybook',
-    options: {},
+    options: {}
   },
 
   features: {},
 
   core: {
-    disableWhatsNewNotifications: true,
+    disableWhatsNewNotifications: true
   },
 
   previewHead: (head) => `
@@ -40,6 +38,7 @@ const config: StorybookConfig = {
           monospace;
       }
     </style>
-  `,
+  `
 };
+
 export default config;
