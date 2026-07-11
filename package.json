@@ -1,11 +1,15 @@
 {
   "private": true,
+  "repository": "https://github.com/ember-integrations/ember-storybook",
   "author": "gossi",
   "scripts": {
     "build": "pnpm run -r build"
   },
+  "devDependencies": {
+    "release-plan": "^0.18.0"
+  },
+  "packageManager": "pnpm@11.6.0",
   "engines": {
     "node": ">=24.0.0"
-  },
-  "packageManager": "pnpm@11.6.0"
+  }
 }
