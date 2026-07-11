@@ -1,15 +1,15 @@
 import { fileURLToPath } from 'node:url';
 
-import type { PresetProperty } from 'storybook/internal/types';
-
 import { type StorybookConfigVite, withoutVitePlugins } from '@storybook/builder-vite';
 
+import { emberIndexer } from './node/indexer';
+
+import type { StorybookConfig } from './types';
+import type { PresetProperty } from 'storybook/internal/types';
 import type { UserConfig } from 'vite';
 
-import { emberIndexer } from './node/indexer';
-import type { StorybookConfig } from './types';
-
 export const previewAnnotations: PresetProperty<'previewAnnotations'> = async (
+  // eslint-disable-next-line @typescript-eslint/default-param-last
   entries = [],
   options
 ) => {
@@ -18,10 +18,10 @@ export const previewAnnotations: PresetProperty<'previewAnnotations'> = async (
 
   const docsConfig = await options.presets.apply('docs', {}, options);
   const docsEnabled = Object.keys(docsConfig).length > 0;
+
   if (docsEnabled) {
-    const docsConfigPath = fileURLToPath(
-      import.meta.resolve('ember-storybook/client/docs/config')
-    );
+    const docsConfigPath = fileURLToPath(import.meta.resolve('ember-storybook/client/docs/config'));
+
     annotations.push(docsConfigPath);
   }
 
@@ -40,16 +40,16 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
       // optimized by Storybook, and qs is a default dependency by ember-cli.
       // `object-inspect` isn't going to work in Ember with Vite, so it's
       // safe to exclude it.
-      exclude: ['object-inspect'],
+      exclude: ['object-inspect']
     },
     resolve: {
-      dedupe: ['ember-source'],
-    },
+      dedupe: ['ember-source']
+    }
   });
 };
 
 export const experimental_indexers: StorybookConfig['experimental_indexers'] = (indexers) => {
-  return [emberIndexer, ...(indexers || [])];
+  return [emberIndexer, ...(indexers ?? [])];
 };
 
 export const core: PresetProperty<'core'> = async (config, options) => {
@@ -59,7 +59,11 @@ export const core: PresetProperty<'core'> = async (config, options) => {
     ...config,
     builder: {
       name: import.meta.resolve('@storybook/builder-vite'),
-      options: typeof framework === 'string' ? {} : framework.options.builder || {},
-    },
+      options:
+        typeof framework === 'string'
+          ? {}
+          : // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            ((framework.options?.builder ?? {}) as object)
+    }
   };
 };

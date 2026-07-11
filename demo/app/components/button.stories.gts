@@ -13,25 +13,25 @@ export default {
     primary: { control: 'boolean' },
     size: {
       control: { type: 'select' },
-      options: ['small', 'medium', 'large'],
-    },
+      options: ['small', 'medium', 'large']
+    }
   },
   // Use `fn` to spy on the onClick arg, which will appear in the actions panel once invoked: https://storybook.js.org/docs/essentials/actions#story-args
-  args: { push: fn() },
+  args: { push: fn() }
 };
 
 export const Primary = {
   args: {
     label: 'Button',
     primary: true,
-    size: 'medium',
-  },
+    size: 'medium'
+  }
 };
 
 export const Secondary = {
   args: {
     label: 'Buttons',
     primary: false,
-    size: 'large',
-  },
+    size: 'large'
+  }
 };

@@ -1,7 +1,6 @@
-import type { StoryContext as DefaultStoryContext, WebRenderer } from 'storybook/internal/types';
-
 import type Application from '@ember/application';
 import type ApplicationInstance from '@ember/application/instance';
+import type { StoryContext as DefaultStoryContext, WebRenderer } from 'storybook/internal/types';
 
 export type { RenderContext } from 'storybook/internal/types';
 
@@ -10,14 +9,17 @@ export interface ShowErrorArgs {
   description: string;
 }
 
-export type AppParamater = typeof Application | typeof ApplicationInstance | ((options?: Record<string, unknown>) => typeof Application | typeof ApplicationInstance)
+export type AppParamater =
+  | typeof Application
+  | ApplicationInstance
+  | ((options?: Record<string, unknown>) => typeof Application | ApplicationInstance);
 
-export interface Parameters {
+export interface EmberParameters {
   // renderer: 'ember';
   ember?: {
-      app?: AppParamater;
-      owner?: Record<`${string}:${string}`, object>;
-    }
+    app?: AppParamater;
+    owner?: Record<`${string}:${string}`, object>;
+  };
 }
 
 export interface EmberRenderer extends WebRenderer {
@@ -25,10 +27,10 @@ export interface EmberRenderer extends WebRenderer {
   // Try not omitting, and check the type errros in the test file, if you want to learn more.
   component: object;
   storyResult: object; // ComponentLike
-  csf4: true
-  parameters: Parameters;
+  csf4: true;
+  parameters: EmberParameters;
 }
 
 export type StoryContext = DefaultStoryContext<EmberRenderer> & {
-  parameters: DefaultStoryContext<EmberRenderer>['parameters'] & Parameters;
+  parameters: DefaultStoryContext<EmberRenderer>['parameters'] & EmberParameters;
 };

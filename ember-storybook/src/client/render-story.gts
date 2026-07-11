@@ -1,6 +1,7 @@
-import { renderComponent } from '@ember/renderer';
-import { getOwner } from '@ember/owner';
 import Component from '@glimmer/component';
+import { getOwner } from '@ember/owner';
+import { renderComponent } from '@ember/renderer';
+
 import { modifier } from 'ember-modifier';
 
 interface RenderStorySignature {
@@ -18,12 +19,12 @@ export class RenderStory extends Component<RenderStorySignature> {
     const result = renderComponent(component, {
       args: this.args.args,
       into: element,
-      owner,
+      owner
     });
 
     return () => {
       result.destroy();
-    }
+    };
   });
 
   <template>

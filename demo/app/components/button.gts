@@ -1,7 +1,9 @@
-import Component from '@glimmer/component';
-import { modifier} from 'ember-modifier';
-import { on } from '@ember/modifier';
 import './button.css';
+
+import Component from '@glimmer/component';
+import { on } from '@ember/modifier';
+
+import { modifier } from 'ember-modifier';
 
 export interface Signature {
   Element: HTMLButtonElement;
@@ -24,23 +26,13 @@ export default class Button extends Component<Signature> {
   });
 
   get className() {
-    let mode = this.args.primary
-      ? 'storybook-button--primary'
-      : 'storybook-button--secondary';
-    return [
-      'storybook-button',
-      `storybook-button--${this.args.size}`,
-      mode,
-    ].join(' ');
+    const mode = this.args.primary ? 'storybook-button--primary' : 'storybook-button--secondary';
+
+    return ['storybook-button', `storybook-button--${this.args.size}`, mode].join(' ');
   }
 
   <template>
-    <button
-      {{on "click" @push}}
-      type="button"
-      class={{this.className}}
-      {{this.backgroundColor}}
-    >
+    <button {{on "click" @push}} type="button" class={{this.className}} {{this.backgroundColor}}>
       {{@label}}
     </button>
   </template>

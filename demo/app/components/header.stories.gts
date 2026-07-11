@@ -1,21 +1,21 @@
-import type { Meta, StoryObj } from 'ember-storybook';
-
 import { fn } from 'storybook/test';
 
 import Header, { type Signature } from './header.gts';
+
+import type { Meta, StoryObj } from 'ember-storybook';
 
 const meta = {
   title: 'Example/Header',
   component: Header,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/configure/story-layout
-    layout: 'fullscreen',
+    layout: 'fullscreen'
   },
   args: {
     login: fn(),
     logout: fn(),
-    createAccount: fn(),
-  },
+    createAccount: fn()
+  }
 } satisfies Meta<Signature['Args']>;
 
 export default meta;
@@ -24,9 +24,9 @@ type Story = StoryObj<Signature['Args']>;
 export const LoggedIn: Story = {
   args: {
     user: {
-      name: 'Jane Doe',
-    },
-  },
+      name: 'Jane Doe'
+    }
+  }
 };
 
 export const LoggedOut: Story = {};

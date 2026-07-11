@@ -1,49 +1,49 @@
-import { buildMacros } from "@embroider/macros/babel";
+import { buildMacros } from '@embroider/macros/babel';
 
 const macros = buildMacros({
   configure(config) {
-    if (process.env.EMBER_ENV === "test") {
+    if (process.env.EMBER_ENV === 'test') {
       config.enableRuntimeMode();
     }
-  },
+  }
 });
 
 export default {
   plugins: [
     [
-      "@babel/plugin-transform-typescript",
+      '@babel/plugin-transform-typescript',
       {
         allExtensions: true,
         onlyRemoveTypeImports: true,
-        allowDeclareFields: true,
-      },
+        allowDeclareFields: true
+      }
     ],
     [
-      "babel-plugin-ember-template-compilation",
+      'babel-plugin-ember-template-compilation',
       {
-        transforms: [...macros.templateMacros],
-      },
+        transforms: [...macros.templateMacros]
+      }
     ],
     [
-      "module:decorator-transforms",
+      'module:decorator-transforms',
       {
         runtime: {
-          import: import.meta.resolve("decorator-transforms/runtime-esm"),
-        },
-      },
+          import: import.meta.resolve('decorator-transforms/runtime-esm')
+        }
+      }
     ],
     [
-      "@babel/plugin-transform-runtime",
+      '@babel/plugin-transform-runtime',
       {
         absoluteRuntime: import.meta.dirname,
         useESModules: true,
-        regenerator: false,
-      },
+        regenerator: false
+      }
     ],
-    ...macros.babelMacros,
+    ...macros.babelMacros
   ],
 
   generatorOpts: {
-    compact: false,
-  },
+    compact: false
+  }
 };

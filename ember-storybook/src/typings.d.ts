@@ -1,1 +1,1 @@
-declare var STORYBOOK_ENV: 'ember';
+declare let STORYBOOK_ENV: 'ember';

@@ -2,6 +2,6 @@ packages:
   - ember-storybook/
   - demo/
 allowBuilds:
-  '@swc/core': set this to true or false
+  '@swc/core': false
   esbuild: false
-  unrs-resolver: set this to true or false
+  unrs-resolver: false
