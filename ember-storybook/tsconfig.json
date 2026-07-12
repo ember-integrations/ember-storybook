@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
     "rootDir": "./src",
     "verbatimModuleSyntax": true,
     "declaration": true,

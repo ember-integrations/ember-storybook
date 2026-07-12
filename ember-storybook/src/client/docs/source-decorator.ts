@@ -21,29 +21,25 @@ function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[
   return (!isArgsStory || sourceParams?.code) ?? sourceParams?.type === SourceType.CODE;
 }
 
-function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
+export function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
+  if (value !== undefined && value !== null) {
+    if (typeof value === 'string') {
+      return `@${key}=${JSON.stringify(value)}`;
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return `@${key}={{${JSON.stringify(value)}}}`;
+    }
   }
 
-  const argType = argTypes[key];
-
-  if (argType.action) {
-    return undefined;
-  }
-
-  if (typeof value === 'string') {
-    return `@${key}=${JSON.stringify(value)}`;
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return `@${key}={{${JSON.stringify(value)}}}`;
+  if (Object.hasOwn(argTypes, key)) {
+    return `@${key}={{@${key}}}`;
   }
 
   return undefined;
 }
 
-function resolveTemplateArgs(template: string, args: Args): string {
+export function resolveTemplateArgs(template: string, args: Args): string {
   return template.replaceAll(/\{\{args\.(\w+)\}\}/g, (_match, key) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const value = (args as Record<string, unknown>)[key];
@@ -56,11 +52,11 @@ function resolveTemplateArgs(template: string, args: Args): string {
       return `{{${String(value)}}}`;
     }
 
-    return `{{args.${key}}}`;
+    return `{{@${key}}}`;
   });
 }
 
-export function generateGlimmerSource(
+export function generateSource(
   component: object & { name?: string },
   args: Args,
   argTypes: ArgTypes,
@@ -107,8 +103,7 @@ export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, conte
 
     if (!skipSourceRender(context)) {
       const code =
-        generateGlimmerSource(renderedForSource, context.args, context.argTypes, context.id) ??
-        undefined;
+        generateSource(renderedForSource, context.args, context.argTypes, context.id) ?? undefined;
 
       void emitTransformCode(code, context);
       source.current = code;

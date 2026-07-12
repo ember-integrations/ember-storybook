@@ -58,14 +58,16 @@
     "lint:js": "eslint . --cache",
     "lint:js:fix": "eslint . --fix",
     "lint:types": "ember-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepack": "tsdown"
   },
   "dependencies": {
     "@storybook/builder-vite": "^10.5.0",
     "@storybook/global": "^5.0.0",
     "content-tag": "^4.0.0",
-    "oxc-parser": "^0.139.0",
     "ember-modifier": "4.3.0",
+    "oxc-parser": "^0.139.0",
     "ts-dedent": "^2.0.0"
   },
   "devDependencies": {
@@ -86,7 +88,8 @@
     "storybook": "^10.5.0",
     "tsdown": "^0.22.4",
     "typescript": "^6.0.3",
-    "vite": "^8.1.3"
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "@glimmer/component": "^2.1.1",
