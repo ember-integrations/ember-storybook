@@ -1,5 +1,6 @@
 import { SourceType } from 'storybook/internal/docs-tools';
 import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
+import storyMeta from 'virtual:ember-storybook-meta';
 
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
@@ -9,7 +10,6 @@ function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const sourceParams = context.parameters.docs?.source;
 
-  // always render if the user forces it
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (sourceParams?.type === SourceType.DYNAMIC) {
     return false;
@@ -17,43 +17,62 @@ function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[
 
   const isArgsStory = context.parameters.__isArgsStory as boolean;
 
-  // never render if the user is forcing the block to render code, or
-  // if the user provides code, or if it's not an args story.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
   return (!isArgsStory || sourceParams?.code) ?? sourceParams?.type === SourceType.CODE;
 }
 
-function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
+export function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
+  if (value !== undefined && value !== null) {
+    if (typeof value === 'string') {
+      return `@${key}=${JSON.stringify(value)}`;
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return `@${key}={{${JSON.stringify(value)}}}`;
+    }
   }
 
-  const argType = argTypes[key];
-
-  // event should be skipped
-  if (argType.action) {
-    return undefined;
-  }
-
-  if (typeof value === 'string') {
-    return `@${key}=${JSON.stringify(value)}`;
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return `@${key}={{${JSON.stringify(value)}}}`;
+  if (Object.hasOwn(argTypes, key)) {
+    return `@${key}={{@${key}}}`;
   }
 
   return undefined;
 }
 
-export function generateGlimmerSource(
+export function resolveTemplateArgs(template: string, args: Args): string {
+  return template.replaceAll(/\{\{args\.(\w+)\}\}/g, (_match, key) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const value = (args as Record<string, unknown>)[key];
+
+    if (typeof value === 'string') {
+      return JSON.stringify(value);
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return `{{${String(value)}}}`;
+    }
+
+    return `{{@${key}}}`;
+  });
+}
+
+export function generateSource(
   component: object & { name?: string },
   args: Args,
-  argTypes: ArgTypes
+  argTypes: ArgTypes,
+  storyId?: string
 ): string | undefined {
-  const name = component.name;
+  const meta = storyId
+    ? (storyMeta as Record<string, { componentName: string; inlineTemplate?: string }>)[storyId]
+    : undefined;
 
-  if (!name) {
+  if (meta?.inlineTemplate) {
+    return resolveTemplateArgs(meta.inlineTemplate, args);
+  }
+
+  const name = meta?.componentName ?? component.name;
+
+  if (!name || name === '(unknown template-only component)') {
     return undefined;
   }
 
@@ -84,7 +103,7 @@ export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, conte
 
     if (!skipSourceRender(context)) {
       const code =
-        generateGlimmerSource(renderedForSource, context.args, context.argTypes) ?? undefined;
+        generateSource(renderedForSource, context.args, context.argTypes, context.id) ?? undefined;
 
       void emitTransformCode(code, context);
       source.current = code;

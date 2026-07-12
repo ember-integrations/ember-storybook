@@ -7,5 +7,12 @@ export default [
     rules: {
       'n/no-unpublished-import': 'off'
     }
+  },
+  {
+    files: ['src/**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off'
+    }
   }
 ];

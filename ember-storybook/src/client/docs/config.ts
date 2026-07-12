@@ -1,6 +1,6 @@
 import { SourceType } from 'storybook/internal/docs-tools';
 
-import { sourceDecorator } from './sourceDecorator';
+import { sourceDecorator } from './source-decorator';
 
 import type { EmberRenderer } from '../types';
 import type { DecoratorFunction, Parameters } from 'storybook/internal/types';
