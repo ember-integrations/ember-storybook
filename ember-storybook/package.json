@@ -64,6 +64,7 @@
     "@storybook/builder-vite": "^10.5.0",
     "@storybook/global": "^5.0.0",
     "content-tag": "^4.0.0",
+    "oxc-parser": "^0.139.0",
     "ember-modifier": "4.3.0",
     "ts-dedent": "^2.0.0"
   },

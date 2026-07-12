@@ -22,7 +22,7 @@ export default defineConfig({
   clean: true,
   dts: false,
   deps: {
-    neverBundle: [/^@ember/]
+    neverBundle: [/^@ember/, /^virtual:/]
   },
   plugins: [
     babel({
