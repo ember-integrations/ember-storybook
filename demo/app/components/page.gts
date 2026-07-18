@@ -3,7 +3,7 @@ import './page.css';
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 
-import Header from './header.gts';
+import { Header } from './header.gts';
 
 export default class Page extends Component {
   @tracked user?: { name: string };

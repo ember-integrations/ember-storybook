@@ -16,13 +16,23 @@ export default defineConfig({
     'src/client/index.ts',
     'src/client/config.ts',
     'src/client/docs/config.ts',
+    'src/client/docs/page.ts',
+    'src/client/docs/blocks.ts',
     'src/node/index.ts'
   ],
   sourcemap: true,
   clean: true,
   dts: false,
   deps: {
-    neverBundle: [/^@ember/, /^virtual:/]
+    neverBundle: [
+      /^@ember/,
+      /^virtual:/,
+      /^typedoc/,
+      /^typedoc-plugin-/,
+      /^@storybook\/addon-docs/,
+      /^react(\/|$)/,
+      /^react-dom/
+    ]
   },
   plugins: [
     babel({

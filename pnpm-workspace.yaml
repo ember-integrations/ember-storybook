@@ -1,6 +1,7 @@
 packages:
   - ember-storybook/
   - demo/
+  - packages/*
 allowBuilds:
   '@swc/core': false
   esbuild: false

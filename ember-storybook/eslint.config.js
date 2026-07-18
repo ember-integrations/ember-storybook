@@ -1,7 +1,7 @@
-import ember from '@gossi/config-eslint/ember';
+import config from '@gossi/config-eslint/node';
 
 export default [
-  ...ember(import.meta.dirname),
+  ...config(import.meta.dirname),
   {
     files: ['eslint.config.js', 'prettier.config.js', 'tsdown.config.js'],
     rules: {

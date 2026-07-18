@@ -29,7 +29,7 @@ const Logo = <template>
   <h1>Acme</h1>
 </template>;
 
-const Header = <template>
+const H = <template>
   <header>
     <div class="storybook-header">
       <Logo />
@@ -51,4 +51,4 @@ const Header = <template>
   </header>
 </template> satisfies TOC<Signature>;
 
-export default Header;
+export { H as Header };

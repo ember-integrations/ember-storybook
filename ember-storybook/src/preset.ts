@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { type StorybookConfigVite, withoutVitePlugins } from '@storybook/builder-vite';
 
 import { emberIndexer } from './node/indexer';
-import { emberStorybookMetaPlugin } from './node/meta/vite-plugin';
+import { emberStorybookPlugin } from './node/vite-plugin';
 
 import type { StorybookConfig } from './types';
 import type { PresetProperty } from 'storybook/internal/types';
@@ -35,13 +35,8 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
   config.plugins = await withoutVitePlugins(config.plugins, ['embroider-content-for']);
 
   return mergeConfig(config, {
-    plugins: [emberStorybookMetaPlugin()],
+    plugins: [...emberStorybookPlugin()],
     optimizeDeps: {
-      // esbuild doesn't handle disabling modules when using plugins.
-      // `object-inspect` gets pulled in by `qs` which is automatically
-      // optimized by Storybook, and qs is a default dependency by ember-cli.
-      // `object-inspect` isn't going to work in Ember with Vite, so it's
-      // safe to exclude it.
       exclude: ['object-inspect']
     },
     resolve: {

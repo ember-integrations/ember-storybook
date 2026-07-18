@@ -1,10 +1,20 @@
 import { SourceType } from 'storybook/internal/docs-tools';
 import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
-import storyMeta from 'virtual:ember-storybook-meta';
+import emberData from 'virtual:ember-storybook';
 
+import type { BlockInfo, ComponentSignature } from '../../node/typedoc/types';
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
 import type { Args, ArgTypes, DecoratorFunction } from 'storybook/internal/types';
+
+const data = emberData as Record<
+  string,
+  {
+    component?: { file?: string; signatureName?: string };
+    source?: Record<string, string | undefined>;
+    signatures?: Record<string, ComponentSignature>;
+  }
+>;
 
 function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[1]) {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -28,12 +38,96 @@ export function toArgument(key: string, value: unknown, argTypes: ArgTypes): str
     }
 
     if (typeof value === 'number' || typeof value === 'boolean') {
-      return `@${key}={{${JSON.stringify(value)}}}`;
+      return `@${key}={{${String(value)}}}`;
+    }
+
+    if (Object.hasOwn(argTypes, key)) {
+      return `@${key}={{@${key}}}`;
+    }
+
+    return undefined;
+  }
+
+  if (value === undefined && Object.hasOwn(argTypes, key)) {
+    return `@${key}={{@${key}}}`;
+  }
+
+  return undefined;
+}
+
+function generateBlockContent(blockInfo: BlockInfo): string {
+  if (blockInfo.params.length === 0) {
+    return '...';
+  }
+
+  const paramNames = blockInfo.params.map((p) => p.name).join(', ');
+
+  return `{{yield ${paramNames}}}`;
+}
+
+export function generateBlockSourceCode(
+  sig: ComponentSignature,
+  args: Args,
+  indent: string
+): string {
+  const blockNames = Object.keys(sig.blocks);
+
+  if (blockNames.length === 0) return '';
+
+  const blocks: string[] = [];
+
+  for (const blockName of blockNames) {
+    const blockInfo = sig.blocks[blockName];
+    const arg = (args as Record<string, unknown>)[blockName];
+
+    if (arg === undefined && blockInfo.params.length === 0) {
+      continue;
+    }
+
+    const params = blockInfo.params.map((p) => p.name).join(' ');
+    const slotBindings = params ? ` as |${params}|` : '';
+
+    const content = generateBlockContent(blockInfo);
+
+    if (blockName === 'default' && !slotBindings) {
+      blocks.push(content);
+    } else {
+      blocks.push(`${indent}  <:${blockName}${slotBindings}>${content}</:${blockName}>`);
     }
   }
 
-  if (Object.hasOwn(argTypes, key)) {
-    return `@${key}={{@${key}}}`;
+  return blocks.join('\n');
+}
+
+let byStoryId: Record<string, { componentName?: string; inlineTemplate?: string }> | undefined;
+
+function getByStoryId(): Record<string, { componentName?: string; inlineTemplate?: string }> {
+  if (byStoryId) return byStoryId;
+
+  byStoryId = {};
+
+  for (const entry of Object.values(data)) {
+    const comp = entry.component;
+
+    if (!comp) continue;
+
+    for (const [storyId, inlineTemplate] of Object.entries(entry.source ?? {})) {
+      byStoryId[storyId] = { componentName: comp.signatureName, inlineTemplate };
+    }
+  }
+
+  return byStoryId;
+}
+
+function signatureForComponent(name: string): ComponentSignature | undefined {
+  for (const entry of Object.values(data)) {
+    const comp = entry.component;
+
+    if (!comp || comp.signatureName !== name) continue;
+
+    const compEntry = comp.file ? data[comp.file] : undefined;
+
+    return compEntry?.signatures?.[comp.signatureName];
   }
 
   return undefined;
@@ -57,14 +151,12 @@ export function resolveTemplateArgs(template: string, args: Args): string {
 }
 
 export function generateSource(
-  component: object & { name?: string },
+  component: { name?: string },
   args: Args,
   argTypes: ArgTypes,
   storyId?: string
 ): string | undefined {
-  const meta = storyId
-    ? (storyMeta as Record<string, { componentName: string; inlineTemplate?: string }>)[storyId]
-    : undefined;
+  const meta = storyId ? getByStoryId()[storyId] : undefined;
 
   if (meta?.inlineTemplate) {
     return resolveTemplateArgs(meta.inlineTemplate, args);
@@ -76,19 +168,34 @@ export function generateSource(
     return undefined;
   }
 
+  const sig = signatureForComponent(name);
+
   const propsArray = Object.entries(args)
+    .filter(([k]) => !sig || !Object.hasOwn(sig.blocks, k))
     .map(([k, v]) => toArgument(k, v, argTypes))
     .filter(Boolean);
 
+  const blockCode = sig ? generateBlockSourceCode(sig, args, '') : '';
+
+  const propsStr = propsArray.join(' ');
+
+  if (!blockCode) {
+    if (propsArray.length === 0) {
+      return `<${name} />`;
+    }
+
+    if (propsArray.length > 3) {
+      return `<${name}\n  ${propsArray.join('\n  ')}\n/>`;
+    }
+
+    return `<${name} ${propsStr} />`;
+  }
+
   if (propsArray.length === 0) {
-    return `<${name} />`;
+    return `<${name}>\n${blockCode}\n</${name}>`;
   }
 
-  if (propsArray.length > 3) {
-    return `<${name}\n  ${propsArray.join('\n  ')}\n/>`;
-  }
-
-  return `<${name} ${propsArray.join(' ')} />`;
+  return `<${name} ${propsStr}>\n${blockCode}\n</${name}>`;
 }
 
 export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, context) => {
