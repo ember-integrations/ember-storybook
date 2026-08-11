@@ -10,11 +10,6 @@ So you can develop UI components in isolation without worrying about app specifi
 
 ## Getting Started
 
-```sh
-cd my-ember-app
-npx storybook@latest init
-```
-
 For more information visit: [storybook.js.org](https://storybook.js.org?ref=readme)
 
 ---
