@@ -5,7 +5,9 @@ import { buildArgTypes } from './extractArgTypes';
 import Page from './page';
 import { sourceDecorator } from './source-decorator';
 
+import type { ComponentFile, EmberMeta, StoryFile } from '../../node/types';
 import type { EmberRenderer } from '../types';
+import type { ComponentSignature } from 'ember-docgen';
 import type {
   DecoratorFunction,
   Parameters,
@@ -13,17 +15,23 @@ import type {
   StrictArgTypes
 } from 'storybook/internal/types';
 
-const data = emberData as Record<string, { meta?: unknown; component?: { file?: string; signatureName?: string }; source?: Record<string, string | undefined>; signatures?: Record<string, import('../../node/typedoc/types').ComponentSignature> }>;
+const data = emberData as EmberMeta;
 
 console.log('[ember-storybook] virtual module data (JS):', data);
 console.log('[ember-storybook] virtual module data (JSON):', JSON.stringify(data, null, 2));
 
-function resolveSig(entry: { component?: { file?: string; signatureName?: string }; signatures?: Record<string, import('../../node/typedoc/types').ComponentSignature> }): import('../../node/typedoc/types').ComponentSignature | undefined {
+function resolveSig(entry: StoryFile | ComponentFile): ComponentSignature | undefined {
+  if (!('component' in entry)) return undefined;
+
   const comp = entry.component;
-  if (!comp?.signatureName) return undefined;
+
+  if (!comp.signatureName) return undefined;
 
   const compEntry = comp.file ? data[comp.file] : undefined;
-  return compEntry?.signatures?.[comp.signatureName];
+
+  if (!compEntry || !('signatures' in compEntry)) return undefined;
+
+  return compEntry.signatures[comp.signatureName];
 }
 
 export const argTypesEnhancers: ((
@@ -46,8 +54,6 @@ export const argTypesEnhancers: ((
 
     if (titleName) {
       for (const entry of Object.values(data)) {
-        if (!entry.component) continue;
-
         const sig = resolveSig(entry);
 
         if (sig) {

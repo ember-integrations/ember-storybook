@@ -2,9 +2,11 @@ import { SourceType } from 'storybook/internal/docs-tools';
 import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 import emberData from 'virtual:ember-storybook';
 
-import type { BlockInfo, ComponentSignature } from '../../node/typedoc/types';
+import { unwrapBlockParams } from './block-params';
+
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
+import type { BlockInfo, ComponentSignature } from 'ember-docgen';
 import type { Args, ArgTypes, DecoratorFunction } from 'storybook/internal/types';
 
 const data = emberData as Record<
@@ -60,7 +62,9 @@ function generateBlockContent(blockInfo: BlockInfo): string {
     return '...';
   }
 
-  const paramNames = blockInfo.params.map((p) => p.name).join(', ');
+  const paramNames = unwrapBlockParams(blockInfo.params)
+    .map((p) => p.name)
+    .join(', ');
 
   return `{{yield ${paramNames}}}`;
 }
@@ -84,7 +88,9 @@ export function generateBlockSourceCode(
       continue;
     }
 
-    const params = blockInfo.params.map((p) => p.name).join(' ');
+    const params = unwrapBlockParams(blockInfo.params)
+      .map((p) => p.name)
+      .join(' ');
     const slotBindings = params ? ` as |${params}|` : '';
 
     const content = generateBlockContent(blockInfo);
@@ -123,7 +129,7 @@ function signatureForComponent(name: string): ComponentSignature | undefined {
   for (const entry of Object.values(data)) {
     const comp = entry.component;
 
-    if (!comp || comp.signatureName !== name) continue;
+    if (comp?.signatureName !== name) continue;
 
     const compEntry = comp.file ? data[comp.file] : undefined;
 

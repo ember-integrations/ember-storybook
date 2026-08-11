@@ -3,9 +3,10 @@ import path from 'node:path';
 import type { StoryFilePath } from './types';
 
 const COMPONENT_RE = /\.g[tj]s$/;
-const PROJECT_ROOT = process.cwd();
 
-export const Default = '__DEFAULT__';
+export const PROJECT_ROOT = process.cwd();
+
+export { Default } from 'ember-docgen';
 
 export type ExportedName = string;
 

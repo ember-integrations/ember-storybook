@@ -13,31 +13,31 @@ vi.mock('virtual:ember-storybook', () => {
     default: {
       '/test/hello.stories.gts': {
         component: { signatureName: 'Greeting' },
-        source: { 'test--hello': '<Greeting @name={{args.name}} />' },
+        source: { 'test--hello': '<Greeting @name={{args.name}} />' }
       },
       '/test/plain.stories.gts': {
         component: { signatureName: 'Button' },
-        source: { 'test--plain': undefined },
+        source: { 'test--plain': undefined }
       },
       '/test/many.stories.gts': {
         component: { signatureName: 'Card' },
-        source: { 'test--many': undefined },
+        source: { 'test--many': undefined }
       },
       '/test/few.stories.gts': {
         component: { signatureName: 'Test' },
-        source: { 'test--few': undefined },
+        source: { 'test--few': undefined }
       },
       '/test/noprops.stories.gts': {
         component: { signatureName: 'NoProp' },
-        source: { 'test--noprops': undefined },
+        source: { 'test--noprops': undefined }
       },
       '/test/unknown.stories.gts': {
         component: { signatureName: '(unknown template-only component)' },
-        source: { 'test--unknown': undefined },
+        source: { 'test--unknown': undefined }
       },
       '/test/actions.stories.gts': {
         component: { signatureName: 'Button' },
-        source: { 'test--actions': undefined },
+        source: { 'test--actions': undefined }
       }
     }
   };

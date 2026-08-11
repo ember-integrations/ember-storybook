@@ -1,5 +1,4 @@
 import {
-  ArgTypes,
   Controls,
   Description,
   Primary,
@@ -12,74 +11,17 @@ import {
 import { createElement, Fragment, type ReactNode } from 'react';
 import emberData from 'virtual:ember-storybook';
 
-import {
-  BlocksTable,
-  CssPropertiesTable,
-  ElementBlock,
-  PartsTable,
-  StoriesHeading,
-  SubcomponentsArea
-} from './blocks';
+import { BlocksSection } from './blocks/blocks';
+import { ElementBlock } from './blocks/element';
+import { CssPropertiesTable, PartsTable } from './blocks/style';
+import { SubcomponentsArea } from './blocks/subcomponents';
+import { H2 } from './blocks/ui';
+import { collectSubcomponents } from './signature';
 
-import type { BlockParam, ComponentSignature } from '../../node/typedoc/types';
-import type { SubcomponentRef } from './blocks';
+import type { EmberMeta } from '../../node/types';
+import type { ComponentSignature } from 'ember-docgen';
 
-function collectSubcomponents(
-  blocks: Record<string, { params: BlockParam[] }>,
-  data: Record<
-    string,
-    {
-      meta?: unknown;
-      source?: Record<string, string | undefined>;
-      signatures?: Record<string, ComponentSignature>;
-    }
-  >
-): SubcomponentRef[] {
-  const refMap = new Map<string, SubcomponentRef>();
-  let badge = 0;
-
-  const storyInternalNames = new Set<string>();
-
-  for (const entry of Object.values(data)) {
-    const meta = entry.meta as Record<string, string | undefined | symbol> | undefined;
-
-    if (meta && 'componentName' in meta && 'source' in entry) {
-      const storyMeta = meta as { componentName: string; exportedName: string };
-
-      storyInternalNames.add(storyMeta.componentName);
-    }
-  }
-
-  for (const block of Object.values(blocks)) {
-    for (const param of block.params) {
-      if (!param.componentRef) continue;
-
-      const { filePath, exportName } = param.componentRef;
-      const key = `${filePath}:${exportName}`;
-
-      if (refMap.has(key)) continue;
-
-      const entry = data[filePath];
-      const sig = entry?.signatures?.[exportName];
-
-      if (!sig) continue;
-
-      badge++;
-
-      refMap.set(key, {
-        badge,
-        key,
-        name: exportName,
-        signature: sig,
-        hasStory: storyInternalNames.has(exportName)
-      });
-    }
-  }
-
-  return refMap.values().toArray();
-}
-
-function addSignature(signature: ComponentSignature) {
+function addSignature(signature: ComponentSignature, data: EmberMeta) {
   const children: ReactNode[] = [];
 
   if (signature.element) {
@@ -89,17 +31,16 @@ function addSignature(signature: ComponentSignature) {
   if (Object.keys(signature.args).length > 0) {
     children.push(
       createElement(Subheading, undefined, 'Args'),
-      createElement(ArgTypes, { include: Object.keys(signature.args) }),
+      // createElement(ArgTypes, { include: Object.keys(signature.args) }),
       createElement(Controls, { include: Object.keys(signature.args) })
     );
   }
 
   if (Object.keys(signature.blocks).length > 0) {
-    const subcomponents = collectSubcomponents(signature.blocks, emberData);
+    const subcomponents = collectSubcomponents(signature.blocks, data);
+    const subcomponentNames = new Set(subcomponents.map((s) => s.name));
 
-    children.push(
-      createElement(BlocksTable, { blocks: signature.blocks, subcomponentRefs: subcomponents })
-    );
+    children.push(createElement(BlocksSection, { blocks: signature.blocks, subcomponentNames }));
 
     if (subcomponents.length > 0) {
       children.push(createElement(SubcomponentsArea, { components: subcomponents }));
@@ -131,7 +72,7 @@ function addSignature(signature: ComponentSignature) {
   }
 
   if (children.length > 0) {
-    children.unshift(createElement(StoriesHeading, undefined, 'Signature'));
+    children.unshift(createElement(H2, undefined, 'Signature'));
   }
 
   return children;
@@ -162,7 +103,7 @@ export default function Page() {
   const compEntry = compFile ? data[compFile] : undefined;
   const signature = compEntry?.signatures?.[storyComponent?.signatureName ?? ''];
 
-  console.log({ emberData, resolved, storyFile, storyEntry, compFile, compEntry });
+  console.log({ emberData, resolved, storyFile, storyEntry, compFile, compEntry, signature });
 
   const children: ReactNode[] = [
     createElement(Title),
@@ -172,7 +113,7 @@ export default function Page() {
   ];
 
   if (signature) {
-    children.push(...addSignature(signature));
+    children.push(...addSignature(signature, emberData));
   }
 
   children.push(createElement(Stories));

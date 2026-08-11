@@ -3,9 +3,9 @@ import path from 'node:path';
 import { parseStoryFile } from '../parser';
 import { getStoryFiles, isComponentFile, isStoryFile } from '../shared';
 import { type ContributorAPI } from '../vite-plugin-orchestrator';
-import { runTypeDoc } from './runner';
+import { runTypeDoc } from './docgen';
 
-import type { ComponentSignatureMap } from './types';
+import type { ComponentSignatureMap } from 'ember-docgen';
 import type { Plugin } from 'vite';
 
 interface ComponentRef {
@@ -52,7 +52,7 @@ async function addSignatures(
 
   if (missing.length === 0) return state;
 
-  const newSigs = await runTypeDoc({ entryPoints: missing });
+  const newSigs = await runTypeDoc(missing);
 
   console.log('[ember-storybook] addSignatures', {
     asked: componentPaths,
@@ -140,9 +140,9 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
 
     if (!isReferenced(state, absFile)) return;
 
-    const newSigs = await runTypeDoc({ entryPoints: [absFile] });
+    const newSigs = await runTypeDoc([absFile]);
 
-    console.log('newSigs for', absFile, JSON.stringify(newSigs, null, 2));
+    console.log('newSigs for', absFile, JSON.stringify(newSigs, undefined, 2));
 
     const merged = { ...state.signatures };
 

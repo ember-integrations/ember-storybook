@@ -1,13 +1,21 @@
 import emberData from 'virtual:ember-storybook';
 
-import type { ComponentSignature } from '../../node/typedoc/types';
+import type { ArgTypeInfo, ComponentSignature } from 'ember-docgen';
 
-const data = emberData as Record<string, { component?: { file?: string; signatureName?: string }; source?: Record<string, string | undefined>; signatures?: Record<string, ComponentSignature> }>;
+const data = emberData as Record<
+  string,
+  {
+    component?: { file?: string; signatureName?: string };
+    source?: Record<string, string | undefined>;
+    signatures?: Record<string, ComponentSignature>;
+  }
+>;
 
 const byName = new Map<string, ComponentSignature>();
 
 for (const entry of Object.values(data)) {
   const comp = entry.component;
+
   if (!comp?.signatureName) continue;
 
   const compEntry = comp.file ? data[comp.file] : undefined;
@@ -22,7 +30,7 @@ console.log('[ember-storybook] byName map size:', byName.size);
 console.log('[ember-storybook] byName keys:', [...byName.keys()]);
 
 function mapTypeToControl(
-  type: string
+  type: ArgTypeInfo
 ):
   | false
   | { type: 'text' }
@@ -30,47 +38,29 @@ function mapTypeToControl(
   | { type: 'boolean' }
   | { type: 'select'; options: string[] }
   | { type: 'object' }
+  | { type: 'function' }
   | { type: 'date' } {
-  const t = type.trim();
+  switch (type.category) {
+    case 'string': {
+      return { type: 'text' };
+    }
+    case 'number': {
+      return { type: 'number' };
+    }
+    case 'boolean': {
+      return { type: 'boolean' };
+    }
+    case 'function': {
+      return { type: 'function' };
+    }
+    case 'enum': {
+      return { type: 'select', options: type.options ?? [] };
+    }
 
-  if (t === 'string') return { type: 'text' };
-  if (t === 'number') return { type: 'number' };
-  if (t === 'boolean') return { type: 'boolean' };
-  if (t === 'Date') return { type: 'date' };
-
-  if (t.includes(' | ')) {
-    const parts = t.split(' | ').map((s) => s.trim());
-    const literals = parts
-      .filter((s) => s.startsWith("'") && s.endsWith("'"))
-      .map((s) => s.slice(1, -1));
-
-    if (literals.length === parts.length && literals.length > 0) {
-      return { type: 'select', options: literals };
+    default: {
+      return { type: 'object' };
     }
   }
-
-  if (t.startsWith('(') && t.includes('=>')) {
-    return { type: 'object' };
-  }
-
-  if (t.endsWith('[]')) {
-    return { type: 'object' };
-  }
-
-  return { type: 'object' };
-}
-
-function typeSummary(type: string): string {
-  if (type.includes(' | ')) {
-    const parts = type.split(' | ').map((s) => s.trim());
-    const literals = parts.filter((s) => s.startsWith("'") && s.endsWith("'"));
-
-    if (literals.length === parts.length) {
-      return literals.map((s) => s.slice(1, -1)).join(' | ');
-    }
-  }
-
-  return type;
 }
 
 export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> {
@@ -81,14 +71,13 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
       name,
       description: arg.description || undefined,
       type: {
-        name: typeSummary(arg.type),
+        name: arg.type.raw,
         required: arg.required
       },
-      defaultValue: arg.defaultValue ? { summary: arg.defaultValue } : undefined,
       control: mapTypeToControl(arg.type),
       table: {
-        category: 'Args',
-        type: { summary: arg.type }
+        type: { summary: arg.type.raw },
+        defaultValue: arg.defaultValue ? { summary: arg.defaultValue } : undefined
       }
     };
   }

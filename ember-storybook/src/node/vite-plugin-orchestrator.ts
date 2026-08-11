@@ -61,7 +61,7 @@ export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
       }
 
       console.log('[ember-storybook] merged (JS):', merged);
-      console.log('[ember-storybook] merged (JSON):', JSON.stringify(merged, null, 2));
+      console.log('[ember-storybook] merged (JSON):', JSON.stringify(merged, undefined, 2));
 
       return {
         code: `export default ${JSON.stringify(merged)};`,

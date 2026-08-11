@@ -1,6 +1,6 @@
+import { signaturesContributor } from './docgen/vite-plugin';
 import { metaContributor } from './meta/vite-plugin';
 import { sourceContributor } from './source/vite-plugin';
-import { signaturesContributor } from './typedoc/vite-plugin';
 import { type ContributorAPI, emberStorybookVitePlugin } from './vite-plugin-orchestrator';
 
 import type { Plugin } from 'vite';

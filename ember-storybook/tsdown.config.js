@@ -16,8 +16,6 @@ export default defineConfig({
     'src/client/index.ts',
     'src/client/config.ts',
     'src/client/docs/config.ts',
-    'src/client/docs/page.ts',
-    'src/client/docs/blocks.ts',
     'src/node/index.ts'
   ],
   sourcemap: true,

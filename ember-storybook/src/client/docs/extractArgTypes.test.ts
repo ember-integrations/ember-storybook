@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildArgTypes, extractArgTypes } from './extractArgTypes';
 
-import type { ComponentSignature } from '../../node/typedoc/types';
+import type { ComponentSignature } from 'ember-docgen';
 
 vi.mock('virtual:ember-storybook', () => ({ default: {} }));
 
@@ -10,19 +10,19 @@ describe('buildArgTypes', () => {
   const fullSignature: ComponentSignature = {
     args: {
       greeting: {
-        type: 'string',
+        type: { category: 'string', raw: 'string' },
         required: true,
         description: 'The greeting to display',
         defaultValue: undefined
       },
       count: {
-        type: 'number',
+        type: { category: 'number', raw: 'number' },
         required: true,
         description: 'Number of items',
         defaultValue: undefined
       },
       push: {
-        type: '(value: string) => void',
+        type: { category: 'function', raw: '(value: string) => void' },
         required: false,
         description: 'Click handler',
         defaultValue: undefined
@@ -68,21 +68,21 @@ describe('buildArgTypes', () => {
       name: 'greeting',
       type: { name: 'string', required: true },
       control: { type: 'text' },
-      table: { category: 'Args', type: { summary: 'string' } }
+      table: { type: { summary: 'string' } }
     });
 
     expect(result.count).toMatchObject({
       name: 'count',
       type: { name: 'number', required: true },
       control: { type: 'number' },
-      table: { category: 'Args', type: { summary: 'number' } }
+      table: { type: { summary: 'number' } }
     });
 
     expect(result.push).toMatchObject({
       name: 'push',
       type: { name: '(value: string) => void', required: false },
-      control: { type: 'object' },
-      table: { category: 'Args', type: { summary: '(value: string) => void' } }
+      control: { type: 'function' },
+      table: { type: { summary: '(value: string) => void' } }
     });
   });
 
@@ -96,10 +96,10 @@ describe('buildArgTypes', () => {
     const sig: ComponentSignature = {
       args: {
         name: {
-          type: 'string',
+          type: { category: 'string', raw: 'string' },
           required: false,
           description: '',
-          defaultValue: "'World'"
+          defaultValue: 'World'
         }
       },
       blocks: {},
@@ -109,7 +109,9 @@ describe('buildArgTypes', () => {
 
     const result = buildArgTypes(sig);
 
-    expect((result.name as { defaultValue: unknown }).defaultValue).toEqual({ summary: "'World'" });
+    expect((result.name as { table: { defaultValue: unknown } }).table.defaultValue).toEqual({
+      summary: 'World'
+    });
   });
 });
 

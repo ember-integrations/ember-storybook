@@ -1,5 +1,5 @@
 import type { ComponentMap } from './parser';
-import type { ComponentSignature } from './typedoc/types';
+import type { ComponentSignature } from 'ember-docgen';
 import type { StaticMeta } from 'storybook/internal/csf-tools';
 
 export type StoryFile = {
@@ -28,4 +28,4 @@ export type ComponentFilePath = string;
  * - value: Metadata for that file
  */
 // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
-export type EmberMeta = Record<StoryFilePath | ComponentFilePath, StoryFile | ComponentMap>;
+export type EmberMeta = Record<StoryFilePath | ComponentFilePath, StoryFile | ComponentFile>;
