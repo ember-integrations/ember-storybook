@@ -19,13 +19,6 @@ const SubEntry = styled.div(() => ({
   '&:last-child': { marginBottom: 0 }
 }));
 
-const SubName = styled.div(({ theme }) => ({
-  color: theme.color.primary,
-  fontWeight: 'bold',
-  fontSize: theme.typography.size.s2 - 1,
-  marginBottom: 12
-}));
-
 const SectionLabel = styled.div(({ theme }) => ({
   fontWeight: 'bold',
   color: theme.color.defaultText,

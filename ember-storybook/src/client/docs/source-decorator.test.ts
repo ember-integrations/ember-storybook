@@ -1,13 +1,13 @@
 import { describe, expect, test, vi } from 'vitest';
 
 vi.mock('virtual:ember-storybook', () => {
-  const sig = (cn: string) => ({
-    componentName: cn,
-    args: {},
-    blocks: {},
-    element: undefined,
-    style: { customProperties: {}, parts: {} }
-  });
+  // const sig = (cn: string) => ({
+  //   componentName: cn,
+  //   args: {},
+  //   blocks: {},
+  //   element: undefined,
+  //   style: { customProperties: {}, parts: {} }
+  // });
 
   return {
     default: {

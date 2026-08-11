@@ -103,7 +103,7 @@ export default function Page() {
   const compEntry = compFile ? data[compFile] : undefined;
   const signature = compEntry?.signatures?.[storyComponent?.signatureName ?? ''];
 
-  console.log({ emberData, resolved, storyFile, storyEntry, compFile, compEntry, signature });
+  // console.log({ emberData, resolved, storyFile, storyEntry, compFile, compEntry, signature });
 
   const children: ReactNode[] = [
     createElement(Title),
@@ -113,6 +113,7 @@ export default function Page() {
   ];
 
   if (signature) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     children.push(...addSignature(signature, emberData));
   }
 

@@ -9,6 +9,7 @@ export default {
 
 export const Default: StoryObj = {
   render: () => <template>
+    {{! @glint-ignore }}
     <CardComponent>
       Sample Card Content
     </CardComponent>
@@ -17,6 +18,7 @@ export const Default: StoryObj = {
 
 export const Builder: StoryObj = {
   render: () => <template>
+    {{! @glint-ignore }}
     <CardComponent>
       <:header>Card Title</:header>
       <:body>Sample Card Content</:body>

@@ -17,8 +17,10 @@ import type {
 
 const data = emberData as EmberMeta;
 
+// eslint-disable-next-line unicorn/no-top-level-side-effects
 console.log('[ember-storybook] virtual module data (JS):', data);
-console.log('[ember-storybook] virtual module data (JSON):', JSON.stringify(data, null, 2));
+// eslint-disable-next-line unicorn/no-top-level-side-effects
+console.log('[ember-storybook] virtual module data (JSON):', JSON.stringify(data, undefined, 2));
 
 function resolveSig(entry: StoryFile | ComponentFile): ComponentSignature | undefined {
   if (!('component' in entry)) return undefined;

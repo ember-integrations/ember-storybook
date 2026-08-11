@@ -6,43 +6,43 @@ import { TableWrapper } from './ui';
 
 import type { BlockInfo, BlockParam, HashBlockParam } from 'ember-docgen';
 
-function transparentize(amount: number, color: string): string {
-  if (color === 'transparent') return color;
+// function transparentize(amount: number, color: string): string {
+//   if (color === 'transparent') return color;
 
-  const hex = color.replace('#', '');
-  let r: number, g: number, b: number;
+//   const hex = color.replace('#', '');
+//   let r: number, g: number, b: number;
 
-  if (hex.length === 3) {
-    r = Number.parseInt((hex.at(0) as string) + (hex.at(0) as string), 16);
-    g = Number.parseInt((hex.at(1) as string) + (hex.at(1) as string), 16);
-    b = Number.parseInt((hex.at(2) as string) + (hex.at(2) as string), 16);
-  } else {
-    r = Number.parseInt(hex.slice(0, 2), 16);
-    g = Number.parseInt(hex.slice(2, 4), 16);
-    b = Number.parseInt(hex.slice(4, 6), 16);
-  }
+//   if (hex.length === 3) {
+//     r = Number.parseInt((hex.at(0) as string) + (hex.at(0) as string), 16);
+//     g = Number.parseInt((hex.at(1) as string) + (hex.at(1) as string), 16);
+//     b = Number.parseInt((hex.at(2) as string) + (hex.at(2) as string), 16);
+//   } else {
+//     r = Number.parseInt(hex.slice(0, 2), 16);
+//     g = Number.parseInt(hex.slice(2, 4), 16);
+//     b = Number.parseInt(hex.slice(4, 6), 16);
+//   }
 
-  return `rgba(${r}, ${g}, ${b}, ${1 - amount})`;
-}
+//   return `rgba(${r}, ${g}, ${b}, ${1 - amount})`;
+// }
 
-const BlockEntry = styled.div(() => ({
-  marginBottom: 24,
-  '&:last-child': { marginBottom: 0 }
-}));
+// const BlockEntry = styled.div(() => ({
+//   marginBottom: 24,
+//   '&:last-child': { marginBottom: 0 }
+// }));
 
-const BlockName = styled.div(({ theme }) => ({
-  color: theme.color.primary,
-  fontWeight: 'bold',
-  fontSize: theme.typography.size.s2 - 1,
-  marginBottom: 4
-}));
+// const BlockName = styled.div(({ theme }) => ({
+//   color: theme.color.primary,
+//   fontWeight: 'bold',
+//   fontSize: theme.typography.size.s2 - 1,
+//   marginBottom: 4
+// }));
 
-const BlockDescription = styled.div(({ theme }) => ({
-  color: theme.color.defaultText,
-  fontSize: theme.typography.size.s1,
-  lineHeight: '19px',
-  marginBottom: 8
-}));
+// const BlockDescription = styled.div(({ theme }) => ({
+//   color: theme.color.defaultText,
+//   fontSize: theme.typography.size.s1,
+//   lineHeight: '19px',
+//   marginBottom: 8
+// }));
 
 export const ParamType = styled.code(({ theme }) => ({
   color: theme.color.secondary,
