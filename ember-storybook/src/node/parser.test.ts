@@ -369,6 +369,7 @@ export default { component: MyComp } satisfies Meta;
     const result = parseStoryFile(path.join(fix.base, 'comp.stories.gts')) as StoryFile;
 
     expect(result.component.signatureName).toBe(Default);
+    expect(result.component.name).toBe('MyComp');
   });
 
   test('specifier re-export import yields export name matching ComponentSignatureMap key', () => {

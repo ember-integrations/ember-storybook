@@ -1,12 +1,13 @@
 import emberData from 'virtual:ember-storybook';
 
+import type { StorySource } from '../../node/types';
 import type { ArgTypeInfo, ComponentSignature } from 'ember-docgen';
 
 const data = emberData as Record<
   string,
   {
     component?: { file?: string; signatureName?: string };
-    source?: Record<string, string | undefined>;
+    source?: Record<string, StorySource>;
     signatures?: Record<string, ComponentSignature>;
   }
 >;

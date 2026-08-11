@@ -8,7 +8,8 @@ import type Owner from '@ember/owner';
 import type IntlService from 'ember-intl/services/intl';
 
 const IntlDecorator: Decorator = (Story, context) =>
-  class IntlDecoratol extends Component {
+  // eslint-disable-next-line @typescript-eslint/no-shadow
+  class IntlDecorator extends Component {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     @service declare intl: IntlService;
