@@ -34,15 +34,7 @@ function renderSubcomponentSignature(
   const children: ReactNode[] = [];
 
   if (sig.element) {
-    children.push(
-      createElement(ElementBlock, { element: sig.element })
-      // createElement(SectionLabel, { key: 'el-label' }, 'Element'),
-      // createElement(
-      //   ParamRow,
-      //   { key: 'el-type', style: { marginBottom: 12 } },
-      //   createElement(ParamType, undefined, sig.element)
-      // )
-    );
+    children.push(createElement(ElementBlock, { element: sig.element }));
   }
 
   if (Object.keys(sig.args).length > 0) {
@@ -50,39 +42,12 @@ function renderSubcomponentSignature(
       createElement(SectionLabel, undefined, 'Args'),
       createElement(ArgTypes, { include: Object.keys(sig.args) })
     );
-    // children.push(
-    //   createElement(SectionLabel, { key: 'args-label' }, 'Args'),
-    //   ...Object.entries(sig.args).map(([name, arg]) =>
-    //     createElement(
-    //       Fragment,
-    //       { key: name },
-    //       createElement(
-    //         ParamRow,
-    //         undefined,
-    //         createElement('span', undefined, '- '),
-    //         createElement(ParamName, undefined, name),
-    //         createElement('span', undefined, ': '),
-    //         createElement(ParamType, undefined, arg.type)
-    //       ),
-    //       arg.description && createElement(ParamDesc, undefined, arg.description)
-    //     )
-    //   )
-    // );
   }
 
   if (Object.keys(sig.blocks).length > 0) {
     children.push(
       createElement(SectionLabel, { key: 'blocks-label', style: { marginTop: 12 } }, 'Blocks'),
       createElement(BlocksTable, { blocks: sig.blocks, subcomponentNames, defaultName })
-      //   ...Object.entries(sig.blocks).map(([name, block]) =>
-      //     createElement(
-      //       BlockEntry,
-      //       { key: name },
-      //       createElement(BlockName, undefined, name),
-      //       block.description && createElement(BlockDescription, undefined, block.description),
-      //       ...renderParams(block.params, subcomponentNames)
-      //     )
-      //   )
     );
   }
 

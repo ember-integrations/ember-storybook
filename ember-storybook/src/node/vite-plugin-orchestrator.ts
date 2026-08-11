@@ -60,9 +60,6 @@ export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
         }
       }
 
-      console.log('[ember-storybook] merged (JS):', merged);
-      console.log('[ember-storybook] merged (JSON):', JSON.stringify(merged, undefined, 2));
-
       return {
         code: `export default ${JSON.stringify(merged)};`,
         map: undefined
@@ -72,8 +69,6 @@ export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
     handleHotUpdate(ctx: HmrContext) {
       // eslint-disable-next-line unicorn/prefer-early-return
       if (isComponentFile(ctx.file)) {
-        console.log('[ember-storybook] handleHotUpdate: component file changed:', ctx.file);
-
         const virtualMod = ctx.server.moduleGraph.getModuleById(RESOLVED);
 
         if (virtualMod) {

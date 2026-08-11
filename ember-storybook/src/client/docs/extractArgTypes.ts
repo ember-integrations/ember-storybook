@@ -27,11 +27,6 @@ for (const entry of Object.values(data)) {
   }
 }
 
-// eslint-disable-next-line unicorn/no-top-level-side-effects
-console.log('[ember-storybook] byName map size:', byName.size);
-// eslint-disable-next-line unicorn/no-top-level-side-effects
-console.log('[ember-storybook] byName keys:', byName.keys().toArray());
-
 function mapTypeToControl(
   type: ArgTypeInfo
 ):
