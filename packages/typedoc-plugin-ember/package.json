@@ -22,17 +22,17 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "content-tag": "^4.0.0"
+    "content-tag": "catalog:build"
   },
   "peerDependencies": {
     "typedoc": ">=0.28.0",
     "typescript": ">=5.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0",
-    "tsdown": "^0.22.0",
-    "typedoc": "^0.28.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "@types/node": "catalog:types",
+    "tsdown": "catalog:build",
+    "typedoc": "catalog:lib",
+    "typescript": "catalog:build",
+    "vitest": "catalog:test"
   }
 }

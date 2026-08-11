@@ -4,6 +4,158 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  build:
+    '@babel/core':
+      specifier: ^7.29.0
+      version: 7.29.7
+    '@babel/eslint-parser':
+      specifier: ^8.0.1
+      version: 8.0.1
+    '@babel/plugin-transform-runtime':
+      specifier: 7.29.7
+      version: 7.29.7
+    '@babel/plugin-transform-typescript':
+      specifier: ^7.29.7
+      version: 7.29.7
+    '@babel/runtime':
+      specifier: 7.29.7
+      version: 7.29.7
+    '@ember/app-tsconfig':
+      specifier: 2.0.0
+      version: 2.0.0
+    '@embroider/addon-dev':
+      specifier: ^8.3.1
+      version: 8.3.1
+    '@embroider/core':
+      specifier: 4.6.2
+      version: 4.6.2
+    '@embroider/vite':
+      specifier: ^1.7.8
+      version: 1.7.8
+    '@glint/ember-tsc':
+      specifier: 1.8.11
+      version: 1.8.11
+    '@glint/template':
+      specifier: 1.7.8
+      version: 1.7.8
+    '@glint/tsserver-plugin':
+      specifier: 2.5.17
+      version: 2.5.17
+    '@rollup/plugin-babel':
+      specifier: ^7.1.0
+      version: 7.1.0
+    babel-plugin-ember-template-compilation:
+      specifier: 4.0.0
+      version: 4.0.0
+    content-tag:
+      specifier: ^4.0.0
+      version: 4.2.0
+    decorator-transforms:
+      specifier: 2.4.0
+      version: 2.4.0
+    tsdown:
+      specifier: ^0.22.0
+      version: 0.22.4
+    typescript:
+      specifier: ^6.0.3
+      version: 6.0.3
+    vite:
+      specifier: ^8.1.3
+      version: 8.1.3
+  frontend:
+    '@ember-intl/vite':
+      specifier: ^1.1.1
+      version: 1.1.1
+    '@embroider/macros':
+      specifier: 1.20.5
+      version: 1.20.5
+    '@embroider/router':
+      specifier: 3.0.6
+      version: 3.0.6
+    '@glimmer/component':
+      specifier: ^2.1.1
+      version: 2.1.1
+    ember-intl:
+      specifier: ^8.2.9
+      version: 8.2.9
+    ember-modifier:
+      specifier: 4.3.0
+      version: 4.3.0
+    ember-strict-application-resolver:
+      specifier: 0.1.1
+      version: 0.1.1
+    react:
+      specifier: ^19.2.7
+      version: 19.2.7
+  lib:
+    '@storybook/addon-a11y':
+      specifier: 10.5.0
+      version: 10.5.0
+    '@storybook/addon-docs':
+      specifier: 10.5.0
+      version: 10.5.0
+    '@storybook/addon-vitest':
+      specifier: 10.5.0
+      version: 10.5.0
+    '@storybook/builder-vite':
+      specifier: ^10.5.0
+      version: 10.5.0
+    '@storybook/cli':
+      specifier: 10.5.0
+      version: 10.5.0
+    '@storybook/global':
+      specifier: ^5.0.0
+      version: 5.0.0
+    storybook:
+      specifier: ^10.5.0
+      version: 10.5.0
+    typedoc:
+      specifier: ^0.28.0
+      version: 0.28.20
+  lint:
+    '@gossi/config-eslint':
+      specifier: ^1.3.4
+      version: 1.3.4
+    '@gossi/config-prettier':
+      specifier: ^1.2.2
+      version: 1.2.2
+    eslint:
+      specifier: ^10.6.0
+      version: 10.6.0
+    eslint-plugin-ember:
+      specifier: ^13.4.1
+      version: 13.4.1
+    eslint-plugin-qunit:
+      specifier: ^8.2.6
+      version: 8.2.6
+    eslint-plugin-storybook:
+      specifier: ^10.5.0
+      version: 10.5.0
+    prettier:
+      specifier: ^3.9.5
+      version: 3.9.5
+  test:
+    '@vitest/browser-playwright':
+      specifier: ^4.1.10
+      version: 4.1.10
+    '@vitest/coverage-v8':
+      specifier: ^4.1.10
+      version: 4.1.10
+    vitest:
+      specifier: ^4.1.10
+      version: 4.1.10
+  types:
+    '@types/node':
+      specifier: ^26.0.0
+      version: 26.1.0
+    '@types/react':
+      specifier: ^19.2.17
+      version: 19.2.17
+
+overrides:
+  oxc-parser: ^0.139.0
+
 importers:
 
   .:
@@ -15,19 +167,16 @@ importers:
   demo:
     dependencies:
       '@embroider/macros':
-        specifier: 1.20.5
+        specifier: catalog:frontend
         version: 1.20.5(@babel/core@7.29.7)(@glint/template@1.7.8)
       '@embroider/router':
-        specifier: 3.0.6
+        specifier: catalog:frontend
         version: 3.0.6(@embroider/core@4.6.2(@glint/template@1.7.8))
       '@glimmer/component':
         specifier: 2.1.1
         version: 2.1.1
-      decorator-transforms:
-        specifier: 2.4.0
-        version: 2.4.0(@babel/core@7.29.7)
       ember-modifier:
-        specifier: 4.3.0
+        specifier: catalog:frontend
         version: 4.3.0(@babel/core@7.29.7)
       ember-source:
         specifier: 7.1.0
@@ -36,229 +185,266 @@ importers:
         specifier: workspace:*
         version: link:../ember-storybook
       ember-strict-application-resolver:
-        specifier: 0.1.1
+        specifier: catalog:frontend
         version: 0.1.1(@babel/core@7.29.7)
     devDependencies:
       '@babel/core':
-        specifier: 7.29.7
+        specifier: catalog:build
         version: 7.29.7
       '@babel/eslint-parser':
-        specifier: ^8.0.1
+        specifier: catalog:build
         version: 8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1))
       '@babel/plugin-transform-runtime':
-        specifier: 7.29.7
+        specifier: catalog:build
         version: 7.29.7(@babel/core@7.29.7)
       '@babel/plugin-transform-typescript':
-        specifier: 7.29.7
+        specifier: catalog:build
         version: 7.29.7(@babel/core@7.29.7)
       '@babel/runtime':
-        specifier: 7.29.7
+        specifier: catalog:build
         version: 7.29.7
       '@ember-intl/vite':
-        specifier: ^1.1.1
+        specifier: catalog:frontend
         version: 1.1.1
       '@ember/app-tsconfig':
-        specifier: 2.0.0
+        specifier: catalog:build
         version: 2.0.0
       '@embroider/core':
-        specifier: 4.6.2
+        specifier: catalog:build
         version: 4.6.2(@glint/template@1.7.8)
       '@embroider/vite':
-        specifier: ^1.7.8
+        specifier: catalog:build
         version: 1.7.8(@embroider/core@4.6.2(@glint/template@1.7.8))(@glint/template@1.7.8)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
       '@glint/ember-tsc':
-        specifier: 1.8.11
-        version: 1.8.11(ember-source@7.1.0(@glimmer/component@2.1.1))(typescript@5.9.3)
+        specifier: catalog:build
+        version: 1.8.11(ember-source@7.1.0(@glimmer/component@2.1.1))(typescript@6.0.3)
       '@glint/template':
-        specifier: 1.7.8
+        specifier: catalog:build
         version: 1.7.8
       '@glint/tsserver-plugin':
-        specifier: 2.5.17
+        specifier: catalog:build
         version: 2.5.17(ember-source@7.1.0(@glimmer/component@2.1.1))
       '@gossi/config-eslint':
-        specifier: ^1.3.4
-        version: 1.3.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7))(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-qunit@8.2.6(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)(typescript@5.9.3)
+        specifier: catalog:lint
+        version: 1.3.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7))(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-qunit@8.2.6(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)(typescript@6.0.3)
       '@gossi/config-prettier':
-        specifier: ^1.2.2
+        specifier: catalog:lint
         version: 1.2.2(prettier@3.9.5)
       '@rollup/plugin-babel':
         specifier: 7.1.0
         version: 7.1.0(@babel/core@7.29.7)(@types/babel__core@7.20.5)(rollup@4.61.1)
       '@storybook/addon-a11y':
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       '@storybook/addon-docs':
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@types/react@19.2.17)(esbuild@0.27.7)(rollup@4.61.1)(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
       '@storybook/addon-vitest':
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@vitest/browser-playwright@4.1.10)(@vitest/browser@4.1.10)(@vitest/runner@4.1.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(vitest@4.1.10)
       '@storybook/cli':
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@babel/preset-env@7.29.7(@babel/core@7.29.7))(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@vitest/browser-playwright':
-        specifier: ^4.1.10
+        specifier: catalog:test
         version: 4.1.10(playwright@1.61.1)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/coverage-v8':
-        specifier: ^4.1.10
+        specifier: catalog:test
         version: 4.1.10(@vitest/browser@4.1.10)(vitest@4.1.10)
       babel-plugin-ember-template-compilation:
-        specifier: 4.0.0
+        specifier: catalog:build
         version: 4.0.0
+      decorator-transforms:
+        specifier: catalog:build
+        version: 2.4.0(@babel/core@7.29.7)
       ember-intl:
-        specifier: ^8.2.9
+        specifier: catalog:frontend
         version: 8.2.9(@babel/core@7.29.7)
       eslint:
-        specifier: ^10.6.0
+        specifier: catalog:lint
         version: 10.6.0(jiti@2.6.1)
       eslint-plugin-ember:
-        specifier: ^13.4.1
-        version: 13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
+        specifier: catalog:lint
+        version: 13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)
       eslint-plugin-qunit:
-        specifier: ^8.2.6
+        specifier: catalog:lint
         version: 8.2.6(eslint@10.6.0(jiti@2.6.1))
       eslint-plugin-storybook:
-        specifier: ^10.5.0
-        version: 10.5.0(eslint@10.6.0(jiti@2.6.1))(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@5.9.3)
+        specifier: catalog:lint
+        version: 10.5.0(eslint@10.6.0(jiti@2.6.1))(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3)
       prettier:
-        specifier: ^3.9.5
+        specifier: catalog:lint
         version: 3.9.5
       storybook:
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       typedoc:
-        specifier: ^0.28.20
-        version: 0.28.20(typescript@5.9.3)
+        specifier: catalog:lib
+        version: 0.28.20(typescript@6.0.3)
       typedoc-plugin-ember:
         specifier: workspace:*
         version: link:../packages/typedoc-plugin-ember
       typescript:
-        specifier: 5.9.3
-        version: 5.9.3
+        specifier: catalog:build
+        version: 6.0.3
       vite:
-        specifier: 8.1.3
+        specifier: catalog:build
         version: 8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.10
+        specifier: catalog:test
         version: 4.1.10(@types/node@26.1.0)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(jsdom@25.0.1)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
 
   ember-storybook:
     dependencies:
       '@storybook/builder-vite':
-        specifier: ^10.5.0
+        specifier: catalog:lib
         version: 10.5.0(esbuild@0.27.7)(rollup@4.61.1)(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
       '@storybook/global':
-        specifier: ^5.0.0
+        specifier: catalog:lib
         version: 5.0.0
       content-tag:
-        specifier: ^4.0.0
+        specifier: catalog:build
         version: 4.2.0
       ember-modifier:
-        specifier: 4.3.0
+        specifier: catalog:frontend
         version: 4.3.0(@babel/core@7.29.7)
       oxc-parser:
         specifier: ^0.139.0
         version: 0.139.0
       tinyglobby:
-        specifier: ^0.2.0
+        specifier: ^0.2.17
         version: 0.2.17
       ts-dedent:
-        specifier: ^2.0.0
+        specifier: ^2.3.0
         version: 2.3.0
       typedoc:
-        specifier: ^0.28.0
+        specifier: catalog:lib
         version: 0.28.20(typescript@6.0.3)
-      typedoc-plugin-ember:
-        specifier: workspace:*
-        version: link:../packages/typedoc-plugin-ember
     devDependencies:
       '@babel/core':
-        specifier: ^7.29.0
+        specifier: catalog:build
         version: 7.29.7
       '@babel/plugin-transform-typescript':
-        specifier: ^7.28.6
+        specifier: catalog:build
         version: 7.29.7(@babel/core@7.29.7)
       '@embroider/addon-dev':
-        specifier: ^8.3.1
+        specifier: catalog:build
         version: 8.3.1(@glint/template@1.7.8)(rollup@4.61.1)
       '@embroider/vite':
-        specifier: ^1.7.8
+        specifier: catalog:build
         version: 1.7.8(@embroider/core@4.6.2(@glint/template@1.7.8))(@glint/template@1.7.8)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
       '@glimmer/component':
-        specifier: ^2.1.1
+        specifier: catalog:frontend
         version: 2.1.1
       '@glint/ember-tsc':
-        specifier: 1.8.11
+        specifier: catalog:build
         version: 1.8.11(ember-source@6.12.0(@glimmer/component@2.1.1)(rsvp@4.8.5))(typescript@6.0.3)
       '@glint/template':
-        specifier: 1.7.8
+        specifier: catalog:build
         version: 1.7.8
       '@gossi/config-eslint':
-        specifier: ^1.3.4
+        specifier: catalog:lint
         version: 1.3.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7))(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-qunit@8.2.6(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)(typescript@6.0.3)
       '@gossi/config-prettier':
-        specifier: ^1.2.2
+        specifier: catalog:lint
         version: 1.2.2(prettier@3.9.5)
       '@rollup/plugin-babel':
-        specifier: ^7.1.0
+        specifier: catalog:build
         version: 7.1.0(@babel/core@7.29.7)(@types/babel__core@7.20.5)(rollup@4.61.1)
       '@storybook/addon-docs':
-        specifier: 10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@types/react@19.2.17)(esbuild@0.27.7)(rollup@4.61.1)(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
       '@types/node':
-        specifier: ^26.1.0
+        specifier: catalog:types
         version: 26.1.0
       '@types/react':
-        specifier: ^19.2.17
+        specifier: catalog:types
         version: 19.2.17
+      ember-docgen:
+        specifier: workspace:*
+        version: link:../packages/ember-docgen
       ember-source:
         specifier: ^6.8.0
         version: 6.12.0(@glimmer/component@2.1.1)(rsvp@4.8.5)
       eslint:
-        specifier: ^10.6.0
+        specifier: catalog:lint
         version: 10.6.0(jiti@2.6.1)
       prettier:
-        specifier: ^3.9.5
+        specifier: catalog:lint
         version: 3.9.5
       react:
-        specifier: ^19.2.7
+        specifier: catalog:frontend
         version: 19.2.7
       storybook:
-        specifier: ^10.5.0
+        specifier: catalog:lib
         version: 10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       tsdown:
-        specifier: ^0.22.4
+        specifier: catalog:build
         version: 0.22.4(oxc-resolver@11.20.0)(typescript@6.0.3)(unrun@0.2.39(synckit@0.11.13))
+      typedoc-plugin-ember:
+        specifier: workspace:*
+        version: link:../packages/typedoc-plugin-ember
       typescript:
-        specifier: ^6.0.3
+        specifier: catalog:build
         version: 6.0.3
       vite:
-        specifier: ^8.1.3
+        specifier: catalog:build
         version: 8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0)
       vitest:
-        specifier: ^4.1.10
+        specifier: catalog:test
+        version: 4.1.10(@types/node@26.1.0)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(jsdom@25.0.1)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
+
+  packages/ember-docgen:
+    dependencies:
+      content-tag:
+        specifier: catalog:build
+        version: 4.2.0
+      oxc-parser:
+        specifier: ^0.139.0
+        version: 0.139.0
+      tinyglobby:
+        specifier: ^0.2.17
+        version: 0.2.17
+      typedoc-plugin-ember:
+        specifier: workspace:*
+        version: link:../typedoc-plugin-ember
+      typescript:
+        specifier: catalog:build
+        version: 6.0.3
+    devDependencies:
+      '@types/node':
+        specifier: catalog:types
+        version: 26.1.0
+      tsdown:
+        specifier: catalog:build
+        version: 0.22.4(oxc-resolver@11.20.0)(typescript@6.0.3)(unrun@0.2.39(synckit@0.11.13))
+      typedoc:
+        specifier: catalog:lib
+        version: 0.28.20(typescript@6.0.3)
+      vitest:
+        specifier: catalog:test
         version: 4.1.10(@types/node@26.1.0)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(jsdom@25.0.1)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
 
   packages/typedoc-plugin-ember:
     dependencies:
       content-tag:
-        specifier: ^4.0.0
+        specifier: catalog:build
         version: 4.2.0
     devDependencies:
       '@types/node':
-        specifier: ^26.0.0
+        specifier: catalog:types
         version: 26.1.0
       tsdown:
-        specifier: ^0.22.0
+        specifier: catalog:build
         version: 0.22.4(oxc-resolver@11.20.0)(typescript@6.0.3)(unrun@0.2.39(synckit@0.11.13))
       typedoc:
-        specifier: ^0.28.0
+        specifier: catalog:lib
         version: 0.28.20(typescript@6.0.3)
       typescript:
-        specifier: ^6.0.3
+        specifier: catalog:build
         version: 6.0.3
       vitest:
-        specifier: ^4.1.10
+        specifier: catalog:test
         version: 4.1.10(@types/node@26.1.0)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(jsdom@25.0.1)(vite@8.1.3(@types/node@26.1.0)(esbuild@0.27.7)(jiti@2.6.1)(terser@5.48.0)(yaml@2.9.0))
 
 packages:
@@ -956,17 +1142,11 @@ packages:
   '@emnapi/core@1.11.1':
     resolution: {integrity: sha512-RSvbQmHzdKzNsLYa/wHrbc3KN4sYLKAdPZxqiM2HATqv/SBk2/ENSHpvXGaLOMcsAyz0poEGqkmmKYG3OWiJEQ==}
 
-  '@emnapi/core@1.9.2':
-    resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
-
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
 
   '@emnapi/runtime@1.11.1':
     resolution: {integrity: sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw==}
-
-  '@emnapi/runtime@1.9.2':
-    resolution: {integrity: sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw==}
 
   '@emnapi/wasi-threads@1.2.1':
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
@@ -1411,34 +1591,10 @@ packages:
   '@one-ini/wasm@0.2.1':
     resolution: {integrity: sha512-TUqERXGNTifZ9y2g3wPxQrw3HpHv/02DsW3D90T9x0hhonrL1ZqpSmNrU2XkoIq0fP1N6gZfVQzy2Fw1ZvGBNg==}
 
-  '@oxc-parser/binding-android-arm-eabi@0.127.0':
-    resolution: {integrity: sha512-0LC7ye4hvqbIKxAzThzvswgHLFu2AURKzYLeSVvLdu2TBOYWQDmHnTqPLeA597BcUCxiLqLsS4CJ5uoI5WYWCQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [android]
-
-  '@oxc-parser/binding-android-arm-eabi@0.130.0':
-    resolution: {integrity: sha512-h/xYU8/7ADWzVSf5I+YalLpj33LOy9CI/zgbJNIZ5eunRBG+Czqa3lZsvuPHHf3rOt6z1c5+UzoxjbAzAvhwVw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [android]
-
   '@oxc-parser/binding-android-arm-eabi@0.139.0':
     resolution: {integrity: sha512-22EsXTA3Vc7OvrF4bfT48PFln2UbxkVgrp/Tm32qLw76Dv7SmcInfClJe6yPYamnli6HiqasnESZ5ezN+X4ybg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
-    os: [android]
-
-  '@oxc-parser/binding-android-arm64@0.127.0':
-    resolution: {integrity: sha512-b5jtVTH6AU5CJXHNdj7Jj9IEiR9yVjjnwHzPJhGyHGPdcsZSzBCkS9GBbV33niRMvKthDwQRFRJfI4a+k4PvYg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [android]
-
-  '@oxc-parser/binding-android-arm64@0.130.0':
-    resolution: {integrity: sha512-oFWFJrsGv9siFM4HjMqKNB7IuIZD/SMmZdCXl8xyx7lDplGvPKyewpOo272rSWgMXe2Wx7bWI0Yj+gkHv4qbeg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
     os: [android]
 
   '@oxc-parser/binding-android-arm64@0.139.0':
@@ -1447,34 +1603,10 @@ packages:
     cpu: [arm64]
     os: [android]
 
-  '@oxc-parser/binding-darwin-arm64@0.127.0':
-    resolution: {integrity: sha512-obCE8B7ISKkJidjlhv9xRGJPOSDG2Yu6PRga9Ruaz35uintHxbp1Ki/Yc71wx4rj3Edrm0a1kzG1TAwit0wFpg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@oxc-parser/binding-darwin-arm64@0.130.0':
-    resolution: {integrity: sha512-sGUzupdTplK9jQg7eJZ878HfEgQjJNBc6dAYVWJ9W5aU+J8rLfRJhTVsKThiu1pNwm6Y1qKCcbC6WhNWSXR3Ig==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [darwin]
-
   '@oxc-parser/binding-darwin-arm64@0.139.0':
     resolution: {integrity: sha512-vuQOv2WF5pZCkdSPEExul98o853M3MCR24DpWsGrUoPJu5KcnGE34kLXY2yFwBwZwT+eN1x40Tt4q6ZzlEdNUA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
-    os: [darwin]
-
-  '@oxc-parser/binding-darwin-x64@0.127.0':
-    resolution: {integrity: sha512-JL6Xb5IwPQT8rUzlpsX7E+AgfcdNklXNPFp8pjCQQ5MQOQo5rtEB2ui+3Hgg9Sn7Y9Egj6YOLLiHhLpdAe12Aw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [darwin]
-
-  '@oxc-parser/binding-darwin-x64@0.130.0':
-    resolution: {integrity: sha512-PsB4cdCISbC00Uy8eiD8bc2AkGWjZqrSrJnkBFuG2ptrrf6mZ2F5gLFSjOAVMMgZPg8B1D7OydJwLWSfyI2Plg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [darwin]
 
   '@oxc-parser/binding-darwin-x64@0.139.0':
@@ -1483,50 +1615,14 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@oxc-parser/binding-freebsd-x64@0.127.0':
-    resolution: {integrity: sha512-SDQ/3MQFw58fqQz3Z1PhSKFF3JoCF4gmlNjziDm8X02tTahCw0qJbd7FGPDKw1i4VTBZene9JPyC3mHtSvi+wA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [freebsd]
-
-  '@oxc-parser/binding-freebsd-x64@0.130.0':
-    resolution: {integrity: sha512-DgABp3l38hS77JbXCV4qk1+n6DPym5u8zzwuweokezm2tX194nDSJDENbDRECxVsiNbprKATLbk+Z5wlHT0OHw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [freebsd]
-
   '@oxc-parser/binding-freebsd-x64@0.139.0':
     resolution: {integrity: sha512-iw2MsoCPBQwdJqywRAGsF1jEAcGoZ+DeG2LVzt5pdUvRHqajsMF46BH0rHiWoWtMwcMSia+oQYga7fHo7u7Bcw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [freebsd]
 
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.127.0':
-    resolution: {integrity: sha512-Av+D1MIqzV0YMGPT9we2SIZaMKD7Cxs4CvXSx/yxaWHewZjYEjScpOf5igc8IILASViw4WTnjlwUdI1KzVtDHQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.130.0':
-    resolution: {integrity: sha512-4Kn3CTEmwFrzhTSC/JuUW16qovmaMdX7jeSKbL8w0pLtLww7To1a2XJi9Z5uD8QWUkfUHhqfV+VD6dVzBnWzoA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
   '@oxc-parser/binding-linux-arm-gnueabihf@0.139.0':
     resolution: {integrity: sha512-SwjD/k3Y5bwGJWOH313VyaDrAuaYg1Pe+4AAXCgUKvSO5IHkj+mZ0oFcOWmB5nTuOM3uwdT+leL8h4OnFlI5hw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@oxc-parser/binding-linux-arm-musleabihf@0.127.0':
-    resolution: {integrity: sha512-Cs2fdJ8cPpFdeebj6p4dag8A4+56hPvZ0AhQQzlaLswGz1tz7bXt1nETLeorrM9+AMcWFFkqxcXwDGfTVidY8g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm]
-    os: [linux]
-
-  '@oxc-parser/binding-linux-arm-musleabihf@0.130.0':
-    resolution: {integrity: sha512-D35KZM3F4rRu1uAFKyBlg3Gaf/ybCjyaPR1hfgvk5ex8NtcTmRgc0JgSighEyNg96TPrFhemFba68SZuxaha8w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm]
     os: [linux]
@@ -1537,40 +1633,12 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  '@oxc-parser/binding-linux-arm64-gnu@0.127.0':
-    resolution: {integrity: sha512-qdOfTcT6SY8gsJrrV92uyEUyjqMGPpIB5JZUG6QN5dukYd+7/j0kX6MwK1DgQj39jtUYixxPiaRUiEN1+0CXgQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-arm64-gnu@0.130.0':
-    resolution: {integrity: sha512-Q9o7oVlo955KHwS8l1u0bCzIx+JsZUA3XToLXC+MsMhye/9LeBQbt84nh120cl2XLy+TEzvugYDiHShg5yaX6Q==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
   '@oxc-parser/binding-linux-arm64-gnu@0.139.0':
     resolution: {integrity: sha512-SrlL02KeImKlvx/9rCeopOLH7qKI3rqKKEguK6KBwVwEGLhV/A47dW4DNigf6/LFhrwoovaiayEQryjYAI86dQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-
-  '@oxc-parser/binding-linux-arm64-musl@0.127.0':
-    resolution: {integrity: sha512-EoTCZneNFU/P2qrpEM+RHmQwt+CvDkyGESG6qhr7KaegXLZwePfbrkCDfAk8/rhxbDUVGsZILX+2tqPzFtoFWA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-linux-arm64-musl@0.130.0':
-    resolution: {integrity: sha512-EiJ/gC0ljbcwVpycC8YWw6ggMbtsPX8XMOt0mPx0aqWeMsNR+L9m05Flbvd5T+GlivG+GkSWQL7tM9SRFpM/dw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
 
   '@oxc-parser/binding-linux-arm64-musl@0.139.0':
     resolution: {integrity: sha512-u9e884ChAVRmIZ1jr/m46S96FoDQnruFjISLi4Y0i6Wu/JUUmIiw7+umLyXILJsPfUuqnN5BJLe23t07+Y6+IA==}
@@ -1579,38 +1647,10 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-linux-ppc64-gnu@0.127.0':
-    resolution: {integrity: sha512-zALjmZYgxFLHjXeudcDF0xFGNydTAtkAeXAr2EuC17ywCyFxcmQra4w0BMde0Yi/re4Bi4iwEoEXtYN7l6eBLQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-ppc64-gnu@0.130.0':
-    resolution: {integrity: sha512-b+h/lsLLurp756dMGizNs5uPaJfyEdWrTcV5t8M609jWm1DEHB1StpRXCkyvwtkJx3m+qL5BNQ0dEKan/4yGFA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
   '@oxc-parser/binding-linux-ppc64-gnu@0.139.0':
     resolution: {integrity: sha512-Z9tU2b3GJfAXOdirQmz4gZQkQkVjy53i77gf91l0733MQKa/qtk73KQQE2GzDtMqim+HyjpzvemmqzBtH2IJUA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-riscv64-gnu@0.127.0':
-    resolution: {integrity: sha512-fPP8M6zQLS7Jz7o9d5ArUSuAuSK3e+WCYVrCpdzeCOejidtZExJ9tjhDrAd3HEPqARBCPmdpqxESPFqy44vkBQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-riscv64-gnu@0.130.0':
-    resolution: {integrity: sha512-O19Cil83XAyjEFfo8WhkMwY58ALqZ7ckjGL+25mjMIuF84urWBeANH0FC8B8BsSSygWU3/1aY3ADdDbp+wlBnw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
     os: [linux]
     libc: [glibc]
 
@@ -1621,20 +1661,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-riscv64-musl@0.127.0':
-    resolution: {integrity: sha512-7IcC4Ao02oGpfnjt+X/oF4U2mllo2qoSkw5xxiXNKL9MCTsTiAC6616beOuehdxGcnz1bRoPC1RQ2f1GQDdN+g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-linux-riscv64-musl@0.130.0':
-    resolution: {integrity: sha512-BgXRVC0+83n3YzCscLQjj6nbyeBIVeZYPTI4fFMAE4WNm2+4RXhWp03IVizL7esIz36kgmT48aebk1iM+cs8sw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [riscv64]
-    os: [linux]
-    libc: [musl]
-
   '@oxc-parser/binding-linux-riscv64-musl@0.139.0':
     resolution: {integrity: sha512-dcQhjtcDvtR8BgkUpt03Yz5SzxdzYvTigenIJOEsiSX6G2t6yybEMxGWjp0dOuYGror0BaqcZfTyXR58amCEig==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1642,38 +1668,10 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-linux-s390x-gnu@0.127.0':
-    resolution: {integrity: sha512-pbXIhiNFHoqWeqDNLiJ9JkpHz1IM9k4DXa66x+1GTWMG7iLxtkXgE53iiuKSXwmk3zIYmaPVfBvgcAhS583K4Q==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-s390x-gnu@0.130.0':
-    resolution: {integrity: sha512-6tJz0xvnGhsokE7N1WlUSBXibpYmT9xSJFS1Ce41Km/+8gQvdlW8MLhRv8PD0L7ix8vRG0FDDepp3jdOFzdVdw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
   '@oxc-parser/binding-linux-s390x-gnu@0.139.0':
     resolution: {integrity: sha512-iuGrxysV4rGUymdKpn7bgZQ6Vix8Bi/6D/rp71HYIzphq6NKrsBhsGOYsSZte+uBFL43tXh7Xr7TM72sGliJNA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [s390x]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-x64-gnu@0.127.0':
-    resolution: {integrity: sha512-MYCguB9RvBvlSd6gbuNI7QwiLoCCAlGnlRJFPrzLI6U1/9wkC/WK6LtBAUln55H1Ctqw45PWmqrobKoMhsYQzQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
-  '@oxc-parser/binding-linux-x64-gnu@0.130.0':
-    resolution: {integrity: sha512-9aCWj83dp3heTQGmGnZGdIWgxjZrr/7VQ0TGFHH5PKByxJKF2Hcr4qvaSUHhhGEa3MSsDjTL1YDP8RAgdL5/Cg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [linux]
     libc: [glibc]
 
@@ -1684,20 +1682,6 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@oxc-parser/binding-linux-x64-musl@0.127.0':
-    resolution: {integrity: sha512-5eY0B/bxf1xIUxb4NOTvOI3KWtBQfPWYyKAzgcrCt0mDibSZygVpO1Pz8bkeiSZ5Jj9+M09dkggG3H8I5d0Uyg==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
-  '@oxc-parser/binding-linux-x64-musl@0.130.0':
-    resolution: {integrity: sha512-afXt87aZBqrUVli8TB/I8H1G50RDWcwirjWtXGXYqJ2ZqWEiErH7V72j3LUSDZaivmtu2OLX0KQ/mbhP81mr7A==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
-
   '@oxc-parser/binding-linux-x64-musl@0.139.0':
     resolution: {integrity: sha512-ePxBvvtzISmSsJ0RIj8FNikSCn58i1jtccj7XR4U9Li4iSzhkFyYlnJ51cQTUwkairz8WMTD4SpKoot8RyTnQA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1705,50 +1689,16 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@oxc-parser/binding-openharmony-arm64@0.127.0':
-    resolution: {integrity: sha512-Gld0ajrFTUXNtdw20fVBuTQx66FA75nIVg+//pPfR3sXkuABB4mTBhl3r9JNzrJpgW//qiwxf0nWXUWGJSL3UQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [openharmony]
-
-  '@oxc-parser/binding-openharmony-arm64@0.130.0':
-    resolution: {integrity: sha512-I0NCrZV/YZuCGWgqwNN/GO/iXlLF2z+Wgc7u+Aa9N4P51oYeIa0XT+zVBUne4csO9GqxskXgI4g8JzzWGRpfOw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [openharmony]
-
   '@oxc-parser/binding-openharmony-arm64@0.139.0':
     resolution: {integrity: sha512-b/c2+mPXMOxG5x16n8yf9cjor/ntQQScmYnSmLEWIWJ4rfXd5dokMxx0kliSLA+YAGq6DD3K9BWi+aFXHiiV1w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
 
-  '@oxc-parser/binding-wasm32-wasi@0.127.0':
-    resolution: {integrity: sha512-T6KVD7rhLzFlwGRXMnxUFfkCZD8FHnb968wVXW1mXzgRFc5RNXOBY2mPPDZ77x5Ln76ltLMgtPg0cOkU1NSrEQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [wasm32]
-
-  '@oxc-parser/binding-wasm32-wasi@0.130.0':
-    resolution: {integrity: sha512-sJgQkGaBX0WJvPUDfwciex6IcTk5O5NLQ1bhEb6f3nBruh1GshKMRSMt2bxZlYrgBzjyBbJzsnO+InPG0bg+fA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [wasm32]
-
   '@oxc-parser/binding-wasm32-wasi@0.139.0':
     resolution: {integrity: sha512-rNU0pO+/CVPC2qZ+xtX5R2cOje9Q75q3UkfgwUCPlplqxMv6Iffd5tMPGVMCLGnPINxPlmi0WPsW94HltbYvfQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [wasm32]
-
-  '@oxc-parser/binding-win32-arm64-msvc@0.127.0':
-    resolution: {integrity: sha512-Ujvw4X+LD1CCGULcsQcvb4YNVoBGqt+JHgNNzGGaCImELiZLk477ifUH53gIbE7EKd933NdTi25JWEr9K2HwXw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-arm64-msvc@0.130.0':
-    resolution: {integrity: sha512-bjcma99sQrNh6RY4mPO9yTkfxql6TDFoN3HWdK31RCKXwNhcDgJXW/l8PUtzKNiQ+9vpKJfJtQq+LklBuxSOBA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [win32]
 
   '@oxc-parser/binding-win32-arm64-msvc@0.139.0':
     resolution: {integrity: sha512-JPEmfncZfqAFiGsAN6UZSMIBqnG8wn8buywRacFOWjP+9dZwcs03SsBp4tmyjM/4l/VoH/IuThrW1Jof3OyQUw==}
@@ -1756,34 +1706,10 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@oxc-parser/binding-win32-ia32-msvc@0.127.0':
-    resolution: {integrity: sha512-0cwxKO7KHQQQfo4Uf4B2SQrhgm+cJaP9OvFFhx52Tkg4bezsacu83GB2/In5bC415Ueeym+kXdnge/57rbSfTw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ia32]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-ia32-msvc@0.130.0':
-    resolution: {integrity: sha512-hRYbv6HhpSTzT4xTiIkadLI7upLQxuOdLPR/9nL1fTjwhgutBTPXrwaAPb/jTFVx6/8C7Jb5HcUKhmNwloTbFA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [ia32]
-    os: [win32]
-
   '@oxc-parser/binding-win32-ia32-msvc@0.139.0':
     resolution: {integrity: sha512-c06dWBwEnFHof5JN7T9/ts23uATXS9czPEBO60d4xnjH2Am29Bo7OGKdVHRmcWQnw0OBxlTg9fIEXAvtcwOBfw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ia32]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-x64-msvc@0.127.0':
-    resolution: {integrity: sha512-rOrnSQSCbhI2kowr9XxE7m9a8oQXnBHjnS6j95LxxAnEZ0+Fz20WlRXG4ondQb+ejjt2KOsa65sE6++L6kUd+w==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [win32]
-
-  '@oxc-parser/binding-win32-x64-msvc@0.130.0':
-    resolution: {integrity: sha512-RBpA9TsRucJq6HNVNCFF1iKg+QeTkLdZf7hi4xaOGCPvMZWvDHjQgSOEZMUpuW4JNciHbxNhLEYmz5CVygjVGQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [win32]
 
   '@oxc-parser/binding-win32-x64-msvc@0.139.0':
@@ -1794,9 +1720,6 @@ packages:
 
   '@oxc-project/types@0.127.0':
     resolution: {integrity: sha512-aIYXQBo4lCbO4z0R3FHeucQHpF46l2LbMdxRvqvuRuW2OxdnSkcng5B8+K12spgLDj93rtN3+J2Vac/TIO+ciQ==}
-
-  '@oxc-project/types@0.130.0':
-    resolution: {integrity: sha512-ibD2usx9JRu7f5pu2tMKMI4cpA4NgXJQoYRP4pQ7Pxmn1l6k/53qWtQWZayhYy3X4QZkt90Ot+mJEaeXouio6Q==}
 
   '@oxc-project/types@0.138.0':
     resolution: {integrity: sha512-1a7ZKmrRTCoN1XMZ4L0PyyqrMnrNlLyPuOkdSX2MZg7IiIGRUyurNhAm73ptDOraoBcIordsIGKNPKUzy3ZmfA==}
@@ -4846,14 +4769,6 @@ packages:
     resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
     engines: {node: '>=0.10.0'}
 
-  oxc-parser@0.127.0:
-    resolution: {integrity: sha512-bkgD4qHlN7WxLdX8bLXdaU54TtQtAIg/ZBAfm0aje/mo3MRDo3P0hZSgr4U7O3xfX+fQmR5AP04JS/TGcZLcFA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-
-  oxc-parser@0.130.0:
-    resolution: {integrity: sha512-X0PJ+NmOok8qP3vK9uaW431ngkdM9UPEK7KG466urtIL2+EYTEgbZK2yqe2MWKJKBjRlFweP/pJPx0x9muMEVw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-
   oxc-parser@0.139.0:
     resolution: {integrity: sha512-cf1TKZN+zc0lwqigeyXKzKVk5+vNRe99Or2+wVJsXLdlhJgC+gsIniYDfj/ZEBzCJ8Xm21ZG6YtMbR262CcS2w==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -7074,23 +6989,12 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@emnapi/core@1.9.2':
-    dependencies:
-      '@emnapi/wasi-threads': 1.2.1
-      tslib: 2.8.1
-    optional: true
-
   '@emnapi/runtime@1.10.0':
     dependencies:
       tslib: 2.8.1
     optional: true
 
   '@emnapi/runtime@1.11.1':
-    dependencies:
-      tslib: 2.8.1
-    optional: true
-
-  '@emnapi/runtime@1.9.2':
     dependencies:
       tslib: 2.8.1
     optional: true
@@ -7319,6 +7223,30 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@glint/ember-tsc@1.8.11(ember-source@7.1.0(@glimmer/component@2.1.1))(typescript@6.0.3)':
+    dependencies:
+      '@glimmer/syntax': 0.95.0
+      '@glint/template': 1.7.8
+      '@volar/kit': 2.4.28(typescript@6.0.3)
+      '@volar/language-core': 2.4.28
+      '@volar/language-server': 2.4.28
+      '@volar/language-service': 2.4.28
+      '@volar/source-map': 2.4.28
+      '@volar/test-utils': 2.4.28
+      '@volar/typescript': 2.4.28
+      content-tag: 4.2.0
+      silent-error: 1.1.1
+      typescript: 6.0.3
+      volar-service-html: 0.0.71(@volar/language-service@2.4.28)
+      volar-service-typescript: 0.0.71(@volar/language-service@2.4.28)
+      vscode-languageserver-protocol: 3.18.2
+      vscode-languageserver-textdocument: 1.0.12
+      vscode-uri: 3.1.0
+    optionalDependencies:
+      ember-source: 7.1.0(@glimmer/component@2.1.1)
+    transitivePeerDependencies:
+      - supports-color
+
   '@glint/template@1.7.8': {}
 
   '@glint/tsserver-plugin@2.5.17(ember-source@7.1.0(@glimmer/component@2.1.1))':
@@ -7331,37 +7259,6 @@ snapshots:
     transitivePeerDependencies:
       - ember-source
       - supports-color
-
-  '@gossi/config-eslint@1.3.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7))(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint-plugin-qunit@8.2.6(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)(typescript@5.9.3)':
-    dependencies:
-      '@eslint/js': 10.0.1(eslint@10.6.0(jiti@2.6.1))
-      '@stylistic/eslint-plugin': 5.10.0(eslint@10.6.0(jiti@2.6.1))
-      eslint: 10.6.0(jiti@2.6.1)
-      eslint-config-prettier: 10.1.8(eslint@10.6.0(jiti@2.6.1))
-      eslint-import-resolver-typescript: 4.4.5(eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))
-      eslint-plugin-decorator-position: 6.1.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))
-      eslint-plugin-import-x: 4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))
-      eslint-plugin-json: 4.0.1
-      eslint-plugin-n: 18.2.1(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      eslint-plugin-prettier: 5.5.6(eslint-config-prettier@10.1.8(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)
-      eslint-plugin-simple-import-sort: 13.0.0(eslint@10.6.0(jiti@2.6.1))
-      eslint-plugin-unicorn: 66.0.0(eslint@10.6.0(jiti@2.6.1))
-      globals: 17.7.0
-      typescript-eslint: 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-    optionalDependencies:
-      '@babel/eslint-parser': 8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1))
-      '@babel/plugin-proposal-decorators': 7.29.7(@babel/core@7.29.7)
-      eslint-plugin-ember: 13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      eslint-plugin-qunit: 8.2.6(eslint@10.6.0(jiti@2.6.1))
-    transitivePeerDependencies:
-      - '@types/eslint'
-      - '@typescript-eslint/utils'
-      - eslint-import-resolver-node
-      - eslint-plugin-import
-      - prettier
-      - supports-color
-      - ts-declaration-location
-      - typescript
 
   '@gossi/config-eslint@1.3.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@babel/plugin-proposal-decorators@7.29.7(@babel/core@7.29.7))(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint-plugin-qunit@8.2.6(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1))(prettier@3.9.5)(typescript@6.0.3)':
     dependencies:
@@ -7487,13 +7384,6 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)':
-    dependencies:
-      '@emnapi/core': 1.9.2
-      '@emnapi/runtime': 1.9.2
-      '@tybys/wasm-util': 0.10.3
-    optional: true
-
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -7611,162 +7501,52 @@ snapshots:
 
   '@one-ini/wasm@0.2.1': {}
 
-  '@oxc-parser/binding-android-arm-eabi@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-android-arm-eabi@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-android-arm-eabi@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-android-arm64@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-android-arm64@0.130.0':
     optional: true
 
   '@oxc-parser/binding-android-arm64@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-darwin-arm64@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-darwin-arm64@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-darwin-arm64@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-darwin-x64@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-darwin-x64@0.130.0':
     optional: true
 
   '@oxc-parser/binding-darwin-x64@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-freebsd-x64@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-freebsd-x64@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-freebsd-x64@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm-gnueabihf@0.130.0':
     optional: true
 
   '@oxc-parser/binding-linux-arm-gnueabihf@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm-musleabihf@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm-musleabihf@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-linux-arm-musleabihf@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm64-gnu@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm64-gnu@0.130.0':
     optional: true
 
   '@oxc-parser/binding-linux-arm64-gnu@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-linux-arm64-musl@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-arm64-musl@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-linux-arm64-musl@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-ppc64-gnu@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-ppc64-gnu@0.130.0':
     optional: true
 
   '@oxc-parser/binding-linux-ppc64-gnu@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-linux-riscv64-gnu@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-riscv64-gnu@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-linux-riscv64-gnu@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-riscv64-musl@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-riscv64-musl@0.130.0':
     optional: true
 
   '@oxc-parser/binding-linux-riscv64-musl@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-linux-s390x-gnu@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-s390x-gnu@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-linux-s390x-gnu@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-x64-gnu@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-x64-gnu@0.130.0':
     optional: true
 
   '@oxc-parser/binding-linux-x64-gnu@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-linux-x64-musl@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-linux-x64-musl@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-linux-x64-musl@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-openharmony-arm64@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-openharmony-arm64@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-openharmony-arm64@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-wasm32-wasi@0.127.0':
-    dependencies:
-      '@emnapi/core': 1.9.2
-      '@emnapi/runtime': 1.9.2
-      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
-    optional: true
-
-  '@oxc-parser/binding-wasm32-wasi@0.130.0':
-    dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
-      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
     optional: true
 
   '@oxc-parser/binding-wasm32-wasi@0.139.0':
@@ -7776,36 +7556,17 @@ snapshots:
       '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     optional: true
 
-  '@oxc-parser/binding-win32-arm64-msvc@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-arm64-msvc@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-win32-arm64-msvc@0.139.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-ia32-msvc@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-ia32-msvc@0.130.0':
     optional: true
 
   '@oxc-parser/binding-win32-ia32-msvc@0.139.0':
     optional: true
 
-  '@oxc-parser/binding-win32-x64-msvc@0.127.0':
-    optional: true
-
-  '@oxc-parser/binding-win32-x64-msvc@0.130.0':
-    optional: true
-
   '@oxc-parser/binding-win32-x64-msvc@0.139.0':
     optional: true
 
-  '@oxc-project/types@0.127.0': {}
-
-  '@oxc-project/types@0.130.0': {}
+  '@oxc-project/types@0.127.0':
+    optional: true
 
   '@oxc-project/types@0.138.0': {}
 
@@ -8342,22 +8103,6 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
-  '@typescript-eslint/eslint-plugin@8.63.0(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)':
-    dependencies:
-      '@eslint-community/regexpp': 4.12.2
-      '@typescript-eslint/parser': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/scope-manager': 8.63.0
-      '@typescript-eslint/type-utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/visitor-keys': 8.63.0
-      eslint: 10.6.0(jiti@2.6.1)
-      ignore: 7.0.5
-      natural-compare: 1.4.0
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/eslint-plugin@8.63.0(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -8374,18 +8119,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)':
-    dependencies:
-      '@typescript-eslint/scope-manager': 8.63.0
-      '@typescript-eslint/types': 8.63.0
-      '@typescript-eslint/typescript-estree': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/visitor-keys': 8.63.0
-      debug: 4.4.3
-      eslint: 10.6.0(jiti@2.6.1)
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/scope-manager': 8.63.0
@@ -8395,15 +8128,6 @@ snapshots:
       debug: 4.4.3
       eslint: 10.6.0(jiti@2.6.1)
       typescript: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
-
-  '@typescript-eslint/project-service@8.63.0(typescript@5.9.3)':
-    dependencies:
-      '@typescript-eslint/tsconfig-utils': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/types': 8.63.0
-      debug: 4.4.3
-      typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
 
@@ -8421,25 +8145,9 @@ snapshots:
       '@typescript-eslint/types': 8.63.0
       '@typescript-eslint/visitor-keys': 8.63.0
 
-  '@typescript-eslint/tsconfig-utils@8.63.0(typescript@5.9.3)':
-    dependencies:
-      typescript: 5.9.3
-
   '@typescript-eslint/tsconfig-utils@8.63.0(typescript@6.0.3)':
     dependencies:
       typescript: 6.0.3
-
-  '@typescript-eslint/type-utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)':
-    dependencies:
-      '@typescript-eslint/types': 8.63.0
-      '@typescript-eslint/typescript-estree': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      debug: 4.4.3
-      eslint: 10.6.0(jiti@2.6.1)
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
 
   '@typescript-eslint/type-utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:
@@ -8455,21 +8163,6 @@ snapshots:
 
   '@typescript-eslint/types@8.63.0': {}
 
-  '@typescript-eslint/typescript-estree@8.63.0(typescript@5.9.3)':
-    dependencies:
-      '@typescript-eslint/project-service': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/tsconfig-utils': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/types': 8.63.0
-      '@typescript-eslint/visitor-keys': 8.63.0
-      debug: 4.4.3
-      minimatch: 10.2.5
-      semver: 7.8.5
-      tinyglobby: 0.2.17
-      ts-api-utils: 2.5.0(typescript@5.9.3)
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/typescript-estree@8.63.0(typescript@6.0.3)':
     dependencies:
       '@typescript-eslint/project-service': 8.63.0(typescript@6.0.3)
@@ -8482,17 +8175,6 @@ snapshots:
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@6.0.3)
       typescript: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
-
-  '@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)':
-    dependencies:
-      '@eslint-community/eslint-utils': 4.9.1(eslint@10.6.0(jiti@2.6.1))
-      '@typescript-eslint/scope-manager': 8.63.0
-      '@typescript-eslint/types': 8.63.0
-      '@typescript-eslint/typescript-estree': 8.63.0(typescript@5.9.3)
-      eslint: 10.6.0(jiti@2.6.1)
-      typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
 
@@ -9504,22 +9186,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ember-eslint-parser@0.14.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(typescript@5.9.3):
-    dependencies:
-      '@glimmer/syntax': 0.95.0
-      '@typescript-eslint/tsconfig-utils': 8.63.0(typescript@5.9.3)
-      content-tag: 4.2.0
-      ember-estree: 0.6.10
-      eslint-scope: 9.1.2
-      html-tags: 5.1.0
-      mathml-tag-names: 4.0.0
-      svg-tags: 1.0.0
-    optionalDependencies:
-      '@babel/eslint-parser': 8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1))
-      '@typescript-eslint/parser': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
-
   ember-eslint-parser@0.14.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
       '@glimmer/syntax': 0.95.0
@@ -9535,14 +9201,13 @@ snapshots:
       '@typescript-eslint/parser': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
-    optional: true
 
   ember-estree@0.6.10:
     dependencies:
       '@glimmer/env': 0.1.7
       '@glimmer/syntax': 0.95.0
       content-tag: 4.2.0
-      oxc-parser: 0.130.0
+      oxc-parser: 0.139.0
 
   ember-intl@8.2.9(@babel/core@7.29.7):
     dependencies:
@@ -9734,21 +9399,6 @@ snapshots:
     optionalDependencies:
       unrs-resolver: 1.12.2
 
-  eslint-import-resolver-typescript@4.4.5(eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1)):
-    dependencies:
-      debug: 4.4.3
-      eslint: 10.6.0(jiti@2.6.1)
-      eslint-import-context: 0.1.9(unrs-resolver@1.12.2)
-      get-tsconfig: 4.14.0
-      is-bun-module: 2.0.0
-      stable-hash-x: 0.2.0
-      tinyglobby: 0.2.17
-      unrs-resolver: 1.12.2
-    optionalDependencies:
-      eslint-plugin-import-x: 4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))
-    transitivePeerDependencies:
-      - supports-color
-
   eslint-import-resolver-typescript@4.4.5(eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1)))(eslint@10.6.0(jiti@2.6.1)):
     dependencies:
       debug: 4.4.3
@@ -9777,32 +9427,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3):
-    dependencies:
-      '@ember-data/rfc395-data': 0.0.4
-      aria-query: 5.3.2
-      axobject-query: 4.1.0
-      css-tree: 3.2.1
-      editorconfig: 3.0.2
-      ember-eslint-parser: 0.14.4(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(typescript@5.9.3)
-      ember-rfc176-data: 0.3.18
-      eslint: 10.6.0(jiti@2.6.1)
-      eslint-utils: 3.0.0(eslint@10.6.0(jiti@2.6.1))
-      estraverse: 5.3.0
-      html-tags: 3.3.1
-      language-tags: 1.0.9
-      lodash.camelcase: 4.3.0
-      lodash.kebabcase: 4.1.1
-      mathml-tag-names: 4.0.0
-      requireindex: 1.2.0
-      snake-case: 3.0.4
-      svg-tags: 1.0.0
-    optionalDependencies:
-      '@typescript-eslint/parser': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-    transitivePeerDependencies:
-      - '@babel/eslint-parser'
-      - typescript
-
   eslint-plugin-ember@13.4.1(@babel/eslint-parser@8.0.1(@babel/core@7.29.7)(eslint@10.6.0(jiti@2.6.1)))(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3):
     dependencies:
       '@ember-data/rfc395-data': 0.0.4
@@ -9828,7 +9452,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/eslint-parser'
       - typescript
-    optional: true
 
   eslint-plugin-es-x@7.8.0(eslint@10.6.0(jiti@2.6.1)):
     dependencies:
@@ -9836,23 +9459,6 @@ snapshots:
       '@eslint-community/regexpp': 4.12.2
       eslint: 10.6.0(jiti@2.6.1)
       eslint-compat-utils: 0.5.1(eslint@10.6.0(jiti@2.6.1))
-
-  eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1)):
-    dependencies:
-      '@typescript-eslint/types': 8.63.0
-      comment-parser: 1.4.7
-      debug: 4.4.3
-      eslint: 10.6.0(jiti@2.6.1)
-      eslint-import-context: 0.1.9(unrs-resolver@1.12.2)
-      is-glob: 4.0.3
-      minimatch: 10.2.5
-      semver: 7.8.5
-      stable-hash-x: 0.2.0
-      unrs-resolver: 1.12.2
-    optionalDependencies:
-      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-    transitivePeerDependencies:
-      - supports-color
 
   eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.6.0(jiti@2.6.1)):
     dependencies:
@@ -9875,20 +9481,6 @@ snapshots:
     dependencies:
       lodash: 4.18.1
       vscode-json-languageservice: 4.2.1
-
-  eslint-plugin-n@18.2.1(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3):
-    dependencies:
-      '@eslint-community/eslint-utils': 4.9.1(eslint@10.6.0(jiti@2.6.1))
-      enhanced-resolve: 5.24.2
-      eslint: 10.6.0(jiti@2.6.1)
-      eslint-plugin-es-x: 7.8.0(eslint@10.6.0(jiti@2.6.1))
-      get-tsconfig: 4.14.0
-      globals: 15.15.0
-      globrex: 0.1.2
-      ignore: 5.3.2
-      semver: 7.8.5
-    optionalDependencies:
-      typescript: 5.9.3
 
   eslint-plugin-n@18.2.1(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3):
     dependencies:
@@ -9923,10 +9515,10 @@ snapshots:
     dependencies:
       eslint: 10.6.0(jiti@2.6.1)
 
-  eslint-plugin-storybook@10.5.0(eslint@10.6.0(jiti@2.6.1))(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@5.9.3):
+  eslint-plugin-storybook@10.5.0(eslint@10.6.0(jiti@2.6.1))(storybook@10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(typescript@6.0.3):
     dependencies:
       '@typescript-eslint/types': 8.63.0
-      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
+      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3)
       eslint: 10.6.0(jiti@2.6.1)
       storybook: 10.5.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
     transitivePeerDependencies:
@@ -11115,56 +10707,6 @@ snapshots:
 
   os-tmpdir@1.0.2: {}
 
-  oxc-parser@0.127.0:
-    dependencies:
-      '@oxc-project/types': 0.127.0
-    optionalDependencies:
-      '@oxc-parser/binding-android-arm-eabi': 0.127.0
-      '@oxc-parser/binding-android-arm64': 0.127.0
-      '@oxc-parser/binding-darwin-arm64': 0.127.0
-      '@oxc-parser/binding-darwin-x64': 0.127.0
-      '@oxc-parser/binding-freebsd-x64': 0.127.0
-      '@oxc-parser/binding-linux-arm-gnueabihf': 0.127.0
-      '@oxc-parser/binding-linux-arm-musleabihf': 0.127.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.127.0
-      '@oxc-parser/binding-linux-arm64-musl': 0.127.0
-      '@oxc-parser/binding-linux-ppc64-gnu': 0.127.0
-      '@oxc-parser/binding-linux-riscv64-gnu': 0.127.0
-      '@oxc-parser/binding-linux-riscv64-musl': 0.127.0
-      '@oxc-parser/binding-linux-s390x-gnu': 0.127.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.127.0
-      '@oxc-parser/binding-linux-x64-musl': 0.127.0
-      '@oxc-parser/binding-openharmony-arm64': 0.127.0
-      '@oxc-parser/binding-wasm32-wasi': 0.127.0
-      '@oxc-parser/binding-win32-arm64-msvc': 0.127.0
-      '@oxc-parser/binding-win32-ia32-msvc': 0.127.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.127.0
-
-  oxc-parser@0.130.0:
-    dependencies:
-      '@oxc-project/types': 0.130.0
-    optionalDependencies:
-      '@oxc-parser/binding-android-arm-eabi': 0.130.0
-      '@oxc-parser/binding-android-arm64': 0.130.0
-      '@oxc-parser/binding-darwin-arm64': 0.130.0
-      '@oxc-parser/binding-darwin-x64': 0.130.0
-      '@oxc-parser/binding-freebsd-x64': 0.130.0
-      '@oxc-parser/binding-linux-arm-gnueabihf': 0.130.0
-      '@oxc-parser/binding-linux-arm-musleabihf': 0.130.0
-      '@oxc-parser/binding-linux-arm64-gnu': 0.130.0
-      '@oxc-parser/binding-linux-arm64-musl': 0.130.0
-      '@oxc-parser/binding-linux-ppc64-gnu': 0.130.0
-      '@oxc-parser/binding-linux-riscv64-gnu': 0.130.0
-      '@oxc-parser/binding-linux-riscv64-musl': 0.130.0
-      '@oxc-parser/binding-linux-s390x-gnu': 0.130.0
-      '@oxc-parser/binding-linux-x64-gnu': 0.130.0
-      '@oxc-parser/binding-linux-x64-musl': 0.130.0
-      '@oxc-parser/binding-openharmony-arm64': 0.130.0
-      '@oxc-parser/binding-wasm32-wasi': 0.130.0
-      '@oxc-parser/binding-win32-arm64-msvc': 0.130.0
-      '@oxc-parser/binding-win32-ia32-msvc': 0.130.0
-      '@oxc-parser/binding-win32-x64-msvc': 0.130.0
-
   oxc-parser@0.139.0:
     dependencies:
       '@oxc-project/types': 0.139.0
@@ -11830,7 +11372,7 @@ snapshots:
       esbuild: 0.27.7
       jsonc-parser: 3.3.1
       open: 10.2.0
-      oxc-parser: 0.127.0
+      oxc-parser: 0.139.0
       oxc-resolver: 11.20.0
       recast: 0.23.11
       semver: 7.8.5
@@ -11996,10 +11538,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ts-api-utils@2.5.0(typescript@5.9.3):
-    dependencies:
-      typescript: 5.9.3
-
   ts-api-utils@2.5.0(typescript@6.0.3):
     dependencies:
       typescript: 6.0.3
@@ -12040,15 +11578,6 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typedoc@0.28.20(typescript@5.9.3):
-    dependencies:
-      '@gerrit0/mini-shiki': 3.23.0
-      lunr: 2.3.9
-      markdown-it: 14.3.0
-      minimatch: 10.2.5
-      typescript: 5.9.3
-      yaml: 2.9.0
-
   typedoc@0.28.20(typescript@6.0.3):
     dependencies:
       '@gerrit0/mini-shiki': 3.23.0
@@ -12063,17 +11592,6 @@ snapshots:
   typescript-auto-import-cache@0.3.6:
     dependencies:
       semver: 7.8.5
-
-  typescript-eslint@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3):
-    dependencies:
-      '@typescript-eslint/eslint-plugin': 8.63.0(@typescript-eslint/parser@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/parser': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/typescript-estree': 8.63.0(typescript@5.9.3)
-      '@typescript-eslint/utils': 8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@5.9.3)
-      eslint: 10.6.0(jiti@2.6.1)
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - supports-color
 
   typescript-eslint@8.63.0(eslint@10.6.0(jiti@2.6.1))(typescript@6.0.3):
     dependencies:
