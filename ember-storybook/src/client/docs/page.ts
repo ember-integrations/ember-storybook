@@ -103,8 +103,6 @@ export default function Page() {
   const compEntry = compFile ? data[compFile] : undefined;
   const signature = compEntry?.signatures?.[storyComponent?.signatureName ?? ''];
 
-  // console.log({ emberData, resolved, storyFile, storyEntry, compFile, compEntry, signature });
-
   const children: ReactNode[] = [
     createElement(Title),
     createElement(Subtitle),

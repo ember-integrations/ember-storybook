@@ -35,11 +35,6 @@ function resolveComponentRef(storyFilePath: string): ComponentRef | undefined {
 
   const componentPath = path.resolve(result.component.file);
 
-  console.log('[ember-storybook] resolveComponentRef', storyFilePath, {
-    componentName: result.meta.component,
-    componentPath
-  });
-
   return { componentName: result.meta.component ?? '', componentPath };
 }
 
@@ -53,12 +48,6 @@ async function addSignatures(
   if (missing.length === 0) return state;
 
   const newSigs = await runTypeDoc(missing);
-
-  console.log('[ember-storybook] addSignatures', {
-    asked: componentPaths,
-    missing,
-    newKeys: Object.keys(newSigs)
-  });
 
   const merged = { ...state.signatures };
 
@@ -76,14 +65,11 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
   };
 
   function contributeState() {
-    console.log('[ember-storybook] contributeState keys:', Object.keys(state.signatures));
     api.contribute('signatures', state.signatures);
   }
 
   function discoverAll() {
     const files = getStoryFiles();
-
-    console.log('[ember-storybook] discoverAll story files:', files);
 
     const next = new Map<string, ComponentRef>();
 
@@ -95,14 +81,10 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
       }
     }
 
-    console.log('[ember-storybook] discoverAll resolved refs:', [...next]);
-
     state.storyToRef = next;
   }
 
   async function processStoryAdd(storyFile: string) {
-    console.log('[ember-storybook] processStoryAdd', storyFile);
-
     const ref = resolveComponentRef(storyFile);
 
     if (!ref) return;
@@ -113,8 +95,6 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
   }
 
   function processStoryChange(storyFile: string) {
-    console.log('[ember-storybook] processStoryChange', storyFile);
-
     state.storyToRef.delete(storyFile);
 
     const ref = resolveComponentRef(storyFile);
@@ -127,23 +107,16 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
   }
 
   function processStoryUnlink(storyFile: string) {
-    console.log('[ember-storybook] processStoryUnlink', storyFile);
-
     state.storyToRef.delete(storyFile);
     contributeState();
   }
 
   async function processComponentChange(componentFile: string) {
-    console.log('[ember-storybook] processComponentChange', componentFile);
-
     const absFile = path.resolve(componentFile);
 
     if (!isReferenced(state, absFile)) return;
 
     const newSigs = await runTypeDoc([absFile]);
-
-    console.log('newSigs for', absFile, JSON.stringify(newSigs, undefined, 2));
-
     const merged = { ...state.signatures };
 
     for (const [filePath, compSigs] of Object.entries(newSigs)) {
@@ -158,7 +131,6 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
     name: 'ember-storybook:signatures',
 
     async buildStart() {
-      console.log('[ember-storybook] buildStart - signatures contributor');
       discoverAll();
 
       const allPaths = [...new Set(Array.from(state.storyToRef.values(), (r) => r.componentPath))];
@@ -177,8 +149,6 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
       });
 
       server.watcher.on('change', (changedFile) => {
-        console.log('file change', changedFile);
-
         if (isStoryFile(changedFile)) {
           processStoryChange(changedFile);
         } else if (isComponentFile(changedFile)) {

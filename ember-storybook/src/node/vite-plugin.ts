@@ -10,7 +10,6 @@ export function emberStorybookPlugin(): Plugin[] {
 
   const api: ContributorAPI = {
     contribute(name, data) {
-      console.log(`[ember-storybook] contribute "${name}":`, data);
       contributions.set(name, data);
       api.invalidate?.();
     },
