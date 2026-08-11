@@ -25,8 +25,8 @@ export default defineConfig({
     neverBundle: [
       /^@ember/,
       /^virtual:/,
-      /^typedoc/,
-      /^typedoc-plugin-/,
+      // /typedoc/,
+      // /^typedoc-plugin-/,
       /^@storybook\/addon-docs/,
       /^react(\/|$)/,
       /^react-dom/
