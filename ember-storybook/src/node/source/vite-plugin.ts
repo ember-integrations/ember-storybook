@@ -2,21 +2,26 @@ import { parseStoryFile } from '../parser';
 import { getStoryFiles, isStoryFile } from '../shared';
 import { type ContributorAPI } from '../vite-plugin-orchestrator';
 
+import type { StorySource } from '../types';
 import type { Plugin } from 'vite';
 
 export function sourceContributor(api: ContributorAPI): Plugin {
-  let fileMeta: Record<string, Record<string, string | undefined>> = {};
+  let fileMeta: Record<string, Record<string, StorySource>> = {};
 
   function contribute() {
     api.contribute('source', { ...fileMeta });
   }
 
-  function extractSource(filePath: string): Record<string, string | undefined> {
+  function extractSource(filePath: string): Record<string, StorySource> {
     const result = parseStoryFile(filePath);
-    const output: Record<string, string | undefined> = {};
+    const output: Record<string, StorySource> = {};
 
     for (const story of result?.stories ?? []) {
-      output[story.id] = story.inlineTemplate;
+      output[story.id] = {
+        inlineTemplate: story.inlineTemplate,
+        componentName: result?.component.name ?? result?.component.signatureName,
+        signatureName: result?.component.signatureName
+      };
     }
 
     return output;
@@ -36,7 +41,7 @@ export function sourceContributor(api: ContributorAPI): Plugin {
 
     buildStart() {
       const files = getStoryFiles().filter((f) => isStoryFile(f));
-      const data: Record<string, Record<string, string | undefined>> = {};
+      const data: Record<string, Record<string, StorySource>> = {};
 
       for (const file of files) {
         data[file] = extractSource(file);

@@ -18,7 +18,7 @@ import { SubcomponentsArea } from './blocks/subcomponents';
 import { H2 } from './blocks/ui';
 import { collectSubcomponents } from './signature';
 
-import type { EmberMeta } from '../../node/types';
+import type { EmberMeta, StorySource } from '../../node/types';
 import type { ComponentSignature } from 'ember-docgen';
 
 function addSignature(signature: ComponentSignature, data: EmberMeta) {
@@ -92,7 +92,7 @@ export default function Page() {
     {
       meta?: unknown;
       component?: { file?: string; signatureName?: string };
-      source?: Record<string, string | undefined>;
+      source?: Record<string, StorySource>;
       signatures?: Record<string, ComponentSignature>;
     }
   >;

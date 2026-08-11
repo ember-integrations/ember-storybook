@@ -1,5 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 
+vi.mock('storybook/preview-api', () => ({
+  emitTransformCode: vi.fn(),
+  useEffect: (cb: () => void) => cb(),
+  useRef: <T>(initial: T) => ({ current: initial })
+}));
+
 vi.mock('virtual:ember-storybook', () => {
   // const sig = (cn: string) => ({
   //   componentName: cn,
@@ -13,37 +19,56 @@ vi.mock('virtual:ember-storybook', () => {
     default: {
       '/test/hello.stories.gts': {
         component: { signatureName: 'Greeting' },
-        source: { 'test--hello': '<Greeting @name={{args.name}} />' }
+        source: {
+          'test--hello': {
+            inlineTemplate: '<Greeting @name={{args.name}} />',
+            componentName: 'Greeting'
+          }
+        }
       },
       '/test/plain.stories.gts': {
         component: { signatureName: 'Button' },
-        source: { 'test--plain': undefined }
+        source: { 'test--plain': { componentName: 'Button' } }
       },
       '/test/many.stories.gts': {
         component: { signatureName: 'Card' },
-        source: { 'test--many': undefined }
+        source: { 'test--many': { componentName: 'Card' } }
       },
       '/test/few.stories.gts': {
         component: { signatureName: 'Test' },
-        source: { 'test--few': undefined }
+        source: { 'test--few': { componentName: 'Test' } }
       },
       '/test/noprops.stories.gts': {
         component: { signatureName: 'NoProp' },
-        source: { 'test--noprops': undefined }
+        source: { 'test--noprops': { componentName: 'NoProp' } }
       },
       '/test/unknown.stories.gts': {
         component: { signatureName: '(unknown template-only component)' },
-        source: { 'test--unknown': undefined }
+        source: { 'test--unknown': { componentName: '(unknown template-only component)' } }
       },
       '/test/actions.stories.gts': {
         component: { signatureName: 'Button' },
-        source: { 'test--actions': undefined }
+        source: { 'test--actions': { componentName: 'Button' } }
+      },
+      '/test/default.stories.gts': {
+        component: { signatureName: '__DEFAULT__' },
+        source: {
+          'test--default': { componentName: 'Button', signatureName: '__DEFAULT__' }
+        }
       }
     }
   };
 });
 
-import { generateSource, resolveTemplateArgs, toArgument } from './source-decorator';
+import { SourceType } from 'storybook/internal/docs-tools';
+import { emitTransformCode } from 'storybook/preview-api';
+
+import {
+  generateSource,
+  resolveTemplateArgs,
+  sourceDecorator,
+  toArgument
+} from './source-decorator';
 
 describe('toArgument', () => {
   test('formats a string value', () => {
@@ -179,5 +204,35 @@ describe('generateSource', () => {
     );
 
     expect(result).toBe('<Button @name="Alice" @push={{@push}} />');
+  });
+
+  test('resolves the real component name for default-imported components', () => {
+    const result = generateSource(
+      { name: 'Button' },
+      { label: 'Hello' },
+      { label: {} },
+      'test--default'
+    );
+
+    expect(result).toBe('<Button @label="Hello" />');
+  });
+});
+
+describe('sourceDecorator', () => {
+  test('uses the original story component name, not a decorator', () => {
+    const originalComponent = { name: 'OriginalPage' };
+    const decoratedComponent = { name: 'IntlDecoratorComponent' };
+
+    const context = {
+      id: 'example-page--japanese',
+      args: {},
+      argTypes: {},
+      parameters: { docs: { source: { type: SourceType.DYNAMIC } } },
+      originalStoryFn: () => originalComponent
+    } as unknown as Parameters<typeof sourceDecorator>[1];
+
+    sourceDecorator(() => decoratedComponent, context);
+
+    expect(emitTransformCode).toHaveBeenCalledWith('<OriginalPage />', context);
   });
 });

@@ -4,6 +4,7 @@ import emberData from 'virtual:ember-storybook';
 
 import { unwrapBlockParams } from './block-params';
 
+import type { StorySource } from '../../node/types';
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
 import type { BlockInfo, ComponentSignature } from 'ember-docgen';
@@ -13,7 +14,7 @@ const data = emberData as Record<
   string,
   {
     component?: { file?: string; signatureName?: string };
-    source?: Record<string, string | undefined>;
+    source?: Record<string, StorySource>;
     signatures?: Record<string, ComponentSignature>;
   }
 >;
@@ -105,20 +106,20 @@ export function generateBlockSourceCode(
   return blocks.join('\n');
 }
 
-let byStoryId: Record<string, { componentName?: string; inlineTemplate?: string }> | undefined;
+let byStoryId: Record<string, StorySource> | undefined;
 
-function getByStoryId(): Record<string, { componentName?: string; inlineTemplate?: string }> {
+function getByStoryId(): Record<string, StorySource> {
   if (byStoryId) return byStoryId;
 
   byStoryId = {};
 
   for (const entry of Object.values(data)) {
-    const comp = entry.component;
-
-    if (!comp) continue;
-
-    for (const [storyId, inlineTemplate] of Object.entries(entry.source ?? {})) {
-      byStoryId[storyId] = { componentName: comp.signatureName, inlineTemplate };
+    for (const [storyId, source] of Object.entries(entry.source ?? {})) {
+      byStoryId[storyId] = {
+        componentName: source.componentName,
+        signatureName: source.signatureName,
+        inlineTemplate: source.inlineTemplate
+      };
     }
   }
 
@@ -174,7 +175,10 @@ export function generateSource(
     return undefined;
   }
 
-  const sig = signatureForComponent(name);
+  // Default-exported components are keyed by the `__DEFAULT__` sentinel in the
+  // signatures map, while `name` is the real component name. Look the signature
+  // up by the sentinel so blocks/args still resolve.
+  const sig = signatureForComponent(meta?.signatureName ?? name);
 
   const propsArray = Object.entries(args)
     .filter(([k]) => !sig || !Object.hasOwn(sig.blocks, k))
@@ -209,10 +213,10 @@ export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, conte
   const story = storyFn();
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const renderedForSource = context.parameters.docs?.source?.excludeDecorators
-      ? (context.originalStoryFn as StoryFn)(context.args, context)
-      : story;
+    // Always generate the source from the ORIGINAL story, not the decorator-wrapped
+    // `storyFn()` result. A decorator wraps the story in another component, so its
+    // `.name` (e.g. `IntlDecorator`) would leak into the generated source block.
+    const renderedForSource = (context.originalStoryFn as StoryFn)(context.args, context);
 
     if (!skipSourceRender(context)) {
       const code =

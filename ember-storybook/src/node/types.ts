@@ -2,13 +2,19 @@ import type { ComponentMap } from './parser';
 import type { ComponentSignature } from 'ember-docgen';
 import type { StaticMeta } from 'storybook/internal/csf-tools';
 
+export type StorySource = {
+  inlineTemplate?: string;
+  componentName?: string;
+  signatureName?: string;
+};
+
 export type StoryFile = {
   meta: StaticMeta;
   component: {
     file?: string;
     signatureName?: string;
   };
-  source?: Record<string, string | undefined>;
+  source?: Record<string, StorySource>;
 };
 
 export type ComponentFile = {

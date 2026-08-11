@@ -61,6 +61,14 @@ export interface StoryFile {
      * - `"Button"` for `export default class Button ...`
      */
     signatureName?: string;
+
+    /**
+     * The name used to invoke the component in generated source.
+     * Differs from `signatureName` for default exports, where the
+     * signature is keyed by the `__DEFAULT__` sentinel but the real
+     * component name (e.g. `"Button"`) is known from the component file.
+     */
+    name?: string;
   };
 
   stories: (StaticStory & { inlineTemplate?: string })[];
@@ -299,7 +307,11 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
   return {
     meta,
-    component: { file: compPath, signatureName: signatureName ?? localComponentName },
+    component: {
+      file: compPath,
+      signatureName: signatureName ?? localComponentName,
+      name: signatureName === Default ? (compMeta?.[Default] ?? localComponentName) : undefined
+    },
     stories
   };
 }
