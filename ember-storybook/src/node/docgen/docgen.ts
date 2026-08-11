@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { analyze, getBlockParams, parseFile } from 'ember-docgen';
+import { analyze, parseFile } from 'ember-docgen';
 
+import { unwrapBlockParams } from '../../client/docs/block-params';
 import { normalizeFilePath } from '../shared';
 
 import type { ComponentSignatureMap } from 'ember-docgen';
@@ -34,7 +35,7 @@ function rewriteFilePaths(mapped: ComponentSignatureMap, base: string): void {
   for (const compSigs of Object.values(mapped)) {
     for (const compSig of Object.values(compSigs)) {
       for (const blockInfo of Object.values(compSig.blocks)) {
-        for (const param of getBlockParams(blockInfo.params)) {
+        for (const param of unwrapBlockParams(blockInfo.params)) {
           if (param.componentRef?.filePath) {
             param.componentRef.filePath = normalizeFilePath(
               path.resolve(base, param.componentRef.filePath)
