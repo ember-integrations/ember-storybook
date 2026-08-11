@@ -1,10 +1,9 @@
-declare module 'virtual:ember-storybook-meta' {
-  const meta: Record<
-    string,
-    { componentName: string; inlineTemplate?: string; storyFilePath: string }
-  >;
+declare module 'virtual:ember-storybook' {
+  import type { EmberMeta } from './node/types';
 
-  export default meta;
+  const data: EmberMeta;
+
+  export default data;
 }
 
 declare let STORYBOOK_ENV: 'ember';

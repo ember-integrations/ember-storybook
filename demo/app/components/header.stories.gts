@@ -1,6 +1,6 @@
 import { fn } from 'storybook/test';
 
-import Header, { type Signature } from './header.gts';
+import { Header, type Signature } from './header.gts';
 
 import type { Meta, StoryObj } from 'ember-storybook';
 

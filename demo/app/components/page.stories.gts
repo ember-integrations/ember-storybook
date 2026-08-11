@@ -6,14 +6,14 @@ import Page from './page.gts';
 
 import type { Meta, StoryObj } from 'ember-storybook';
 
-const meta = {
+const meta: Meta = {
   title: 'Example/Page',
   component: Page,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/configure/story-layout
     layout: 'fullscreen'
   }
-} satisfies Meta;
+};
 
 export default meta;
 

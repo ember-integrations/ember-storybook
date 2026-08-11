@@ -22,7 +22,15 @@ export default defineConfig({
   clean: true,
   dts: false,
   deps: {
-    neverBundle: [/^@ember/, /^virtual:/]
+    neverBundle: [
+      /^@ember/,
+      /^virtual:/,
+      /^typedoc/,
+      /^typedoc-plugin-/,
+      /^@storybook\/addon-docs/,
+      /^react(\/|$)/,
+      /^react-dom/
+    ]
   },
   plugins: [
     babel({

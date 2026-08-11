@@ -1,0 +1,42 @@
+{
+  "name": "ember-docgen",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Extract component documentation (args, blocks, element, style) from TypeDoc output for Ember components",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "lint:js": "echo 'ok'",
+    "lint:types": "echo 'ok'",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "content-tag": "catalog:build",
+    "oxc-parser": "catalog:build",
+    "tinyglobby": "^0.2.17",
+    "typedoc-plugin-ember": "workspace:*",
+    "typescript": "catalog:build"
+  },
+  "peerDependencies": {
+    "typedoc": ">=0.28.0",
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "tsdown": "catalog:build",
+    "typedoc": "catalog:lib",
+    "typescript": "catalog:build",
+    "vitest": "catalog:test"
+  }
+}

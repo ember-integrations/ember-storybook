@@ -1,19 +1,47 @@
 import { describe, expect, test, vi } from 'vitest';
 
-vi.mock('virtual:ember-storybook-meta', () => ({
-  default: {
-    'test--hello': {
-      componentName: 'Greeting',
-      inlineTemplate: '<Greeting @name={{args.name}} />'
-    },
-    'test--plain': { componentName: 'Button' },
-    'test--many': { componentName: 'Card' },
-    'test--few': { componentName: 'Test' },
-    'test--noprops': { componentName: 'NoProp' },
-    'test--unknown': { componentName: '(unknown template-only component)' },
-    'test--actions': { componentName: 'Button' }
-  }
-}));
+vi.mock('virtual:ember-storybook', () => {
+  // const sig = (cn: string) => ({
+  //   componentName: cn,
+  //   args: {},
+  //   blocks: {},
+  //   element: undefined,
+  //   style: { customProperties: {}, parts: {} }
+  // });
+
+  return {
+    default: {
+      '/test/hello.stories.gts': {
+        component: { signatureName: 'Greeting' },
+        source: { 'test--hello': '<Greeting @name={{args.name}} />' }
+      },
+      '/test/plain.stories.gts': {
+        component: { signatureName: 'Button' },
+        source: { 'test--plain': undefined }
+      },
+      '/test/many.stories.gts': {
+        component: { signatureName: 'Card' },
+        source: { 'test--many': undefined }
+      },
+      '/test/few.stories.gts': {
+        component: { signatureName: 'Test' },
+        source: { 'test--few': undefined }
+      },
+      '/test/noprops.stories.gts': {
+        component: { signatureName: 'NoProp' },
+        source: { 'test--noprops': undefined }
+      },
+      '/test/unknown.stories.gts': {
+        component: { signatureName: '(unknown template-only component)' },
+        source: { 'test--unknown': undefined }
+      },
+      '/test/actions.stories.gts': {
+        component: { signatureName: 'Button' },
+        source: { 'test--actions': undefined }
+      }
+    }
+  };
+});
 
 import { generateSource, resolveTemplateArgs, toArgument } from './source-decorator';
 
