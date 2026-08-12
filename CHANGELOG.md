@@ -1,5 +1,19 @@
 # Changelog
 
+## Release (2026-08-12)
+
+* ember-storybook 0.1.1 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#18](https://github.com/ember-integrations/ember-storybook/pull/18) Bugfixes for the Build ([@gossi](https://github.com/gossi))
+
+#### :house: Internal
+* [#20](https://github.com/ember-integrations/ember-storybook/pull/20) Ember Test Matrix ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-11)
 
 * ember-storybook 0.1.0 (minor)
