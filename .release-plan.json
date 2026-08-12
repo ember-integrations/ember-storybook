@@ -2,8 +2,8 @@
   "solution": {
     "ember-storybook": {
       "impact": "patch",
-      "oldVersion": "0.1.0",
-      "newVersion": "0.1.1",
+      "oldVersion": "0.1.1",
+      "newVersion": "0.1.2",
       "tagName": "latest",
       "constraints": [
         {
@@ -14,5 +14,5 @@
       "pkgJSONPath": "./ember-storybook/package.json"
     }
   },
-  "description": "## Release (2026-08-12)\n\n* ember-storybook 0.1.1 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#18](https://github.com/ember-integrations/ember-storybook/pull/18) Bugfixes for the Build ([@gossi](https://github.com/gossi))\n\n#### :house: Internal\n* [#20](https://github.com/ember-integrations/ember-storybook/pull/20) Ember Test Matrix ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-08-12)\n\n* ember-storybook 0.1.2 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#21](https://github.com/ember-integrations/ember-storybook/pull/21) Fix Ember environment ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }
