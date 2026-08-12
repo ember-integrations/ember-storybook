@@ -60,6 +60,7 @@
     "babel-plugin-ember-template-compilation": "catalog:build",
     "decorator-transforms": "catalog:build",
     "ember-intl": "catalog:frontend",
+    "ember-element-helper": "^0.8.8",
     "eslint": "catalog:lint",
     "eslint-plugin-ember": "catalog:lint",
     "eslint-plugin-qunit": "catalog:lint",

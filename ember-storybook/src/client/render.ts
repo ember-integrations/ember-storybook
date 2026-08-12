@@ -126,10 +126,10 @@ export async function renderToCanvas(
     application = initApp(appOption, { rootElement: canvasElement });
   }
 
+  application ??= buildAppInstance(Application, { rootElement: canvasElement });
+
   // modify the owner for the story
   if (storyContext.parameters.ember?.owner) {
-    application ??= buildAppInstance(Application, { rootElement: canvasElement });
-
     for (const [key, obj] of Object.entries(storyContext.parameters.ember.owner) as [
       `${string}:${string}`,
       object
@@ -138,6 +138,9 @@ export async function renderToCanvas(
       application.register(key, obj);
     }
   }
+
+  // boot the instance so ember registers necessary environments
+  await application.boot();
 
   const trackedArgs = trackedObject({ ...args });
   const result = renderComponent(Component, {

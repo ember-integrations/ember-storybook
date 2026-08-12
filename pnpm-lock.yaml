@@ -257,6 +257,9 @@ importers:
       decorator-transforms:
         specifier: catalog:build
         version: 2.4.0(@babel/core@7.29.7)
+      ember-element-helper:
+        specifier: ^0.8.8
+        version: 0.8.8
       ember-intl:
         specifier: catalog:frontend
         version: 8.2.9(@babel/core@7.29.7)
@@ -3409,6 +3412,10 @@ packages:
   ember-cli-version-checker@5.1.2:
     resolution: {integrity: sha512-rk7GY+FmLn/2e22HsZs0Ycrz8HQ1W3Fv+2TFOuEFW9optnDXDgkntPBIl6gact/LHsfBM5RKbM3dHsIIeLgl0Q==}
     engines: {node: 10.* || >= 12.*}
+
+  ember-element-helper@0.8.8:
+    resolution: {integrity: sha512-3slTltQV5ke53t3YVP2GYoswsQ6y+lhuVzKmt09tbEx91DapG8I/xa8W5OA0StvcQlavL3/vHrz/vCQEFs8bBA==}
+    engines: {node: 14.* || 16.* || >= 18}
 
   ember-eslint-parser@0.14.4:
     resolution: {integrity: sha512-HSpJPP52KTpr2lbz41rHiWPsqSy4eXLZljpUez0RigVZJIbk3BWbRMHWeqL6GeylOVJPysD7Wx92Fg7mOFvbLA==}
@@ -9183,6 +9190,12 @@ snapshots:
       resolve-package-path: 3.1.0
       semver: 7.8.5
       silent-error: 1.1.1
+    transitivePeerDependencies:
+      - supports-color
+
+  ember-element-helper@0.8.8:
+    dependencies:
+      '@embroider/addon-shim': 1.10.3
     transitivePeerDependencies:
       - supports-color
 
