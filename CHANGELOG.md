@@ -2,6 +2,17 @@
 
 ## Release (2026-08-12)
 
+* ember-storybook 0.1.2 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#21](https://github.com/ember-integrations/ember-storybook/pull/21) Fix Ember environment ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
+## Release (2026-08-12)
+
 * ember-storybook 0.1.1 (patch)
 
 #### :bug: Bug Fix
