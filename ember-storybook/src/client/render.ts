@@ -49,10 +49,11 @@ function isApplication(maybeApp: object): maybeApp is typeof Application {
     // @ts-expect-error well, ember types
     maybeApp.create !== undefined &&
     // @ts-expect-error well, ember types
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     maybeApp.superclass &&
     // @ts-expect-error well, ember types
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    maybeApp.supeclass.name === 'EmberApp'
+    maybeApp.superclass.name === 'EmberApp'
   );
 }
 
