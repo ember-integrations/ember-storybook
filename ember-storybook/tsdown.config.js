@@ -16,6 +16,7 @@ export default defineConfig({
     'src/client/index.ts',
     'src/client/config.ts',
     'src/client/docs/config.ts',
+    'src/client/docs/renderer.ts',
     'src/node/index.ts'
   ],
   sourcemap: true,
@@ -28,6 +29,7 @@ export default defineConfig({
       // /typedoc/,
       // /^typedoc-plugin-/,
       /^@storybook\/addon-docs/,
+      /^@storybook\/react-dom-shim/,
       /^react(\/|$)/,
       /^react-dom/
     ]

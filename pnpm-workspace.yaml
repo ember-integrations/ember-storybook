@@ -49,6 +49,8 @@ catalogs:
     "@storybook/builder-vite": ^10.5.0
     "@storybook/cli": 10.5.0
     "@storybook/global": ^5.0.0
+    "@storybook/react-dom-shim": 10.5.0
+    "@mdx-js/react": ^3.1.0
     storybook: ^10.5.0
     typedoc: ^0.28.0
   frontend:

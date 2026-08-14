@@ -1,5 +1,6 @@
 import type Application from '@ember/application';
 import type ApplicationInstance from '@ember/application/instance';
+import type Owner from '@ember/owner';
 import type { StoryContext as DefaultStoryContext, WebRenderer } from 'storybook/internal/types';
 
 export type { RenderContext } from 'storybook/internal/types';
@@ -18,7 +19,9 @@ export interface EmberParameters {
   // renderer: 'ember';
   ember?: {
     app?: AppParamater;
+    configure?: (app: ApplicationInstance) => void;
     owner?: Record<`${string}:${string}`, object>;
+    updateGlobals?: (globals: Record<string, unknown>, owner: Owner) => void;
   };
 }
 
