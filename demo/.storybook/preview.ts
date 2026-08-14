@@ -1,9 +1,5 @@
-import { DocsRenderer } from 'ember-storybook/client/docs/renderer';
-
 import { createApp } from '#app/app.ts';
 import { configure } from '#app/config.ts';
-
-import { IntlDecorator } from './intl-decorator.gts';
 
 import type Owner from '@ember/owner';
 import type { Preview } from 'ember-storybook';
@@ -27,10 +23,7 @@ const preview: Preview = {
   },
   parameters: {
     docs: {
-      codePanel: true,
-      // TEMP experiment: use a stable-key docs renderer so the docs page does
-      // not remount (and tear down the story renders) on globals changes
-      renderer: () => Promise.resolve(new DocsRenderer())
+      codePanel: true
     },
     controls: {
       matchers: {
@@ -48,7 +41,6 @@ const preview: Preview = {
       }
     }
   },
-  // decorators: [IntlDecorator],
 
   tags: ['vitest', 'autodocs']
 };

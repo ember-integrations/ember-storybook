@@ -35,9 +35,9 @@
       "types": "./declarations/client/docs/config.d.ts",
       "default": "./dist/client/docs/config.mjs"
     },
-    "./client/docs/renderer": {
-      "types": "./declarations/client/docs/renderer.d.ts",
-      "default": "./dist/client/docs/renderer.mjs"
+    "./client/docs/preview-patch": {
+      "types": "./declarations/client/docs/preview-patch.d.ts",
+      "default": "./dist/client/docs/preview-patch.mjs"
     },
     "./node": {
       "types": "./declarations/node/index.d.ts",

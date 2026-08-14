@@ -1,6 +1,5 @@
 import Application from '@ember/application';
 import ApplicationInstance from '@ember/application/instance';
-import { renderSettled } from '@ember/renderer';
 
 import type { AppParamater, EmberRenderer, StoryContext } from './types';
 import type { RenderResult } from '@ember/-internals/glimmer/lib/renderer';
@@ -82,6 +81,17 @@ function initApp(appOption: AppParamater, opts: { rootElement: HTMLElement }): A
   return initApp(appOption(getAppOptions(opts)), opts);
 }
 
+function updateArgs(currentArgs: Args, nextArgs: Args) {
+  for (const key of Object.keys(currentArgs)) {
+    if (!Object.hasOwn(nextArgs, key)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete currentArgs[key];
+    }
+  }
+
+  Object.assign(currentArgs, nextArgs);
+}
+
 export async function renderToCanvas(
   {
     storyFn,
@@ -107,7 +117,6 @@ export async function renderToCanvas(
 
     contexts.delete(element);
     context.renderer?.destroy();
-    // await renderSettled();
 
     context.mount.remove();
 
@@ -124,7 +133,7 @@ export async function renderToCanvas(
 
   const context = contexts.get(canvasElement);
 
-  if (context && !forceRemount && args) {
+  if (context && !forceRemount) {
     const argsChanged = !shallowEqual(context.args, args);
     const globalsChanged = !shallowEqual(context.globals, storyContext.globals);
 
@@ -205,14 +214,4 @@ export async function renderToCanvas(
   return () => {
     unmount(canvasElement);
   };
-}
-
-function updateArgs(currentArgs: Args, nextArgs: Args) {
-  for (const key of Object.keys(currentArgs)) {
-    if (!(key in nextArgs)) {
-      delete currentArgs[key];
-    }
-  }
-
-  Object.assign(currentArgs, nextArgs);
 }

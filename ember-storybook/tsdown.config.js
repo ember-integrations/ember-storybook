@@ -17,6 +17,7 @@ export default defineConfig({
     'src/client/config.ts',
     'src/client/docs/config.ts',
     'src/client/docs/renderer.ts',
+    'src/client/docs/preview-patch.ts',
     'src/node/index.ts'
   ],
   sourcemap: true,
