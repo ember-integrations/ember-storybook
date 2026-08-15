@@ -1,7 +1,7 @@
 // This file is a fork of `@storybook/addon-docs`' `DocsRenderer`, copied from
-// `dist/_browser-chunks/chunk-OATZR77O.js` (source: `src/DocsRenderer.tsx`) at
-// version 10.5.0. It replicates the docs renderer so we can override a single
-// detail: the `ErrorBoundary` must NOT get a `key={Math.random()}` (see below).
+// `src/DocsRenderer.tsx` at version 10.5.0. It replicates the docs renderer
+// so we can override a single detail: the `ErrorBoundary` must NOT get a
+// `key={Math.random()}` (see below).
 //
 // RISK: this is a copy of addon-docs internals, not its public API. When
 // `@storybook/addon-docs` is upgraded, the upstream `DocsRenderer` can change
