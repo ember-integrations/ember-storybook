@@ -1,3 +1,13 @@
+// This file is a fork of `@storybook/addon-docs`' `DocsRenderer`, copied from
+// `dist/_browser-chunks/chunk-OATZR77O.js` (source: `src/DocsRenderer.tsx`) at
+// version 10.5.0. It replicates the docs renderer so we can override a single
+// detail: the `ErrorBoundary` must NOT get a `key={Math.random()}` (see below).
+//
+// RISK: this is a copy of addon-docs internals, not its public API. When
+// `@storybook/addon-docs` is upgraded, the upstream `DocsRenderer` can change
+// (new blocks, different component tree, changed lifecycle) and this fork will
+// silently drift, breaking the docs page. On every addon-docs bump, re-verify
+// this file against the upstream source and port any relevant changes.
 import { AnchorMdx, CodeOrSourceMdx, Docs, HeadersMdx } from '@storybook/addon-docs/blocks';
 import { renderElement, unmountElement } from '@storybook/react-dom-shim';
 import { Component, createElement } from 'react';
@@ -17,6 +27,10 @@ const defaultComponents = {
 // change), which destroyed the inline story canvases and caused the addon to
 // reboot the Ember app. With a stable root the docs page reconciles in place and
 // the canvases stay alive.
+//
+// TRADE-OFF: the upstream key also reset the boundary's `hasError` state on
+// every render. Without it, a transient render error leaves the docs page
+// permanently blank (hasError is never reset) until the app is reloaded.
 class ErrorBoundary extends Component<
   { showException: (error: unknown) => void; children?: ReactNode },
   { hasError: boolean }
