@@ -35,6 +35,10 @@
       "types": "./declarations/client/docs/config.d.ts",
       "default": "./dist/client/docs/config.mjs"
     },
+    "./client/docs/preview-patch": {
+      "types": "./declarations/client/docs/preview-patch.d.ts",
+      "default": "./dist/client/docs/preview-patch.mjs"
+    },
     "./node": {
       "types": "./declarations/node/index.d.ts",
       "default": "./dist/node/index.mjs"
@@ -92,6 +96,8 @@
     "@gossi/config-prettier": "catalog:lint",
     "@rollup/plugin-babel": "catalog:build",
     "@storybook/addon-docs": "catalog:lib",
+    "@storybook/react-dom-shim": "catalog:lib",
+    "@mdx-js/react": "catalog:lib",
     "@types/node": "catalog:types",
     "@types/react": "catalog:types",
     "ember-source": "^6.8.0",

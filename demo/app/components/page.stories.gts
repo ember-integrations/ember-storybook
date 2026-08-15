@@ -1,5 +1,4 @@
-import Service from '@ember/service';
-
+import IntlService from 'ember-intl/services/intl';
 import { expect, userEvent, within } from 'storybook/test';
 
 import Page from './page.gts';
@@ -39,7 +38,7 @@ export const Japanese: StoryObj = {
   parameters: {
     ember: {
       owner: {
-        'service:intl': class JaIntl extends Service {
+        'service:intl': class JaIntl extends IntlService {
           t = (key: string) => {
             const map = {
               welcome: 'こんにちは',

@@ -7,7 +7,24 @@ import { emberStorybookPlugin } from './node/vite-plugin';
 
 import type { StorybookConfig } from './types';
 import type { PresetProperty } from 'storybook/internal/types';
-import type { UserConfig } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
+
+// The generated preview imports the addon-docs preview by its absolute path.
+// Redirect that import to our patched module so `docs.renderer` is overridden
+// with the stable-key DocsRenderer (the framework's own `docs.renderer` never
+// wins the annotation merge, and mutating the module in place is unreliable due
+// to Vite dep pre-bundling splitting module instances).
+function docsRendererPlugin(docsPreviewPatch: string): Plugin {
+  return {
+    name: 'ember-storybook:docs-renderer',
+    enforce: 'pre',
+    resolveId(source) {
+      if (source.includes('@storybook/addon-docs') && source.endsWith('preview.js')) {
+        return docsPreviewPatch;
+      }
+    }
+  };
+}
 
 export const previewAnnotations: PresetProperty<'previewAnnotations'> = async (
   // eslint-disable-next-line @typescript-eslint/default-param-last
@@ -34,8 +51,12 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
 
   config.plugins = await withoutVitePlugins(config.plugins, ['embroider-content-for']);
 
+  const docsPreviewPatch = fileURLToPath(
+    import.meta.resolve('ember-storybook/client/docs/preview-patch')
+  );
+
   return mergeConfig(config, {
-    plugins: [...emberStorybookPlugin()],
+    plugins: [...emberStorybookPlugin(), docsRendererPlugin(docsPreviewPatch)],
     optimizeDeps: {
       exclude: ['object-inspect']
     },

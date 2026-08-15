@@ -23,14 +23,25 @@ export const render: ArgsStoryFn<EmberRenderer> = (args, context) => {
   );
 };
 
-const contexts = new Map<
-  EmberRenderer['canvasElement'],
-  {
-    application: ApplicationInstance | undefined;
-    renderer: RenderResult;
-    args: Args;
-  }
->();
+function shallowEqual(a: Record<string, unknown>, b: Record<string, unknown>) {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every((key) => Object.hasOwn(b, key) && Object.is(a[key], b[key]))
+  );
+}
+
+type RenderContextCache = {
+  application: ApplicationInstance;
+  renderer?: RenderResult;
+  mount: HTMLElement;
+  args: Args;
+  globals: Record<string, unknown>;
+};
+
+const contexts = new Map<EmberRenderer['canvasElement'], RenderContextCache>();
 
 function getAppOptions(opts: { rootElement: HTMLElement }) {
   return {
@@ -70,6 +81,17 @@ function initApp(appOption: AppParamater, opts: { rootElement: HTMLElement }): A
   return initApp(appOption(getAppOptions(opts)), opts);
 }
 
+function updateArgs(currentArgs: Args, nextArgs: Args) {
+  for (const key of Object.keys(currentArgs)) {
+    if (!Object.hasOwn(nextArgs, key)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete currentArgs[key];
+    }
+  }
+
+  Object.assign(currentArgs, nextArgs);
+}
+
 export async function renderToCanvas(
   {
     storyFn,
@@ -94,11 +116,11 @@ export async function renderToCanvas(
     }
 
     contexts.delete(element);
-    context.renderer.destroy();
+    context.renderer?.destroy();
 
-    if (context.application) {
-      destroy(context.application);
-    }
+    context.mount.remove();
+
+    destroy(context.application);
   }
 
   if (forceRemount) {
@@ -106,16 +128,42 @@ export async function renderToCanvas(
   }
 
   // this check does not work:
-  // when globals are updated, that are interesting for a decorato
+  // when globals are updated, that are interesting for a decorator
   // this check would prevent that update
 
-  // const context = contexts.get(canvasElement);
-  // if (context && !forceRemount && args) {
-  //   updateArgs(context.args, args);
-  //   return () => {
-  //     unmount(canvasElement);
-  //   };
-  // }
+  const context = contexts.get(canvasElement);
+
+  if (context && !forceRemount) {
+    const argsChanged = !shallowEqual(context.args, args);
+    const globalsChanged = !shallowEqual(context.globals, storyContext.globals);
+
+    if (globalsChanged) {
+      storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, context.application);
+      context.globals = { ...storyContext.globals };
+    }
+
+    if (argsChanged || !globalsChanged) {
+      updateArgs(context.args, args);
+
+      const result = renderComponent(Component, {
+        args: context.args,
+        into: context.mount,
+        owner: context.application
+      });
+
+      context.renderer = result;
+    }
+
+    return () => {
+      unmount(canvasElement);
+    };
+  }
+
+  // fresh mount element per render, so ember's RENDER_CACHE never has a stale
+  // entry for the `into` element (this is what caused the `insertBefore` error)
+  const mount = document.createElement('div');
+
+  canvasElement.append(mount);
 
   // find the ember app for the story
   let application: ApplicationInstance | undefined;
@@ -139,33 +187,31 @@ export async function renderToCanvas(
     }
   }
 
-  // boot the instance so ember registers necessary environments
+  // configure and boot the instance so ember registers necessary environments
+  storyContext.parameters.ember?.configure?.(application);
   await application.boot();
+  storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, application);
 
   const trackedArgs = trackedObject({ ...args });
+
+  contexts.set(canvasElement, {
+    application,
+    mount,
+    args: trackedArgs,
+    globals: storyContext.globals
+  });
+
   const result = renderComponent(Component, {
     args: trackedArgs,
-    into: canvasElement,
+    into: mount,
     owner: application
   });
 
-  contexts.set(canvasElement, { application, renderer: result, args: trackedArgs });
+  (contexts.get(canvasElement) as RenderContextCache).renderer = result;
 
   showMain();
 
-  // eslint-disable-next-line unicorn/consistent-function-scoping
   return () => {
-    // needs fix:
-    // unmount(canvasElement);
+    unmount(canvasElement);
   };
 }
-
-// function updateArgs(currentArgs: Args, nextArgs: Args) {
-//   for (const key of Object.keys(currentArgs)) {
-//     if (!(key in nextArgs)) {
-//       delete currentArgs[key];
-//     }
-//   }
-
-//   Object.assign(currentArgs, nextArgs);
-// }
