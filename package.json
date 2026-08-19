@@ -6,6 +6,8 @@
     "build": "pnpm run -r build"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.79",
+    "playwright": "^1.62.1",
     "release-plan": "^0.18.0"
   },
   "packageManager": "pnpm@11.6.0",

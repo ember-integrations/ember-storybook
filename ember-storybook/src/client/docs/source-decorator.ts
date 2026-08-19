@@ -2,6 +2,7 @@ import { SourceType } from 'storybook/internal/docs-tools';
 import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 import emberData from 'virtual:ember-storybook';
 
+import { isEmberStoryResult } from '../story-result';
 import { unwrapBlockParams } from './block-params';
 
 import type { StorySource } from '../../node/types';
@@ -216,7 +217,8 @@ export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, conte
     // Always generate the source from the ORIGINAL story, not the decorator-wrapped
     // `storyFn()` result. A decorator wraps the story in another component, so its
     // `.name` (e.g. `IntlDecorator`) would leak into the generated source block.
-    const renderedForSource = (context.originalStoryFn as StoryFn)(context.args, context);
+    const rendered = (context.originalStoryFn as StoryFn)(context.args, context);
+    const renderedForSource = isEmberStoryResult(rendered) ? rendered.component : rendered;
 
     if (!skipSourceRender(context)) {
       const code =
