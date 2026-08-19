@@ -1,6 +1,7 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 import { registerDestructor } from '@ember/destroyable';
+import { hash } from '@ember/helper'; // for ember versions < 7.1
 import { trackedArray } from '@ember/reactive/collections';
 import { next } from '@ember/runloop';
 
