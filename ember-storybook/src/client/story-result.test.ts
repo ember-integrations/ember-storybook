@@ -81,6 +81,22 @@ describe('createAppResolver', () => {
     );
   });
 
+  test('builds an instance from the base Application class provided as the app', () => {
+    const instance = resolver(EmberApp, opts);
+
+    expect(instance).toEqual(expect.objectContaining({ from: 'create' }));
+    expect(EmberApp.create).toHaveBeenCalledWith(
+      expect.objectContaining({ autoboot: false, rootElement: opts.rootElement })
+    );
+  });
+
+  test('resolves a factory that returns an Application class', () => {
+    const instance = resolver(() => FakeApp, opts);
+
+    expect(instance).toEqual(expect.objectContaining({ from: 'create' }));
+    expect(EmberApp.create).toHaveBeenCalled();
+  });
+
   test('resolves a factory that returns an ApplicationInstance', () => {
     const instance = resolver(() => new FakeInstance(), opts);
 

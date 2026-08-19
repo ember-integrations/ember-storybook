@@ -62,6 +62,11 @@ export function normalizeStoryResult(
  * Builds a resolver that turns an `ember.app` parameter into an app
  * instance. The Ember classes are injected so the logic can be unit tested
  * without a running Ember app.
+ *
+ * Resolves the `AppParamater` union the way `bootApp` needs it:
+ * - An ApplicationInstance is returned unchanged.
+ * - An Application class (base or subclass) is built via `create(...).buildInstance()`.
+ * - Anything else is treated as a factory returning either, and recursed into.
  */
 function getAppOptions(opts: { rootElement: HTMLElement }) {
   return {
@@ -86,7 +91,13 @@ export function createAppResolver(params: {
 
     const candidate = maybeApp as unknown as { create?: unknown; prototype?: object };
 
-    return typeof candidate.create === 'function' && candidate.prototype instanceof applicationCtor;
+    return (
+      typeof candidate.create === 'function' &&
+      // The base `Application` class itself fails the `prototype instanceof`
+      // check (Ember's factory bootstrap means its own prototype isn't an
+      // instance of itself), so accept it by identity as well.
+      (maybeApp === applicationCtor || candidate.prototype instanceof applicationCtor)
+    );
   }
 
   function buildAppInstance(app: ApplicationClass, opts: { rootElement: HTMLElement }) {
