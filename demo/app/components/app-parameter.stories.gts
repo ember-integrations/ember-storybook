@@ -1,6 +1,6 @@
-import { App, createApp } from '#app/app.ts';
-
 import { expect } from 'storybook/test';
+
+import { App, createApp } from '#app/app.ts';
 
 import { Greeting } from './greeting.gts';
 
@@ -43,7 +43,7 @@ export const ApplicationClass: StoryObj = {
     }
   },
   play: async ({ canvasElement }) => {
-    expect(canvasElement.textContent).toContain('Hello');
+    await expect(canvasElement.textContent).toContain('Hello');
   }
 };
 
@@ -55,7 +55,7 @@ export const ApplicationInstance: StoryObj = {
     }
   },
   play: async ({ canvasElement }) => {
-    expect(canvasElement.textContent).toContain('Hello');
+    await expect(canvasElement.textContent).toContain('Hello');
   }
 };
 
@@ -67,7 +67,7 @@ export const FactoryReturningClass: StoryObj = {
     }
   },
   play: async ({ canvasElement }) => {
-    expect(canvasElement.textContent).toContain('Hello');
+    await expect(canvasElement.textContent).toContain('Hello');
   }
 };
 
@@ -75,10 +75,10 @@ export const FactoryReturningClass: StoryObj = {
 export const FactoryReturningInstance: StoryObj = {
   parameters: {
     ember: {
-      app: (options: Record<string, unknown>) => createApp(options)
+      app: (options?: Record<string, unknown>) => createApp(options)
     }
   },
   play: async ({ canvasElement }) => {
-    expect(canvasElement.textContent).toContain('Hello');
+    await expect(canvasElement.textContent).toContain('Hello');
   }
 };
