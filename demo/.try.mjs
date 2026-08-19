@@ -17,7 +17,7 @@ function latestEmberScenario(tag) {
   return {
     name: `ember-${tag}`,
     npm: {
-      devDependencies: {
+      dependencies: {
         'ember-source': `npm:ember-source@${tag}`
       }
     }
