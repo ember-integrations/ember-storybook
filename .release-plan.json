@@ -2,8 +2,8 @@
   "solution": {
     "ember-storybook": {
       "impact": "patch",
-      "oldVersion": "0.1.2",
-      "newVersion": "0.1.3",
+      "oldVersion": "0.1.3",
+      "newVersion": "0.1.4",
       "tagName": "latest",
       "constraints": [
         {
@@ -14,5 +14,5 @@
       "pkgJSONPath": "./ember-storybook/package.json"
     }
   },
-  "description": "## Release (2026-08-15)\n\n* ember-storybook 0.1.3 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#23](https://github.com/ember-integrations/ember-storybook/pull/23) Fix Booting the Ember App ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-08-20)\n\n* ember-storybook 0.1.4 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#34](https://github.com/ember-integrations/ember-storybook/pull/34) Repair the build ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }
