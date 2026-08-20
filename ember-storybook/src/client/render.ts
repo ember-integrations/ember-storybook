@@ -2,6 +2,7 @@ import Application from '@ember/application';
 import ApplicationInstance from '@ember/application/instance';
 import { destroy } from '@ember/destroyable';
 import { renderComponent } from '@ember/renderer';
+import { VERSION } from '@ember/version';
 
 import { createAppResolver, type EmberStoryResult, normalizeStoryResult } from './story-result';
 
@@ -10,6 +11,19 @@ import type { RenderResult } from '@ember/-internals/glimmer/lib/renderer';
 import type { ArgsStoryFn, RenderContext } from 'storybook/internal/types';
 
 type Args = Record<string, unknown>;
+
+// ember-source < 6.12 built a brand-new `BaseRenderer` (EvaluationContext) on
+// every `renderComponent` call and had no per-owner renderer cache. Re-rendering
+// an already-rendered owner therefore produced multiple live EvaluationContexts
+// that corrupted glimmer's shared opcode table, crashing with
+// "Cannot read properties of null (reading 'syscall')". 6.12+ added that cache
+// (`RENDERER_CACHE` keyed by owner), so reusing an app across renders is only
+// safe from 6.12 onward.
+function isEmberBelow(major: number, minor: number): boolean {
+  const [maj, min] = VERSION.split('.').map(Number);
+
+  return maj < major || (maj === major && min < minor);
+}
 
 export const render: ArgsStoryFn<EmberRenderer> = (args, context): EmberStoryResult => {
   const { id, component } = context;
@@ -128,10 +142,6 @@ export async function renderToCanvas(
     !forceRemount &&
     !shallowEqual(existing.globals, storyContext.globals);
 
-  if (globalsChanged) {
-    storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
-  }
-
   // Nothing to do: a globals-only change (or a no-op call) must not tear down the
   // mounted component.
   if (existing && !forceRemount && !globalsChanged && shallowEqual(existing.args, args)) {
@@ -140,12 +150,30 @@ export async function renderToCanvas(
     };
   }
 
-  // Reuse the booted app across arg/globals updates, but always render
-  // into a fresh mount: reusing the same mount makes Ember's render cache serve
-  // a stale entry, which destroyed renders with obscure node errors (#27, #33).
+  // Reuse the booted app across arg/globals updates, but always render into a
+  // fresh mount: reusing the same mount makes Ember's render cache serve a stale
+  // entry, which destroyed renders with obscure node errors (#27, #33).
   let application: ApplicationInstance;
 
-  if (existing && !forceRemount) {
+  if (isEmberBelow(6, 12)) {
+    // Exception: ember-source < 6.12 has no per-owner renderer cache, so every
+    // `renderComponent` call builds a new renderer (EvaluationContext) and
+    // re-rendering an already-rendered owner corrupts the shared opcode table,
+    // crashing with "reading 'syscall'". Boot a fresh app on every render instead,
+    // so each owner is only ever rendered once (at the cost of app state + perf).
+    if (existing) {
+      unregister(canvasElement);
+    }
+
+    application = await bootApp(storyContext, canvasElement);
+  } else if (existing && !forceRemount) {
+    // ember-source >= 6.12 caches one renderer per owner, so we can keep the same
+    // app instance across re-renders. This preserves component/app state (@tracked
+    // fields, services) and avoids re-booting on every control/global change.
+    if (globalsChanged) {
+      storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
+    }
+
     application = existing.application;
     existing.renderer?.destroy();
     existing.mount.remove();
