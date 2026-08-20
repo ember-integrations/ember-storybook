@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-08-20)
+
+* ember-storybook 0.1.4 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#34](https://github.com/ember-integrations/ember-storybook/pull/34) Repair the build ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-15)
 
 * ember-storybook 0.1.3 (patch)
