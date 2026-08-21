@@ -1,11 +1,9 @@
 {
   "name": "typedoc-plugin-ember",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.0.1",
   "license": "MIT",
-  "description": "TypeDoc plugin for Ember GTS/GJS files",
+  "description": "TypeDoc plugin for Ember",
   "type": "module",
-  "main": "dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -17,8 +15,6 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "lint:js": "echo 'ok'",
-    "lint:types": "echo 'ok'",
     "test": "vitest run"
   },
   "dependencies": {
