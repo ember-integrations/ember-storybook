@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-08-21)
+
+* typedoc-plugin-ember 0.0.2 (patch)
+
+#### :house: Internal
+* `typedoc-plugin-ember`
+  * [#36](https://github.com/ember-integrations/ember-storybook/pull/36) Release typedoc-plugin-ember ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-20)
 
 * ember-storybook 0.1.4 (patch)
