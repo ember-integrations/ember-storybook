@@ -6,10 +6,20 @@ import path from 'node:path';
  * from deserialized JSON at runtime so every property is nullable. */
 import { ReflectionKind } from 'typedoc';
 
-import { extractBlockParamModifiers } from './parser';
-import { resolveTsconfigBase } from './config';
-import { Default } from './types';
+import { extractBlockParamModifiers, extractTypeMembers } from './ast';
 
+import {
+  COMPONENT_BASE_NAME,
+  COMPONENT_MODULE,
+  GLINT_TEMPLATE_MODULE,
+  GLINT_WRAPPER_EXPORTS,
+  SIGNATURE_WRAPPER_EXPORTS,
+  TEMPLATE_ONLY_MODULE
+} from '../modules';
+import { resolveTsconfigBase } from '../config';
+import { Default } from '../signature';
+
+import type { ExternalTypeMember } from './ast';
 import type {
   ArgInfo,
   ArgTypeCategory,
@@ -20,7 +30,7 @@ import type {
   ComponentSignatureMap,
   DocgenOptions,
   HashBlockParam
-} from './types';
+} from '../signature';
 import type { JSONOutput } from 'typedoc';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -104,6 +114,276 @@ function extractLiteralStrings(type: TypeDocType): string[] {
   return [];
 }
 
+/**
+ * Reference wrappers that don't change the shape of their type argument, so
+ * member extraction can look straight through them.
+ */
+const TRANSPARENT_WRAPPERS = new Set(['Simplify', 'Readonly', 'Partial', 'Required']);
+
+type ResolveContext = {
+  idToReflection: Map<number, TypeDocReflection>;
+  idToPath: Map<number, { filePath: string; name: string }>;
+  /** tsconfig directory — enables re-reading sources for external references */
+  base?: string;
+};
+
+/** A reference TypeDoc could not resolve to a reflection in this JSON. */
+interface ExternalReference {
+  packagePath: string;
+  qualifiedName: string;
+  /** Keys excluded by an enclosing `Omit<T, K>` */
+  omit: string[];
+  /** Keys allowed by an enclosing `Pick<T, K>` (empty = all) */
+  pick: string[];
+}
+
+function resolvedReflection(
+  id: number,
+  ctx: ResolveContext
+): TypeDocReflection | undefined {
+  const reflection = ctx.idToReflection.get(id);
+
+  if (!reflection || reflection.variant === 'reference') return undefined;
+
+  return reflection;
+}
+
+/** Members of an interface/type reflection including inherited ones. */
+function reflectionMembers(
+  reflection: TypeDocReflection,
+  ctx: ResolveContext
+): TypeDocReflection[] {
+  const own = reflection.children ?? [];
+  const inherited = (reflection.extendedTypes ?? []).flatMap((ext) =>
+    resolveMembers(ext, ctx)
+  );
+
+  const members = new Map<string, TypeDocReflection>();
+
+  for (const member of [...inherited, ...own]) {
+    members.set(member.name, member);
+  }
+
+  return [...members.values()];
+}
+
+/**
+ * Resolve a "member container" type (the value of `Args`, `Blocks`, `Style`,
+ * …) into its property/method reflections. Follows references to interfaces,
+ * flattens intersections/unions and unwraps utility wrappers (`Simplify`,
+ * `Omit`, `Pick`, …) so composed signatures yield their full member list.
+ */
+function resolveMembers(
+  type: TypeDocType | undefined,
+  ctx: ResolveContext
+): TypeDocReflection[] {
+  if (!type) return [];
+
+  switch (type.type) {
+    case 'reflection': {
+      return type.declaration?.children ?? [];
+    }
+
+    case 'intersection':
+    case 'union': {
+      return (type.types ?? []).flatMap((t) => resolveMembers(t, ctx));
+    }
+
+    case 'reference': {
+      const name = type.name ?? '';
+      const args = type.typeArguments ?? [];
+
+      // Omit<T, K> / Pick<T, K> — filter the members of T by literal keys
+      if ((name === 'Omit' || name === 'Pick') && args.length >= 2) {
+        const keys = new Set(extractLiteralStrings(args[1]));
+        const members = resolveMembers(args[0], ctx);
+
+        return members.filter((member) =>
+          name === 'Omit' ? !keys.has(member.name) : keys.has(member.name)
+        );
+      }
+
+      // Reference to a reflection within this project (interface, type…)
+      if (typeof type.target === 'number') {
+        const target = resolvedReflection(type.target, ctx);
+
+        return target ? reflectionMembers(target, ctx) : [];
+      }
+
+      // Transparent wrapper — look through to the wrapped type
+      if (TRANSPARENT_WRAPPERS.has(name) && args.length > 0) {
+        return resolveMembers(args[0], ctx);
+      }
+
+      return [];
+    }
+
+    default: {
+      return [];
+    }
+  }
+}
+
+/** Members of a signature property, resolving composed types when possible. */
+function memberReflections(
+  prop: TypeDocReflection,
+  ctx: ResolveContext
+): TypeDocReflection[] {
+  if (prop.type) {
+    const resolved = resolveMembers(prop.type, ctx);
+
+    if (resolved.length > 0 || !prop.children) return resolved;
+  }
+
+  return prop.children ?? [];
+}
+
+/** Collect references that could not be resolved within the JSON. */
+function collectExternalReferences(
+  type: TypeDocType | undefined,
+  ctx: ResolveContext,
+  found: ExternalReference[] = [],
+  omit: string[] = [],
+  pick: string[] = []
+): ExternalReference[] {
+  if (!type) return found;
+
+  switch (type.type) {
+    case 'reference': {
+      const name = type.name ?? '';
+      const args = type.typeArguments ?? [];
+
+      if ((name === 'Omit' || name === 'Pick') && args.length >= 2) {
+        const keys = extractLiteralStrings(args[1]);
+
+        collectExternalReferences(
+          args[0],
+          ctx,
+          found,
+          name === 'Omit' ? [...omit, ...keys] : omit,
+          name === 'Pick' ? [...(pick.length > 0 ? pick : keys)] : pick
+        );
+      } else if (typeof type.target === 'number') {
+        // resolvable in-JSON reference
+      } else if (TRANSPARENT_WRAPPERS.has(name) && args.length > 0) {
+        collectExternalReferences(args[0], ctx, found, omit, pick);
+      } else {
+        const target = type.target as { packagePath?: string; qualifiedName?: string };
+
+        if (target?.packagePath && target?.qualifiedName) {
+          found.push({
+            packagePath: target.packagePath,
+            qualifiedName: target.qualifiedName,
+            omit,
+            pick
+          });
+        }
+      }
+
+      break;
+    }
+
+    case 'intersection':
+    case 'union': {
+      for (const t of type.types ?? []) {
+        collectExternalReferences(t, ctx, found, omit, pick);
+      }
+
+      break;
+    }
+    // No default
+  }
+
+  return found;
+}
+
+function dedupeExternalReferences(refs: ExternalReference[]): ExternalReference[] {
+  const seen = new Map<string, ExternalReference>();
+
+  for (const ref of refs) {
+    const key = `${ref.packagePath}::${ref.qualifiedName}`;
+    const existing = seen.get(key);
+
+    if (!existing) {
+      seen.set(key, ref);
+
+      continue;
+    }
+
+    // Merge filters across occurrences
+    existing.omit = [...new Set([...existing.omit, ...ref.omit])];
+    existing.pick =
+      existing.pick.length > 0 && ref.pick.length > 0
+        ? existing.pick.filter((key2) => ref.pick.includes(key2))
+        : [...(existing.pick.length > 0 ? existing.pick : ref.pick)];
+  }
+
+  return [...seen.values()];
+}
+
+/**
+ * Resolve external references (types living in files not part of the TypeDoc
+ * JSON — e.g. helper interfaces imported from other project files) by reading
+ * the source directly. Requires the tsconfig base directory.
+ */
+function resolveExternalMembers(
+  type: TypeDocType | undefined,
+  ctx: ResolveContext
+): ExternalTypeMember[] {
+  if (!ctx.base) return [];
+
+  const refs = dedupeExternalReferences(collectExternalReferences(type, ctx));
+  const members: ExternalTypeMember[] = [];
+
+  for (const ref of refs) {
+    // Skip third-party packages — only recover from project sources
+    if (ref.packagePath.includes('node_modules')) continue;
+
+    const filePath = path.isAbsolute(ref.packagePath)
+      ? normalizeReflectionPath(ref.packagePath)
+      : normalizeReflectionPath(path.resolve(ctx.base, ref.packagePath));
+
+    if (!existsSync(filePath)) continue;
+
+    const typeName = ref.qualifiedName.split('.').at(-1) ?? ref.qualifiedName;
+    const omit = new Set(ref.omit);
+    const pick = new Set(ref.pick);
+
+    members.push(
+      ...extractTypeMembers(filePath, typeName).filter(
+        (member) =>
+          !omit.has(member.name) && (pick.size === 0 || pick.has(member.name))
+      )
+    );
+  }
+
+  return members;
+}
+
+/** Map a raw type string to semantic arg-type info. */
+function argTypeInfoFromString(raw: string): ArgTypeInfo {
+  const trimmed = raw.trim();
+
+  if (trimmed === 'string' || trimmed === 'number' || trimmed === 'boolean') {
+    return { category: trimmed, raw: trimmed };
+  }
+
+  const literals = [...trimmed.matchAll(/'([^']*)'|"([^"]*)"/g)].map(
+    (match) => match[1] ?? match[2]!
+  );
+  const withoutLiterals = trimmed.replace(/'[^']*'|"[^"]*"/g, '').trim();
+
+  if (literals.length > 0 && /^(\s*\|\s*)?$/.test(withoutLiterals)) {
+    return { category: 'enum', raw: trimmed, options: literals };
+  }
+
+  if (trimmed.startsWith('(') || trimmed.includes('=>')) {
+    return { category: 'function', raw: trimmed };
+  }
+
+  return { category: 'other', raw: trimmed };
+}
+
 function derivePackageName(packagePath: string): string {
   const withoutNodeModules = packagePath.replace(/^node_modules\//, '');
   const parts = withoutNodeModules.split('/');
@@ -176,33 +456,108 @@ function isEmberComponent(
     return false;
   }
 
-  // Class extends Component<Signature>
+  // Class extends Component<Signature> — verified against
+  // `@glimmer/component` by the serialized reference origin.
   if (reflection.kind === ReflectionKind.Class && reflection.extendedTypes) {
     for (const ext of reflection.extendedTypes) {
-      if (ext.type === 'reference' && ext.name === 'Component') return true;
+      if (isComponentBaseReference(ext)) return true;
     }
   }
 
-  // Variable typed as TOC<Signature> / ComponentLike<S> / Invokable<...>
+  // Variable typed as TOC<Signature> / ComponentLike<S> / Invokable<...> —
+  // verified against the serialized reference origin.
   if (
     reflection.kind === ReflectionKind.Variable &&
-    reflection.type?.type === 'reference' &&
-    reflection.type.name &&
-    ['TOC', 'ComponentLike', 'Invokable'].includes(reflection.type.name)
+    isSignatureWrapperReference(reflection.type)
   ) {
     return true;
   }
 
-  // Fallback: class/variable in a file with a *Signature interface
-  const file = sourceFile(reflection);
+  return false;
+}
 
-  if (!file) return false;
+// ── Origin checks (serialized references) ──────────────────────
 
-  for (const candidate of parsed.values()) {
-    if (candidate.file === file) return true;
+interface SerializedTarget {
+  packageName?: string;
+  packagePath?: string;
+  qualifiedName?: string;
+}
+
+function referenceTarget(
+  type: TypeDocType | undefined
+): SerializedTarget | undefined {
+  if (type?.type !== 'reference' || typeof type.target !== 'object') return undefined;
+
+  return type.target as SerializedTarget;
+}
+
+/** Canonical export name of a serialized reference (`"pkg/path".TOC` → `TOC`). */
+function canonicalExportName(target: SerializedTarget): string | undefined {
+  const qualifiedName = target.qualifiedName;
+
+  if (!qualifiedName) return undefined;
+
+  const lastDot = qualifiedName.lastIndexOf('.');
+
+  return lastDot === -1 ? qualifiedName : qualifiedName.slice(lastDot + 1);
+}
+
+/**
+ * Whether a serialized reference points into a known module. The origin
+ * may surface in any of the three serialized fields depending on how the
+ * project was compiled (`packageName`, `packagePath`, `qualifiedName`).
+ */
+function fromModule(target: SerializedTarget, specifier: string): boolean {
+  if (target.packageName === specifier) return true;
+
+  // TypeDoc may split the specifier across packageName + packagePath
+  // (e.g. packageName '@ember/component' + packagePath
+  // 'template-only/index.d.ts'), and may nest pnpm store paths.
+  const joined = `${target.packageName ?? ''}/${target.packagePath ?? ''}`;
+
+  return (
+    joined.includes(`${specifier}.d.ts`) ||
+    joined.includes(`${specifier}/`) ||
+    Boolean(target.qualifiedName?.startsWith(`"${specifier}".`))
+  );
+}
+
+/**
+ * Whether a serialized class-extends reference points at the classic
+ * component base class (`@glimmer/component`). Numeric targets cannot
+ * prove their origin and are rejected.
+ */
+function isComponentBaseReference(ext: TypeDocType | undefined): boolean {
+  const target = referenceTarget(ext);
+
+  if (!target || !fromModule(target, COMPONENT_MODULE)) return false;
+
+  const exportedName = canonicalExportName(target);
+
+  return exportedName === COMPONENT_BASE_NAME || exportedName === 'default';
+}
+
+/**
+ * Whether a serialized variable-type reference is a known signature
+ * wrapper (`TOC`, `TemplateOnlyComponent`, `ComponentLike`, `Invokable`),
+ * verified by its origin package. Numeric targets cannot prove their
+ * origin and are rejected.
+ */
+function isSignatureWrapperReference(type: TypeDocType | undefined): boolean {
+  const target = referenceTarget(type);
+
+  if (!target) return false;
+
+  const exportedName = canonicalExportName(target);
+
+  if (!exportedName) return false;
+
+  if (fromModule(target, TEMPLATE_ONLY_MODULE) && SIGNATURE_WRAPPER_EXPORTS.includes(exportedName)) {
+    return true;
   }
 
-  return false;
+  return fromModule(target, GLINT_TEMPLATE_MODULE) && GLINT_WRAPPER_EXPORTS.includes(exportedName);
 }
 
 function resolveComponentRefDeep(
@@ -237,8 +592,9 @@ function resolveComponentRefDeep(
 
         // Skip known Glint utility types — they are base types that components
         // satisfy but are not components themselves. TypeDoc resolves typeof X
-        // (where X extends Component) to Invokable, losing the original reference.
-        const GLINT_UTILITY_TYPES = [
+        // (where X extends Component) to Invokable, losing the original
+        // reference. Verified by origin, not bare name.
+        const GLINT_UTILITY_EXPORTS = [
           'Invokable',
           'TOC',
           'ComponentLike',
@@ -246,7 +602,12 @@ function resolveComponentRefDeep(
           'ModifierLike'
         ];
 
-        if (qualifiedName && GLINT_UTILITY_TYPES.includes(qualifiedName)) {
+        if (
+          qualifiedName &&
+          GLINT_UTILITY_EXPORTS.includes(canonicalExportName({ qualifiedName }) ?? '') &&
+          fromModule(type.target as SerializedTarget, GLINT_TEMPLATE_MODULE) ||
+          fromModule(type.target as SerializedTarget, TEMPLATE_ONLY_MODULE)
+        ) {
           return undefined;
         }
 
@@ -528,15 +889,13 @@ function isArgSignature(reflection: TypeDocReflection): boolean {
   return reflection.kind === ReflectionKind.Property || reflection.kind === ReflectionKind.Method;
 }
 
-function parseArgsProperty(prop: TypeDocReflection): Record<string, ArgInfo> {
+function parseArgsProperty(
+  prop: TypeDocReflection,
+  ctx: ResolveContext
+): Record<string, ArgInfo> {
   const args: Record<string, ArgInfo> = {};
 
-  const members =
-    (prop.type?.type === 'reflection' ? prop.type.declaration?.children : undefined) ??
-    prop.children ??
-    [];
-
-  for (const child of members) {
+  for (const child of memberReflections(prop, ctx)) {
     if (isArgSignature(child)) {
       args[child.name] = {
         type: buildArgTypeInfo(child),
@@ -547,23 +906,35 @@ function parseArgsProperty(prop: TypeDocReflection): Record<string, ArgInfo> {
     }
   }
 
+  // Recover members of references TypeDoc could not resolve (types imported
+  // from files outside the JSON) — JSON-derived args win.
+  for (const member of resolveExternalMembers(prop.type, ctx)) {
+    if (!isArgName(member.name) || Object.hasOwn(args, member.name)) continue;
+
+    args[member.name] = {
+      type: argTypeInfoFromString(member.type),
+      required: !member.optional,
+      description: member.description,
+      defaultValue: undefined
+    };
+  }
+
   return args;
+}
+
+/** An external (source-recovered) or reflected member usable as an arg. */
+function isArgName(name: string): boolean {
+  return /^[A-Za-z_$][\w$]*$/.test(name);
 }
 
 function parseBlocksProperty(
   prop: TypeDocReflection,
-  idToReflection: Map<number, TypeDocReflection>,
-  idToPath: Map<number, { filePath: string; name: string }>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>
 ): Record<string, BlockInfo> {
   const blocks: Record<string, BlockInfo> = {};
 
-  const members =
-    (prop.type?.type === 'reflection' ? prop.type.declaration?.children : undefined) ??
-    prop.children ??
-    [];
-
-  for (const child of members) {
+  for (const child of memberReflections(prop, ctx)) {
     if (isPropertySignature(child)) {
       const params: BlockInfo['params'] = [];
       const blockType = extractTypeReflection(child);
@@ -574,7 +945,12 @@ function parseBlocksProperty(
             name: param.name,
             type: extractTypeString(param),
             description: extractSummaryText(param.comment),
-            componentRef: resolveComponentRefDeep(param.type, idToReflection, idToPath, parsed)
+            componentRef: resolveComponentRefDeep(
+              param.type,
+              ctx.idToReflection,
+              ctx.idToPath,
+              parsed
+            )
           });
         }
       }
@@ -585,7 +961,12 @@ function parseBlocksProperty(
             params.push({
               name: el.name ?? '',
               type: typeToString(el.element),
-              componentRef: resolveComponentRefDeep(el.element, idToReflection, idToPath, parsed)
+              componentRef: resolveComponentRefDeep(
+                el.element,
+                ctx.idToReflection,
+                ctx.idToPath,
+                parsed
+              )
             });
           } else if (
             el.type === 'reflection' &&
@@ -601,8 +982,8 @@ function parseBlocksProperty(
                 description: extractSummaryText(param.comment),
                 componentRef: resolveComponentRefDeep(
                   param.type,
-                  idToReflection,
-                  idToPath,
+                  ctx.idToReflection,
+                  ctx.idToPath,
                   parsed
                 )
               };
@@ -613,7 +994,12 @@ function parseBlocksProperty(
             params.push({
               name: `param${params.length}`,
               type: typeToString(el),
-              componentRef: resolveComponentRefDeep(el, idToReflection, idToPath, parsed)
+              componentRef: resolveComponentRefDeep(
+                el,
+                ctx.idToReflection,
+                ctx.idToPath,
+                parsed
+              )
             });
           }
         }
@@ -626,6 +1012,16 @@ function parseBlocksProperty(
     }
   }
 
+  // Recover blocks of references TypeDoc could not resolve
+  for (const member of resolveExternalMembers(prop.type, ctx)) {
+    if (!isArgName(member.name) || Object.hasOwn(blocks, member.name)) continue;
+
+    blocks[member.name] = {
+      params: [],
+      description: member.description
+    };
+  }
+
   return blocks;
 }
 
@@ -636,26 +1032,17 @@ function parseElementProperty(prop: TypeDocReflection): string | undefined {
 }
 
 function parseStyleProperty(
-  prop: TypeDocReflection
+  prop: TypeDocReflection,
+  ctx: ResolveContext
 ): undefined | { customProperties: Record<string, string>; parts: Record<string, string> } {
   const result = {
     customProperties: {} as Record<string, string>,
     parts: {} as Record<string, string>
   };
 
-  const members =
-    (prop.type?.type === 'reflection' ? prop.type.declaration?.children : undefined) ??
-    prop.children ??
-    [];
-
-  for (const child of members) {
+  for (const child of memberReflections(prop, ctx)) {
     if (child.name === 'CustomProperties') {
-      const cpMembers =
-        (child.type?.type === 'reflection' ? child.type.declaration?.children : undefined) ??
-        child.children ??
-        [];
-
-      for (const cp of cpMembers) {
+      for (const cp of memberReflections(child, ctx)) {
         if (isPropertySignature(cp)) {
           result.customProperties[cp.name] =
             extractStringLiteralValue(cp) ?? extractSummaryText(cp.comment);
@@ -664,12 +1051,7 @@ function parseStyleProperty(
     }
 
     if (child.name === 'Parts') {
-      const partMembers =
-        (child.type?.type === 'reflection' ? child.type.declaration?.children : undefined) ??
-        child.children ??
-        [];
-
-      for (const part of partMembers) {
+      for (const part of memberReflections(child, ctx)) {
         if (isPropertySignature(part)) {
           result.parts[part.name] =
             extractStringLiteralValue(part) ?? extractSummaryText(part.comment);
@@ -688,19 +1070,18 @@ function parseStyleProperty(
 function assignProperty(
   child: TypeDocReflection,
   result: ComponentSignature,
-  idToReflection: Map<number, TypeDocReflection>,
-  idToPath: Map<number, { filePath: string; name: string }>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>
 ) {
   switch (child.name) {
     case 'Args': {
-      result.args = parseArgsProperty(child);
+      result.args = parseArgsProperty(child, ctx);
 
       break;
     }
 
     case 'Blocks': {
-      result.blocks = parseBlocksProperty(child, idToReflection, idToPath, parsed);
+      result.blocks = parseBlocksProperty(child, ctx, parsed);
 
       break;
     }
@@ -712,7 +1093,7 @@ function assignProperty(
     }
 
     case 'Style': {
-      const style = parseStyleProperty(child);
+      const style = parseStyleProperty(child, ctx);
 
       if (style) {
         result.style = style;
@@ -725,8 +1106,7 @@ function assignProperty(
 
 function parseSignatureProperty(
   prop: TypeDocReflection,
-  idToReflection: Map<number, TypeDocReflection>,
-  idToPath: Map<number, { filePath: string; name: string }>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>
 ): ComponentSignature {
   const result: ComponentSignature = {
@@ -737,7 +1117,7 @@ function parseSignatureProperty(
   };
 
   for (const child of prop.children ?? []) {
-    assignProperty(child, result, idToReflection, idToPath, parsed);
+    assignProperty(child, result, ctx, parsed);
   }
 
   return result;
@@ -745,8 +1125,7 @@ function parseSignatureProperty(
 
 function parseInterfaceSignature(
   reflection: TypeDocReflection,
-  idToReflection: Map<number, TypeDocReflection>,
-  idToPath: Map<number, { filePath: string; name: string }>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>
 ): ComponentSignature | undefined {
   const name = reflection.name;
@@ -765,7 +1144,7 @@ function parseInterfaceSignature(
     return undefined;
   }
 
-  return parseSignatureProperty(reflection, idToReflection, idToPath, parsed);
+  return parseSignatureProperty(reflection, ctx, parsed);
 }
 
 // ── Extraction ─────────────────────────────────────────────────
@@ -779,15 +1158,14 @@ function recurseChildren(reflection: TypeDocReflection, fn: (r: TypeDocReflectio
 
 function extractInterfaceSignatures(
   project: JSONOutput.ProjectReflection,
-  idToReflection: Map<number, TypeDocReflection>,
-  idToPath: Map<number, { filePath: string; name: string }>
+  ctx: ResolveContext
 ): Map<number, ParsedSignature> {
   const result = new Map<number, ParsedSignature>();
 
   function add(reflection: TypeDocReflection) {
     if (reflection.kind !== ReflectionKind.Interface) return;
 
-    const sig = parseInterfaceSignature(reflection, idToReflection, idToPath, result);
+    const sig = parseInterfaceSignature(reflection, ctx, result);
 
     if (!sig) return;
     result.set(reflection.id, {
@@ -812,6 +1190,35 @@ function extractInterfaceSignatures(
 
 function deriveComponentName(reflection: TypeDocReflection): string {
   return reflection.name === 'default' ? Default : reflection.name;
+}
+
+/**
+ * Support template-only components declared with an inline signature literal
+ * (`TOC<{ Args: …; Blocks: … }>`): the signature lives directly in the type
+ * argument instead of a named interface. Returns undefined when the type
+ * argument is not a signature-shaped literal.
+ */
+function parseInlineSignature(
+  reflection: TypeDocReflection,
+  ctx: ResolveContext,
+  parsed: Map<number, ParsedSignature>
+): ParsedSignature | undefined {
+  if (reflection.type?.type !== 'reference') return undefined;
+
+  const arg = reflection.type.typeArguments?.[0];
+
+  if (arg?.type !== 'reflection' || !arg.declaration) return undefined;
+
+  const names = new Set((arg.declaration.children ?? []).map((child) => child.name));
+  const isSignature = ['Args', 'Blocks', 'Element', 'Style'].some((name) =>
+    names.has(name)
+  );
+
+  if (!isSignature) return undefined;
+
+  const sig = parseSignatureProperty(arg.declaration, ctx, parsed);
+
+  return { sig, name: deriveComponentName(reflection), file: sourceFile(reflection) };
 }
 
 function resolveSigId(
@@ -847,14 +1254,14 @@ function resolveSigId(
 
 function associateReflection(
   reflection: TypeDocReflection,
-  idToReflection: Map<number, TypeDocReflection>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>,
   signatures: ComponentSignatureMap
 ) {
   if (reflection.variant === 'reference') return;
 
   // Must be a known Ember component
-  if (!isEmberComponent(reflection.id, idToReflection, parsed)) return;
+  if (!isEmberComponent(reflection.id, ctx.idToReflection, parsed)) return;
 
   let entry: ParsedSignature | undefined;
 
@@ -877,6 +1284,29 @@ function associateReflection(
     if (id !== undefined) {
       entry = parsed.get(id);
     }
+
+    // Inline signature literal: TOC<{ Args: …; Blocks: …; Element: … }>
+    if (!entry) {
+      entry = parseInlineSignature(reflection, ctx, parsed);
+    }
+
+    // Verified wrapper with an unresolvable type argument (e.g. the legacy
+    // `TemplateOnlyComponent<unknown>` pattern): fall back to a co-located
+    // `*Signature` interface. Component identity is already proven by the
+    // origin check — only the signature lookup uses co-location here.
+    if (!entry && isSignatureWrapperReference(reflection.type)) {
+      const file = sourceFile(reflection);
+
+      if (file) {
+        for (const candidate of parsed.values()) {
+          if (candidate.file === file) {
+            entry = candidate;
+
+            break;
+          }
+        }
+      }
+    }
   }
 
   if (entry) {
@@ -885,37 +1315,18 @@ function associateReflection(
     const filePath = normalizeReflectionPath(sourceFile(reflection) ?? '');
 
     (signatures[filePath] ??= {})[name] = copy;
-
-    return;
-  }
-
-  // File-based fallback: if isEmberComponent returned true via the fallback
-  // (same-file *Signature interface), find it now.
-  const file = sourceFile(reflection);
-
-  if (!file) return;
-
-  for (const candidate of parsed.values()) {
-    if (candidate.file === file) {
-      const copy = { ...candidate.sig, componentName: deriveComponentName(reflection) };
-      const filePath = normalizeReflectionPath(file);
-
-      (signatures[filePath] ??= {})[copy.componentName] = copy;
-
-      return;
-    }
   }
 }
 
 function associateComponents(
   project: JSONOutput.ProjectReflection,
-  idToReflection: Map<number, TypeDocReflection>,
+  ctx: ResolveContext,
   parsed: Map<number, ParsedSignature>
 ): ComponentSignatureMap {
   const signatures: ComponentSignatureMap = {};
 
   function associate(reflection: TypeDocReflection) {
-    associateReflection(reflection, idToReflection, parsed, signatures);
+    associateReflection(reflection, ctx, parsed, signatures);
   }
 
   for (const child of project.children ?? []) {
@@ -1008,17 +1419,17 @@ function enrichBlockParamModifiers(
 
 // ── Public API ─────────────────────────────────────────────────
 
-export function analyze(
+export function analyzeTypedoc(
   reflections: JSONOutput.ProjectReflection,
   opts?: DocgenOptions
 ): ComponentSignatureMap {
   const { idToPath, idToReflection } = buildReflectionMaps(reflections);
-  const parsed = extractInterfaceSignatures(reflections, idToReflection, idToPath);
-  const signatures = associateComponents(reflections, idToReflection, parsed);
+  const base = resolveTsconfigBase(opts);
+  const ctx: ResolveContext = { idToReflection, idToPath, base };
+  const parsed = extractInterfaceSignatures(reflections, ctx);
+  const signatures = associateComponents(reflections, ctx, parsed);
 
   resolveMarkerRefs(signatures);
-
-  const base = resolveTsconfigBase(opts);
 
   enrichBlockParamModifiers(signatures, base);
 

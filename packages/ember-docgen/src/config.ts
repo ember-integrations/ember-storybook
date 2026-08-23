@@ -7,7 +7,7 @@ import type TS from 'typescript';
 const require = createRequire(import.meta.url);
 const ts = require('typescript') as typeof TS;
 
-import type { DocgenOptions } from './types';
+import type { DocgenOptions } from './signature';
 
 /**
  * Resolve the tsconfig file, replicating TypeDoc's discovery:

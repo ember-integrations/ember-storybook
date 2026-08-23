@@ -1,52 +1,92 @@
 # Architecture
 
 Turns Ember component source files into structured component docs (args,
-blocks, element, style).
+blocks, element, style) — through three independent concepts.
 
 ## Overview
 
-The package is split into two stages so `analyze()` works on *any* TypeDoc JSON:
-
 ```mermaid
 flowchart LR
-    subgraph parse_half["parse"]
-        source[source files] --> parseFile
-        source --> parseProject
-        parseFile --> convert[manual TypeDoc conversion]
-        parseProject --> resolve[resolve entry points + expand globs]
-        resolve --> convert
-        convert --> host[createEmberHost - virtual .gts.ts]
+    subgraph typedoc["typedoc — TypeDoc JSON"]
+        parse[parseTypedocFile / parseTypedocProject] --> convert[manual TypeDoc conversion]
+        convert --> analyze[analyzeTypedoc]
     end
 
-    other[your own TypeDoc run] --> json[TypeDoc JSON]
-    convert --> json
-
-    subgraph analyze_half["analyze"]
-        analyzeJson[analyze] --> find[find Ember components + Signature interfaces]
-        find --> extract[extract Args/Blocks/Element/Style]
-        extract --> recover[modifier recovery - re-reads source]
+    subgraph declarations["declarations — emitted .d.ts bundles"]
+        parseDecl[parseDeclarations] --> emit[one --emitDeclarationOnly run]
+        emit --> bundle[bundle of declaration files]
+        bundle --> analyzeDecl[analyzeDeclarations]
+        existing[existing .d.ts artifacts] --> analyzeDecl
     end
 
-    json --> analyzeJson
-    recover --> signatures[component signatures]
+    subgraph typescript["typescript — the type checker"]
+        source[source files .gts/.ts] --> program[one shared ts.Program]
+        program --> parseSig[parseSignatures]
+    end
+
+    analyze --> signatures[ComponentSignatureMap]
+    analyzeDecl --> signatures
+    parseSig --> signatures
 ```
 
-| Thing | Where | What it does |
-| ----- | ----- | ------------ |
-| `parseFile` / `parseProject` | `parse.ts` | Run TypeDoc, return JSON |
-| `analyze` | `signature-extractor.ts` | JSON → component signatures |
-| `resolveTsconfigBase/File` | `config.ts` | Find the tsconfig anchor |
-| `extractBlockParamModifiers` | `parser.ts` | AST re-parse for `WithBoundArgs`/`Omit`/`Pick` |
-| `DocgenOptions`, types, helpers | `types.ts` | Shared options, signature types, `getBlockParams`, `Default` |
+All three concepts produce the same output shape: a
+`ComponentSignatureMap` keyed by file path (relative to the tsconfig
+directory) and export name (`Default` sentinel for default exports).
 
-## The tsconfig anchor
+## Public API
 
-The one filesystem-dependent step (`modifier recovery`) must re-read source
-files. Both halves agree on where files live via the tsconfig directory:
+| Concept | Function | Input | Notes |
+| ------- | -------- | ----- | ----- |
+| typedoc | `parseTypedocFile(file, opts)` | one source file | TypeDoc JSON |
+| typedoc | `parseTypedocProject(opts)` | tsconfig/typedoc entry points | TypeDoc JSON |
+| typedoc | `analyzeTypedoc(json, opts)` | TypeDoc JSON | JSON → signatures |
+| declarations | `parseDeclarations(files, opts)` | source files | one `--emitDeclarationOnly` run → `.d.ts` bundle |
+| declarations | `analyzeDeclarations(bundles)` | `.d.ts` text map | pure AST parsing, no compiler |
+| typescript | `parseSignatures(files, opts)` | source files | executes the type checker |
 
-- `parse*` pins TypeDoc's `displayBasePath` to the tsconfig dir, so JSON paths
-  are relative to it.
-- `analyze` re-derives the tsconfig dir from the same opts and resolves paths.
+## The three concepts
 
-Without a base (`analyze(json)` no opts), modifier recovery is skipped;
-everything else still works.
+### 1. typedoc
+
+Runs TypeDoc over source files (with the virtual `.gts.ts` translation)
+and extracts signatures from the serialized JSON. `analyzeTypedoc`
+follows in-project interface references and interprets the common
+utility wrappers; it also recovers members of types living outside the
+JSON by re-reading sources when a tsconfig base is available. Works with
+**any** TypeDoc JSON — including outputs where signature interfaces were
+stripped (see `tests/fixtures/hokulea.json`).
+
+### 2. declarations
+
+Runs TypeScript **once** to emit declaration files, then parses the
+bundle with oxc-parser only. The emitter keeps alias references verbatim,
+so `analyzeDeclarations` resolves named references across files itself
+(intersections, indexed access, `Omit`/`Pick`, transparent wrappers,
+homomorphic mapped aliases). JSDoc survives declaration emit, so docs are
+preserved. `analyzeDeclarations` alone works on any pre-existing `.d.ts`
+artifacts — zero compiler involvement at extraction time.
+
+Limitations vs the checker path: conditional types, template-literal
+types and non-homomorphic mapped types are not executed (they surface as
+raw type strings).
+
+### 3. typescript
+
+Builds one real `ts.Program` and resolves every signature member through
+the type checker (`Signature['Args']` etc.). Executes mapped types,
+conditionals, template literals and any handcrafted generic natively.
+This is the most capable path and the one used by the Storybook addon.
+
+## Shared infrastructure
+
+- `config.ts` — the **tsconfig anchor**: both halves agree on where files
+  live via the tsconfig directory (TypeDoc displayBasePath, output path
+  keys, filesystem recovery).
+- `ember-host.ts` — `createDocgenHost`: an Ember-aware compiler host
+  (virtual `.gts.ts` names + `.gts`/`.gjs` module resolution), used by all
+  three concepts whenever a program is built.
+- `typedoc/ast.ts` — internal oxc helpers for the typedoc path
+  (`WithBoundArgs`/`Omit` modifier recovery, external type member
+  extraction). Not part of the public API.
+- `signature.ts` — shared signature types, `Default` sentinel and
+  `DocgenOptions`.

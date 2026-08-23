@@ -1,10 +1,15 @@
-export { Default } from './types';
-export { parseFile, parseProject } from './parse';
-export { extractBlockParamModifiers } from './parser';
-export { analyze } from './signature-extractor';
+export {
+  analyzeTypedoc,
+  parseTypedocFile,
+  parseTypedocProject
+} from './typedoc/index';
 
-export type { DocgenOptions } from './types';
-export type { BlockParamModifier } from './parser';
+export { analyzeDeclarations, parseDeclarations } from './declarations';
+
+export { parseSignatures } from './typescript';
+
+export { Default } from './signature';
+
 export type {
   ArgInfo,
   ArgTypeCategory,
@@ -13,5 +18,6 @@ export type {
   BlockParam,
   ComponentSignature,
   ComponentSignatureMap,
+  DocgenOptions,
   HashBlockParam
-} from './types';
+} from './signature';
