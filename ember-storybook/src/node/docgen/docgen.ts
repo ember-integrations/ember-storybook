@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { analyze, parseFile } from 'ember-docgen';
+import { parseSignatures } from 'ember-docgen';
 
 import { unwrapBlockParams } from '../../client/docs/block-params';
 import { normalizeFilePath } from '../shared';
@@ -10,8 +10,8 @@ import type { ComponentSignatureMap } from 'ember-docgen';
 
 /**
  * Resolve the directory of the project's tsconfig, replicating TypeDoc's
- * discovery: walk up from cwd. parseFile pins TypeDoc's displayBasePath to
- * this directory, so analyze's JSON paths are relative to it.
+ * discovery: walk up from cwd. parseSignatures keys its output relative
+ * to this directory.
  */
 function resolveTsconfigBase(): string | undefined {
   const findUp = (dir: string): string | undefined => {
@@ -60,24 +60,14 @@ export async function runTypeDoc(entryPoints: string[]): Promise<ComponentSignat
 
   try {
     // Component signatures, keyed by absolute entry-point paths.
-    // Transitive subcomponents (not in the entry points) are included too.
-    const mapped: ComponentSignatureMap = {};
+    // One shared TS program resolves all files (and their transitive types).
+    const extracted = await parseSignatures(entryPoints, {
+      tsconfigFile: path.join(base, 'tsconfig.json')
+    });
 
-    for (const file of entryPoints) {
-      const json = await parseFile(file);
-      const extracted = analyze(json);
+    rewriteFilePaths(extracted, base);
 
-      for (const [relPath, compSigs] of Object.entries(extracted)) {
-        const absKey = path.resolve(base, relPath);
-
-        mapped[absKey] ??= {};
-        Object.assign(mapped[absKey], compSigs);
-      }
-    }
-
-    rewriteFilePaths(mapped, base);
-
-    return mapped;
+    return extracted;
   } catch (error) {
     console.warn('[ember-storybook] TypeDoc extraction failed:', error);
 

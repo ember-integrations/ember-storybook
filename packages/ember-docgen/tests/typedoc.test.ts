@@ -1,10 +1,160 @@
+import path from 'node:path';
+
 import { describe, expect, test } from 'vitest';
 
+/* eslint-disable @typescript-eslint/no-explicit-any --
+ * Fixtures are untyped JSON; assembling synthetic reflections is inherently
+ * unsafe. */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment --
  * The fixture is untyped JSON; navigational lookups by ID are inherently unsafe. */
-import { Default, analyze } from '../src';
 
-import type { HashBlockParam } from '../src';
+import { tempFixture } from './test-support';
+
+import { Default, analyzeTypedoc, parseTypedocFile, parseTypedocProject } from '../src';
+
+import { extractBlockParamModifiers, extractTypeMembers } from '../src/typedoc/ast';
+
+import type { ComponentSignatureMap, HashBlockParam } from '../src';
+
+// ── parse ──────────────────────────────────────────────────────
+
+describe('parse', () => {
+  test('parseTypedocFile + analyze extracts signature from a plain .ts file', async () => {
+    using fix = tempFixture({
+      'tsconfig.json': `
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "include": ["app/**/*"]
+}
+`.trim(),
+      'app/button.ts': `
+export interface Signature {
+  Args: {
+    label: string;
+  };
+}
+
+export const Button = {} as unknown as import('@ember/component/template-only').TOC<Signature>;
+`.trim(),
+    });
+
+    const file = path.join(fix.base, 'app/button.ts');
+
+    const json = await parseTypedocFile(file, { tsconfigFile: path.join(fix.base, 'tsconfig.json') });
+    const sigs = analyzeTypedoc(json, { tsconfigFile: path.join(fix.base, 'tsconfig.json') });
+
+    const key = 'app/button.ts';
+    expect(sigs[key]).toHaveProperty('Button');
+    expect(sigs[key].Button.args).toHaveProperty('label');
+    expect(sigs[key].Button.args.label.required).toBe(true);
+  });
+
+  test('parseTypedocProject uses tsconfig include when no typedoc entry points', async () => {
+    using fix = tempFixture({
+      'tsconfig.json': `
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "include": ["app/**/*"]
+}
+`.trim(),
+      'app/button.ts': `
+export interface Signature {
+  Args: {
+    label: string;
+  };
+}
+
+export const Button = {} as unknown as import('@ember/component/template-only').TOC<Signature>;
+`.trim(),
+    });
+
+    const opts = { tsconfigFile: path.join(fix.base, 'tsconfig.json') };
+
+    const json = await parseTypedocProject(opts);
+    const sigs = analyzeTypedoc(json, opts);
+
+    expect(sigs['app/button.ts']).toHaveProperty('Button');
+  });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/39
+  test('recovers members of types imported from other project files', async () => {
+    using fix = tempFixture({
+      'tsconfig.json': `
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true
+  },
+  "include": ["app/**/*"]
+}
+`.trim(),
+      'app/-button.ts': `
+export interface ButtonBlocks {
+  /** The label for the button */
+  default: [];
+
+  /** A slot in front of the label */
+  before: [];
+}
+
+export interface PushArgs {
+  /** The command to invoke */
+  push?: () => void;
+  href?: string;
+}
+`.trim(),
+      'app/button.gts': `
+import type { TOC } from '@ember/component/template-only';
+import { type ButtonBlocks, type PushArgs } from './-button';
+
+type Simplify<T> = { [K in keyof T]: T[K] };
+
+export interface ButtonSignature {
+  Element: HTMLButtonElement | HTMLAnchorElement;
+  Args: Simplify<Omit<PushArgs, 'push'> & { pressed?: boolean }>;
+  Blocks: ButtonBlocks;
+}
+
+export const Button = {} as unknown as TOC<ButtonSignature>;
+`.trim(),
+    });
+
+    const file = path.join(fix.base, 'app/button.gts');
+    const opts = { tsconfigFile: path.join(fix.base, 'tsconfig.json') };
+
+    const json = await parseTypedocFile(file, opts);
+    const sigs = analyzeTypedoc(json, opts);
+
+    const sig = sigs[path.relative(fix.base, file)].Button;
+
+    // Args: Omit<PushArgs, 'push'> recovered from app/-button.ts + inline literal
+    expect(sig.args.href).toMatchObject({ required: false });
+    expect(sig.args.pressed).toMatchObject({ required: false });
+    expect(sig.args.push).toBeUndefined();
+
+    // Blocks: ButtonBlocks recovered from app/-button.ts
+    expect(Object.keys(sig.blocks).sort()).toEqual(['before', 'default']);
+    expect(sig.blocks.default.description).toBe('The label for the button');
+    expect(sig.blocks.before.description).toBe('A slot in front of the label');
+  });
+});
+
+// ── analyze (JSON → signatures) ────────────────────────────────
 
 // ── Single fixture derived from demo/docs.json ────────────────────────
 
@@ -901,7 +1051,7 @@ const FIXTURE = {
 
 describe('analyze', () => {
   test('extracts Args from class extending Component<Signature>', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/button.gts'][Default];
 
     expect(sig.args).toHaveProperty('backgroundColor');
@@ -940,7 +1090,7 @@ describe('analyze', () => {
   });
 
   test('extracts Blocks from CardSignature', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/card.gts'].CardExport;
 
     expect(sig.blocks).toHaveProperty('body');
@@ -954,7 +1104,7 @@ describe('analyze', () => {
   });
 
   test('extracts Style from CardSignature', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/card.gts'].CardExport;
 
     expect(sig.style.customProperties).toEqual({
@@ -968,7 +1118,7 @@ describe('analyze', () => {
   });
 
   test('extracts Element from component signatures', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const buttonSig = result['demo/app/components/button.gts'][Default];
     const cardSig = result['demo/app/components/card.gts'].CardExport;
 
@@ -977,7 +1127,7 @@ describe('analyze', () => {
   });
 
   test('associates signature via TOC<Signature> variable with internal ID reference', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/card.gts'].CardExport;
 
     expect(sig).toBeDefined();
@@ -985,7 +1135,7 @@ describe('analyze', () => {
   });
 
   test('associates signature via TOC<Signature> variable with external qualifiedName reference', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/greeting.gts'].Greeting;
 
     expect(sig).toBeDefined();
@@ -993,14 +1143,14 @@ describe('analyze', () => {
   });
 
   test('handles interfaces named just "Signature" (not XxxSignature)', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/button.gts'][Default];
 
     expect(sig).toBeDefined();
   });
 
   test('uses Default key when reflection name is "default"', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/button.gts'][Default];
 
     expect(sig).toBeDefined();
@@ -1008,7 +1158,7 @@ describe('analyze', () => {
   });
 
   test('skips reference reflections (variant=reference)', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
 
     // The "default" entry in the result comes from the actual class (id:101),
     // not from the reference reflection (id:800). Verify no duplicate overwrites.
@@ -1016,7 +1166,7 @@ describe('analyze', () => {
   });
 
   test('returns empty map when no signatures found', () => {
-    const result = analyze({
+    const result = analyzeTypedoc({
       id: 1,
       variant: 'project',
       name: 'empty',
@@ -1028,13 +1178,13 @@ describe('analyze', () => {
   });
 
   test('skips interfaces without Args/Blocks/Element/Style', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
 
     expect(result).not.toHaveProperty('demo/app/components/NotASignature');
   });
 
   test('isEmberComponent identifies class extending Component', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
 
     expect(result['demo/app/components/button.gts'][Default]).toBeDefined();
     expect(result['demo/app/components/list.gts'].List).toBeDefined();
@@ -1042,13 +1192,13 @@ describe('analyze', () => {
   });
 
   test('isEmberComponent rejects class without Component extends', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
 
     expect(result).not.toHaveProperty('demo/app/misc.gts');
   });
 
   test('extracts block params from tuple containing reflection (yield hash)', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/list.gts'].List;
     const block = sig.blocks.default;
 
@@ -1104,7 +1254,7 @@ describe('analyze', () => {
       }
     }
 
-    const result = analyze(fixture as never);
+    const result = analyzeTypedoc(fixture as never);
     const args = result['demo/app/components/button.gts'][Default].args;
 
     expect(args.label.defaultValue).toBe('false');
@@ -1113,7 +1263,7 @@ describe('analyze', () => {
   });
 
   test('creates marker ref for block param referencing same-file component', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const blockParam = result['demo/app/components/list.gts'].List.blocks.default.params[0];
 
     // Option is recognized as a component in the same file
@@ -1230,7 +1380,7 @@ describe('analyze', () => {
       ]
     };
 
-    const result = analyze(fixture as never);
+    const result = analyzeTypedoc(fixture as never);
     const parent = result['demo/app/components/card.gts'].CardExport;
     const blockParam = (parent.blocks.body.params[0] as HashBlockParam).component;
 
@@ -1242,7 +1392,7 @@ describe('analyze', () => {
   });
 
   test('extracts Args-only signature (no Blocks/Element/Style)', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/header.gts'].Header;
 
     expect(sig.args).toHaveProperty('createAccount');
@@ -1257,10 +1407,808 @@ describe('analyze', () => {
   });
 
   test('extracts raw type for function args', () => {
-    const result = analyze(FIXTURE as never);
+    const result = analyzeTypedoc(FIXTURE as never);
     const sig = result['demo/app/components/list.gts'].List;
 
     expect(sig.args.activateItem.type.raw).toBe('(value: V) => void');
     expect(sig.args.update.type.raw).toBe('(value: V | V[]) => void');
+  });
+});
+
+// ── internal AST helpers (typedoc/ast.ts) ──────────────────────
+describe('extractBlockParamModifiers', () => {
+  test('extracts WithBoundArgs from block param type', () => {
+    using fix = tempFixture({
+      'list.gts': `
+import Component from '@glimmer/component';
+import type { WithBoundArgs } from '@glint/template';
+
+interface ListSignature {
+  Blocks: {
+    default: [
+      {
+        Option: WithBoundArgs<typeof Option, 'isSelected' | 'registerItem'>;
+      }
+    ];
+  };
+}
+
+export class List extends Component<ListSignature> {
+  <template>{{yield (hash Option=(component this.Option isSelected=this.isSelected))}}</template>
+}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'list.gts'));
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      paramName: 'Option',
+      wrapperName: 'WithBoundArgs',
+      boundKeys: ['isSelected', 'registerItem']
+    });
+  });
+
+  test('returns empty for interface without Blocks', () => {
+    using fix = tempFixture({
+      'component.gts': `
+interface SimpleSignature {
+  Args: {
+    name: string;
+  };
+}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    expect(result).toEqual([]);
+  });
+
+  test('returns empty for block param without typeof query', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    default: [
+      {
+        name: string;
+      }
+    ];
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    expect(result).toEqual([]);
+  });
+
+  test('handles generic component in typeof', () => {
+    using fix = tempFixture({
+      'list.gts': `
+import Component from '@glimmer/component';
+import type { WithBoundArgs } from '@glint/template';
+
+interface ListSignature<V> {
+  Blocks: {
+    default: [
+      {
+        Option: WithBoundArgs<typeof Option<V>, 'isSelected' | 'registerItem' | 'unregisterItem'>;
+      }
+    ];
+  };
+}
+
+export class List<V> extends Component<ListSignature<V>> {
+  <template>{{yield (hash Option=(component this.Option isSelected=this.isSelected))}}</template>
+}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'list.gts'));
+
+    expect(result).toHaveLength(1);
+    expect(result[0].wrapperName).toBe('WithBoundArgs');
+    expect(result[0].boundKeys).toEqual(['isSelected', 'registerItem', 'unregisterItem']);
+  });
+
+  test('handles multiple block params in same block', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    default: [
+      {
+        Item: WithBoundArgs<typeof A, 'x'>;
+        Row: WithBoundArgs<typeof B, 'y' | 'z'>;
+      }
+    ];
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      paramName: 'Item',
+      wrapperName: 'WithBoundArgs',
+      boundKeys: ['x']
+    });
+    expect(result[1]).toEqual({
+      paramName: 'Row',
+      wrapperName: 'WithBoundArgs',
+      boundKeys: ['y', 'z']
+    });
+  });
+
+  test('handles multiple named blocks', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    default: [{ Content: Omit<typeof X, 'a'> }];
+    header: [{ Title: Pick<typeof Y, 'b'> }];
+    footer: [];
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ paramName: 'Content', wrapperName: 'Omit', boundKeys: ['a'] });
+    expect(result[1]).toEqual({ paramName: 'Title', wrapperName: 'Pick', boundKeys: ['b'] });
+  });
+
+  test('returns empty for plain typeof X without wrapper', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    default: [{ item: typeof SomeComponent }];
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    // No TSTypeReference wrapper with typeArguments → no modifier
+    expect(result).toEqual([]);
+  });
+
+  test('skips namedBlock params (non-tuple yield)', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    content: { component: typeof X; visible: boolean };
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    // Named params without wrapper should return empty
+    expect(result).toEqual([]);
+  });
+
+  test('skip extracting modifier from namedBlock param with wrapper (non-tuple yield)', () => {
+    using fix = tempFixture({
+      'component.gts': `
+import Component from '@glimmer/component';
+
+interface CompSignature {
+  Blocks: {
+    content: { item: WithBoundArgs<typeof SomeComponent, 'label'> };
+  };
+}
+
+class Comp extends Component<CompSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'component.gts'));
+
+    expect(result).toHaveLength(0);
+  });
+
+  test('matches Glint docs example: Omit', () => {
+    using fix = tempFixture({
+      'my-component.gts': `
+import { ComponentLike } from '@glint/template';
+import { SomeBannerSignature } from './some-banner';
+
+interface MyComponentSignature {
+  Blocks: {
+    default: [{
+      banner: ComponentLike<{
+        Element: SomeBannerSignature['Element'];
+        Blocks: SomeBannerSignature['Blocks'];
+        Args: 
+          Omit<SomeBannerSignature['Args'], 'kind'> 
+            & { kind?: SomeBannerSignature['Args']['kind'] };
+      }>;
+    }];
+  };
+}
+
+class MyComponent extends Component<MyComponentSignature> {}
+`.trim()
+    });
+
+    const result = extractBlockParamModifiers(path.join(fix.base, 'my-component.gts'));
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      paramName: 'banner',
+      wrapperName: 'Omit',
+      boundKeys: ['kind']
+    });
+  });
+});
+
+describe('extractTypeMembers', () => {
+  test('extracts members with descriptions from an interface', () => {
+    using fix = tempFixture({
+      'types.ts': `
+/** Button blocks */
+export interface ButtonBlocks {
+  /** The label for the button */
+  default: [];
+
+  /** A slot in front of the label */
+  before?: [];
+  label(): void;
+}
+`.trim()
+    });
+
+    const members = extractTypeMembers(path.join(fix.base, 'types.ts'), 'ButtonBlocks');
+
+    expect(members).toEqual([
+      { name: 'default', optional: false, type: '[]', description: 'The label for the button' },
+      { name: 'before', optional: true, type: '[]', description: 'A slot in front of the label' },
+      { name: 'label', optional: false, type: '() => void', description: '' }
+    ]);
+  });
+
+  test('flattens intersections and local type references in type aliases', () => {
+    using fix = tempFixture({
+      'types.ts': `
+interface Base {
+  a: string;
+}
+
+type Extended = Base & {
+  /** The b member */
+  b?: number;
+};
+`.trim()
+    });
+
+    const members = extractTypeMembers(path.join(fix.base, 'types.ts'), 'Extended');
+
+    expect(members).toHaveLength(2);
+    expect(members[0]).toMatchObject({ name: 'a', optional: false, type: 'string' });
+    expect(members[1]).toMatchObject({ name: 'b', optional: true, type: 'number' });
+  });
+
+  test('returns empty for unknown types and missing files', () => {
+    using fix = tempFixture({
+      'types.ts': 'export interface Foo { a: string; }'.trim()
+    });
+
+    expect(extractTypeMembers(path.join(fix.base, 'types.ts'), 'Nope')).toEqual([]);
+    expect(extractTypeMembers(path.join(fix.base, 'missing.ts'), 'Foo')).toEqual([]);
+  });
+});
+
+// ── composed signatures (Simplify/Omit/intersection) ───────────
+
+describe('analyzeTypedoc — composed signatures', () => {
+  const COMPOSED_FIXTURE = {
+    schemaVersion: '2.0',
+    id: 0,
+    name: 'app',
+    variant: 'project',
+    kind: 1,
+    children: [
+      {
+        id: 1,
+        name: 'button',
+        variant: 'declaration',
+        kind: 2,
+        children: [
+          {
+            id: 2,
+            name: 'PushArgs',
+            variant: 'declaration',
+            kind: 256,
+            sources: [{ fileName: 'app/push.gts' }],
+            children: [
+              {
+                id: 20,
+                name: 'push',
+                variant: 'declaration',
+                kind: 1024,
+                flags: { isOptional: true },
+                type: {
+                  type: 'reflection',
+                  declaration: {
+                    id: 201,
+                    name: '__type',
+                    variant: 'declaration',
+                    kind: 65_536,
+                    signatures: [
+                      {
+                        id: 202,
+                        name: '__type',
+                        variant: 'signature',
+                        kind: 4096,
+                        type: { type: 'intrinsic', name: 'void' }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                id: 21,
+                name: 'href',
+                variant: 'declaration',
+                kind: 1024,
+                flags: { isOptional: true },
+                comment: { summary: [{ kind: 'text', text: 'Link target' }] },
+                type: { type: 'intrinsic', name: 'string' }
+              }
+            ]
+          },
+          {
+            id: 3,
+            name: 'ButtonBlocks',
+            variant: 'declaration',
+            kind: 256,
+            sources: [{ fileName: 'app/button.gts' }],
+            children: [
+              {
+                id: 30,
+                name: 'default',
+                variant: 'declaration',
+                kind: 1024,
+                comment: { summary: [{ kind: 'text', text: 'The label for the button' }] },
+                type: { type: 'tuple' }
+              },
+              {
+                id: 31,
+                name: 'before',
+                variant: 'declaration',
+                kind: 1024,
+                flags: { isOptional: true },
+                comment: { summary: [{ kind: 'text', text: 'A slot in front of the label' }] },
+                type: { type: 'tuple' }
+              }
+            ]
+          },
+          {
+            id: 4,
+            name: 'ButtonSignature',
+            variant: 'declaration',
+            kind: 256,
+            sources: [{ fileName: 'app/button.gts', line: 17 }],
+            children: [
+              {
+                id: 40,
+                name: 'Element',
+                variant: 'declaration',
+                kind: 1024,
+                type: {
+                  type: 'union',
+                  types: [
+                    { type: 'reference', name: 'HTMLButtonElement' },
+                    { type: 'reference', name: 'HTMLAnchorElement' }
+                  ]
+                }
+              },
+              {
+                id: 41,
+                name: 'Args',
+                variant: 'declaration',
+                kind: 1024,
+                type: {
+                  type: 'reference',
+                  target: {
+                    packageName: 'type-fest',
+                    packagePath: 'dist/source/simplify.d.ts',
+                    qualifiedName: 'Simplify'
+                  },
+                  typeArguments: [
+                    {
+                      type: 'intersection',
+                      types: [
+                        {
+                          type: 'reference',
+                          target: {
+                            packageName: 'typescript',
+                            packagePath: 'lib/lib.es5.d.ts',
+                            qualifiedName: 'Omit'
+                          },
+                          typeArguments: [
+                            { type: 'reference', target: 2, name: 'PushArgs' },
+                            { type: 'literal', value: 'push' }
+                          ],
+                          name: 'Omit',
+                          package: 'typescript'
+                        },
+                        {
+                          type: 'reflection',
+                          declaration: {
+                            id: 42,
+                            name: '__type',
+                            variant: 'declaration',
+                            kind: 65_536,
+                            children: [
+                              {
+                                id: 43,
+                                name: 'pressed',
+                                variant: 'declaration',
+                                kind: 1024,
+                                flags: { isOptional: true },
+                                comment: {
+                                  summary: [{ kind: 'text', text: 'Whether the button is pressed' }]
+                                },
+                                type: { type: 'intrinsic', name: 'boolean' }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  name: 'Simplify'
+                }
+              },
+              {
+                id: 44,
+                name: 'Blocks',
+                variant: 'declaration',
+                kind: 1024,
+                type: { type: 'reference', target: 3, name: 'ButtonBlocks' }
+              }
+            ]
+          },
+          {
+            id: 5,
+            name: 'Button',
+            variant: 'declaration',
+            kind: 32,
+            flags: { isConst: true },
+            sources: [{ fileName: 'app/button.gts', line: 34 }],
+            type: {
+              type: 'reference',
+              target: {
+                packageName: 'ember-source',
+                packagePath: 'types/stable/@ember/component/template-only.d.ts',
+                qualifiedName: '"@ember/component/template-only".TOC'
+              },
+              typeArguments: [{ type: 'reference', target: 4, name: 'ButtonSignature' }],
+              name: 'TOC',
+              package: 'ember-source',
+              qualifiedName: '"@ember/component/template-only".TOC'
+            },
+            defaultValue: '...'
+          }
+        ]
+      }
+    ]
+  };
+
+  test('flattens Simplify<Omit<…> & …> Args and referenced Blocks', () => {
+    const result: ComponentSignatureMap = analyzeTypedoc(COMPOSED_FIXTURE as never);
+    const sig = result['app/button.gts'].Button;
+
+    expect(Object.keys(sig.args).sort()).toEqual(['href', 'pressed']);
+
+    expect(sig.args.href).toEqual({
+      type: { category: 'string', raw: 'string' },
+      required: false,
+      description: 'Link target',
+      defaultValue: undefined
+    });
+    expect(sig.args.pressed).toMatchObject({
+      required: false,
+      description: 'Whether the button is pressed'
+    });
+
+    expect(Object.keys(sig.blocks).sort()).toEqual(['before', 'default']);
+    expect(sig.blocks.default.description).toBe('The label for the button');
+    expect(sig.blocks.before.description).toBe('A slot in front of the label');
+    expect(sig.element).toBe('HTMLButtonElement | HTMLAnchorElement');
+  });
+
+  test('extracts inline TOC<{ … }> signatures with @defaultValue', () => {
+    const INLINE_FIXTURE = {
+      schemaVersion: '2.0',
+      id: 0,
+      name: 'app',
+      variant: 'project',
+      kind: 1,
+      children: [
+        {
+          id: 1,
+          name: 'section',
+          variant: 'declaration',
+          kind: 2,
+          children: [
+            {
+              id: 2,
+              name: 'Section',
+              variant: 'declaration',
+              kind: 32,
+              flags: { isConst: true },
+              sources: [{ fileName: 'app/section.gts', line: 24 }],
+              type: {
+                type: 'reference',
+                target: {
+                  packageName: 'ember-source',
+                  packagePath: 'types/stable/@ember/component/template-only.d.ts',
+                  qualifiedName: '"@ember/component/template-only".TOC'
+                },
+                typeArguments: [
+                  {
+                    type: 'reflection',
+                    declaration: {
+                      id: 3,
+                      name: '__type',
+                      variant: 'declaration',
+                      kind: 65_536,
+                      children: [
+                        {
+                          id: 30,
+                          name: 'Element',
+                          variant: 'declaration',
+                          kind: 1024,
+                          type: { type: 'reference', name: 'HTMLElement' }
+                        },
+                        {
+                          id: 31,
+                          name: 'Args',
+                          variant: 'declaration',
+                          kind: 1024,
+                          type: {
+                            type: 'reflection',
+                            declaration: {
+                              id: 32,
+                              name: '__type',
+                              variant: 'declaration',
+                              kind: 65_536,
+                              children: [
+                                {
+                                  id: 33,
+                                  name: 'title',
+                                  variant: 'declaration',
+                                  kind: 1024,
+                                  flags: { isOptional: true },
+                                  type: { type: 'intrinsic', name: 'string' }
+                                },
+                                {
+                                  id: 34,
+                                  name: 'level',
+                                  variant: 'declaration',
+                                  kind: 1024,
+                                  flags: { isOptional: true },
+                                  comment: {
+                                    summary: [
+                                      {
+                                        kind: 'text',
+                                        text: 'The level of the component, 1-6 as in `<h1>` to `<h6>`'
+                                      }
+                                    ],
+                                    blockTags: [
+                                      {
+                                        tag: '@defaultValue',
+                                        content: [{ kind: 'code', text: '```ts\n2\n```' }]
+                                      }
+                                    ]
+                                  },
+                                  type: { type: 'intrinsic', name: 'string' }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          id: 35,
+                          name: 'Blocks',
+                          variant: 'declaration',
+                          kind: 1024,
+                          type: {
+                            type: 'reflection',
+                            declaration: {
+                              id: 36,
+                              name: '__type',
+                              variant: 'declaration',
+                              kind: 65_536,
+                              children: [
+                                {
+                                  id: 37,
+                                  name: 'default',
+                                  variant: 'declaration',
+                                  kind: 1024,
+                                  type: { type: 'tuple' }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ],
+                name: 'TOC',
+                package: 'ember-source',
+                qualifiedName: '"@ember/component/template-only".TOC'
+              },
+              defaultValue: '...'
+            }
+          ]
+        }
+      ]
+    };
+
+    const result: ComponentSignatureMap = analyzeTypedoc(INLINE_FIXTURE as never);
+    const sig = result['app/section.gts'].Section;
+
+    expect(Object.keys(sig.args).sort()).toEqual(['level', 'title']);
+    expect(sig.args.level).toEqual({
+      type: { category: 'string', raw: 'string' },
+      required: false,
+      description: 'The level of the component, 1-6 as in `<h1>` to `<h6>`',
+      defaultValue: '2'
+    });
+    expect(Object.keys(sig.blocks)).toEqual(['default']);
+    expect(sig.blocks.default!.params).toHaveLength(0);
+    expect(sig.element).toBe('HTMLElement');
+  });
+});
+
+// ── origin checks (negative) ────────────────────────────────────
+
+describe('analyzeTypedoc — origin checks', () => {
+  /** A minimal project whose only export is a wrapper-typed variable. */
+  function projectWithWrapperTarget(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    target: Record<string, any>
+  ): Record<string, any> {
+    return {
+      schemaVersion: '2.0',
+      id: 0,
+      name: 'app',
+      variant: 'project',
+      kind: 1,
+      children: [
+        {
+          id: 1,
+          name: 'widget',
+          variant: 'declaration',
+          kind: 2,
+          children: [
+            {
+              id: 2,
+              name: 'WidgetSignature',
+              variant: 'declaration',
+              kind: 256,
+              sources: [{ fileName: 'app/widget.gts', line: 3 }],
+              children: [
+                {
+                  id: 20,
+                  name: 'Element',
+                  variant: 'declaration',
+                  kind: 1024,
+                  type: { type: 'reference', name: 'HTMLElement' }
+                },
+                {
+                  id: 21,
+                  name: 'Args',
+                  variant: 'declaration',
+                  kind: 1024,
+                  type: {
+                    type: 'reflection',
+                    declaration: {
+                      id: 22,
+                      name: '__type',
+                      variant: 'declaration',
+                      kind: 65_536,
+                      children: [
+                        {
+                          id: 23,
+                          name: 'label',
+                          variant: 'declaration',
+                          kind: 1024,
+                          type: { type: 'intrinsic', name: 'string' }
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              id: 3,
+              name: 'Widget',
+              variant: 'declaration',
+              kind: 32,
+              flags: { isConst: true },
+              sources: [{ fileName: 'app/widget.gts', line: 10 }],
+              type: {
+                type: 'reference',
+                target,
+                typeArguments: [{ type: 'reference', target: 2, name: 'WidgetSignature' }],
+                name: String(target.qualifiedName ?? '').split('.').at(-1),
+                package: target.packageName
+              },
+              defaultValue: '...'
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  test('rejects TOC references from an unknown package', () => {
+    const result = analyzeTypedoc(
+      projectWithWrapperTarget({
+        packageName: 'fake-components',
+        packagePath: 'dist/template-only.d.ts',
+        qualifiedName: '"fake-components".TOC'
+      }) as never
+    );
+
+    expect(result).toEqual({});
+  });
+
+  test('rejects non-wrapper exports from the canonical module', () => {
+    const result = analyzeTypedoc(
+      projectWithWrapperTarget({
+        packageName: 'ember-source',
+        packagePath: 'types/stable/@ember/component/template-only.d.ts',
+        qualifiedName: '"@ember/component/template-only".EmptyObject'
+      }) as never
+    );
+
+    expect(result).toEqual({});
+  });
+
+  test('rejects numeric-target wrapper references (origin unprovable)', () => {
+    const result = analyzeTypedoc(
+      projectWithWrapperTarget(9) as never
+    );
+
+    expect(result).toEqual({});
   });
 });

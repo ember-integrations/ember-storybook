@@ -3,11 +3,11 @@ import { basename, extname } from 'node:path';
 
 import { glob } from 'tinyglobby';
 import { Application, type DocumentationEntryPoint, type ProjectReflection } from 'typedoc';
-import { createEmberHost } from 'typedoc-plugin-ember';
+import { createDocgenHost } from '../ember-host';
 
-import { resolveTsconfigBase, resolveTsconfigFile } from './config';
+import { resolveTsconfigBase, resolveTsconfigFile } from '../config';
 
-import type { DocgenOptions } from './types';
+import type { DocgenOptions } from '../signature';
 import type { JSONOutput, TypeDocOptions } from 'typedoc';
 
 const require = createRequire(import.meta.url);
@@ -41,7 +41,7 @@ function bootstrapOptions(
 /**
  * Shared pipeline: build the ember-aware TypeScript program and convert it.
  *
- * This is the manual .gts translation (createEmberHost + virtual .gts.ts
+ * This is the manual .gts translation (createDocgenHost + virtual .gts.ts
  * root names), not typedoc-plugin-ember's load() hook — that hook is broken
  * for glob-based entry points.
  */
@@ -50,7 +50,7 @@ async function runConversion(
   files: string[]
 ): Promise<ProjectReflection> {
   const compilerOptions = app.options.getCompilerOptions(app.logger);
-  const host = createEmberHost(ts.createCompilerHost(compilerOptions), ts);
+  const host = createDocgenHost(ts.createCompilerHost(compilerOptions), ts);
 
   const rootNames = files.map((file) => (isEmberTemplate(file) ? file + '.ts' : file));
 
@@ -120,7 +120,7 @@ async function expandEntryPoints(entryPoints: string[]): Promise<string[]> {
 /**
  * Run typedoc on a single file and return the typedoc project JSON.
  */
-export async function parseFile(
+export async function parseTypedocFile(
   file: string,
   opts?: DocgenOptions
 ): Promise<JSONOutput.ProjectReflection> {
@@ -139,7 +139,7 @@ export async function parseFile(
  * Run typedoc on the project's entry points (from typedoc config,
  * falling back to tsconfig include/files) and return the JSON.
  */
-export async function parseProject(
+export async function parseTypedocProject(
   opts?: DocgenOptions
 ): Promise<JSONOutput.ProjectReflection> {
   const baseDir = resolveTsconfigBase(opts);
