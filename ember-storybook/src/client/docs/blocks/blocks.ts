@@ -1,5 +1,6 @@
-import { Subheading } from '@storybook/addon-docs/blocks';
-import { createElement, Fragment, type ReactNode } from 'react';
+import { DocsContext, Subheading } from '@storybook/addon-docs/blocks';
+import { createElement, Fragment, type MouseEvent, type ReactNode, useContext } from 'react';
+import { NAVIGATE_URL } from 'storybook/internal/core-events';
 import { styled } from 'storybook/theming';
 
 import { componentDisplayName } from '../signature';
@@ -60,6 +61,38 @@ const Indent = styled.span(() => ({
   marginInlineStart: '20px'
 }));
 
+/**
+ * In-page anchor to a subcomponent section. Mirrors Storybook's own
+ * in-docs navigation (TableOfContents / AnchorInPage): the default anchor
+ * behavior is prevented — it would resolve against the preview iframe's
+ * `<base>` and navigate away from Storybook — and instead the docs page
+ * scrolls to the target while `NAVIGATE_URL` keeps the address-bar hash
+ * (deep-linkable) in sync via the manager.
+ */
+function SubcomponentAnchor({ name, children }: { name: string; children?: ReactNode }) {
+  const context = useContext(DocsContext);
+  const hash = `#subcomponent-${name}`;
+
+  return createElement(
+    SubcomponentLink,
+    {
+      href: hash,
+      target: '_self',
+      onClick: (event: MouseEvent) => {
+        event.preventDefault();
+
+        const target = document.querySelector(`#${CSS.escape(hash.slice(1))}`);
+
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          context.channel.emit(NAVIGATE_URL, hash);
+        }
+      }
+    },
+    children
+  );
+}
+
 /** Display name for a block param's type: the referenced component's own
  * name when available, otherwise the raw type string. */
 function displayTypeName(param: BlockParam, data?: EmberMeta): string {
@@ -77,11 +110,7 @@ function renderType(
     const typeIsSubcomponent = subcomponentNames.has(displayType);
 
     return typeIsSubcomponent
-      ? createElement(
-          SubcomponentLink,
-          { key: 'type', href: `#subcomponent-${displayType}` },
-          displayType
-        )
+      ? createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
       : createElement(ParamType, { key: 'type' }, displayType);
   }
 
@@ -134,11 +163,7 @@ function renderParams(
 
     if (isSubcomponent) {
       typeChildren.push(
-        createElement(
-          SubcomponentLink,
-          { key: 'type', href: `#subcomponent-${displayType}` },
-          displayType
-        )
+        createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
       );
     } else {
       typeChildren.push(createElement(ParamType, { key: 'type' }, displayType));
