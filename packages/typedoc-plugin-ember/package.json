@@ -4,6 +4,10 @@
   "license": "MIT",
   "description": "TypeDoc plugin for Ember",
   "type": "module",
+  "repository": "https://github.com/ember-integrations/ember-storybook",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
