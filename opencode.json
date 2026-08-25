@@ -4,12 +4,10 @@
     "playwright": {
       "type": "local",
       "command": ["node_modules/.bin/playwright-mcp"],
-      "args": [
-        "--headless"
-      ],
       "enabled": true,
-      "env": {
-        "BROWSER": "chromium"
+      "environment": {
+        "PLAYWRIGHT_MCP_BROWSER": "chromium",
+        "PLAYWRIGHT_MCP_HEADLESS": "true"
       }
     }
   }
