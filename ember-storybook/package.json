@@ -1,6 +1,6 @@
 {
   "name": "ember-storybook",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "description": "Storybook for Ember: Develop, document, and test UI components in isolation",
   "keywords": [

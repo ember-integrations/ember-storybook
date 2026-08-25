@@ -1,5 +1,24 @@
 # Changelog
 
+## Release (2026-08-25)
+
+* ember-storybook 0.1.5 (patch)
+* typedoc-plugin-ember 0.0.2 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#41](https://github.com/ember-integrations/ember-storybook/pull/41) Improve Controls and Docs page ([@gossi](https://github.com/gossi))
+  * [#40](https://github.com/ember-integrations/ember-storybook/pull/40) Rework docgen ([@gossi](https://github.com/gossi))
+
+#### :house: Internal
+* `ember-storybook`
+  * [#42](https://github.com/ember-integrations/ember-storybook/pull/42) Do not bundle `typedoc-plugin-ember` ([@gossi](https://github.com/gossi))
+* `typedoc-plugin-ember`
+  * [#36](https://github.com/ember-integrations/ember-storybook/pull/36) Release typedoc-plugin-ember ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-20)
 
 * ember-storybook 0.1.4 (patch)
