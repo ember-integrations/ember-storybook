@@ -2,6 +2,18 @@
 
 ## Release (2026-08-25)
 
+* ember-storybook 0.1.6 (patch)
+* typedoc-plugin-ember 0.0.3 (patch)
+
+#### :house: Internal
+* `typedoc-plugin-ember`
+  * [#43](https://github.com/ember-integrations/ember-storybook/pull/43) Add repository URL for provenance ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
+## Release (2026-08-25)
+
 * ember-storybook 0.1.5 (patch)
 * typedoc-plugin-ember 0.0.2 (patch)
 
