@@ -3,10 +3,50 @@ import { unwrapBlockParams } from './block-params';
 import type { ComponentFile, EmberMeta } from '../../node/types';
 import type { BlockInfo, ComponentSignature } from 'ember-docgen';
 
+/**
+ * Key used for default exports in signature/component maps. Mirrors
+ * ember-docgen's `Default` sentinel — duplicated as a literal so client
+ * code does not pull ember-docgen's node-only dependencies into the bundle.
+ */
+export const DEFAULT_EXPORT = '__DEFAULT__';
+
 export interface SubcomponentRef {
   name: string;
   signature?: ComponentSignature;
   importPath?: string;
+}
+
+/**
+ * Resolve the human-facing name of a referenced component export.
+ *
+ * Prefers the component's own declaration name over its export alias and
+ * resolves the default-export sentinel to the real class name via the
+ * component file's declaration map. Returns `undefined` when no better
+ * name is known.
+ */
+function hasSignatureMap(entry: unknown): entry is ComponentFile {
+  return typeof entry === 'object' && entry !== null && Object.hasOwn(entry, 'signatures');
+}
+
+export function componentDisplayName(
+  ref: undefined | { filePath?: string; exportName?: string },
+  data: EmberMeta
+): string | undefined {
+  if (!ref?.filePath || !ref.exportName) return undefined;
+
+  const rawEntry: unknown = data[ref.filePath];
+
+  const componentEntry = hasSignatureMap(rawEntry) ? rawEntry : undefined;
+
+  if (!componentEntry) {
+    return ref.exportName === DEFAULT_EXPORT ? undefined : ref.exportName;
+  }
+
+  if (ref.exportName === DEFAULT_EXPORT) {
+    return componentEntry.meta[DEFAULT_EXPORT] ?? undefined;
+  }
+
+  return componentEntry.meta[ref.exportName] ?? ref.exportName;
 }
 
 export function applyModifiers(
@@ -53,15 +93,18 @@ export function collectSubcomponents(
 
       const { filePath, exportName, importPath, modifiers } = param.componentRef;
 
-      if (seen.has(param.name)) {
+      // Prefer the referenced component's own name over the yield-hash key
+      const name = componentDisplayName(param.componentRef, data) ?? param.name;
+
+      if (seen.has(name)) {
         // eslint-disable-next-line unicorn/no-break-in-nested-loop
         continue;
       }
 
-      seen.add(param.name);
+      seen.add(name);
 
       if (importPath) {
-        result.push({ name: param.name, importPath });
+        result.push({ name, importPath });
       } else if (filePath && Object.hasOwn(data, filePath)) {
         const entry = data[filePath] as ComponentFile;
 
@@ -69,10 +112,14 @@ export function collectSubcomponents(
           const sig = entry.signatures[exportName];
 
           result.push({
-            name: param.name,
+            name,
             signature: applyModifiers(sig, modifiers)
           });
         }
+      } else if (filePath) {
+        // Project-local file without an extractable signature
+        // (e.g. a bare template-only component) — still list it by name.
+        result.push({ name });
       }
     }
   }

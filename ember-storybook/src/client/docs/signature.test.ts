@@ -1,6 +1,7 @@
+import { Default } from 'ember-docgen';
 import { describe, expect, test } from 'vitest';
 
-import { applyModifiers, collectSubcomponents } from './signature';
+import { applyModifiers, collectSubcomponents, componentDisplayName } from './signature';
 
 import type { EmberMeta } from '../../node/types';
 import type { BlockParam, ComponentSignature } from 'ember-docgen';
@@ -206,6 +207,81 @@ describe('collectSubcomponents', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Button');
     expect(result[0].importPath).toBe('@ui-lib');
+    expect(result[0].signature).toBeUndefined();
+  });
+
+  test('names subcomponent by its own declaration name when the yield-hash key differs', () => {
+    const blocks: Record<string, { params: BlockParam[] }> = {
+      default: {
+        params: [
+          {
+            name: 'Items',
+            type: 'Invokable',
+            componentRef: {
+              filePath: './app/components/list.gts',
+              exportName: 'Option'
+            }
+          }
+        ]
+      }
+    };
+
+    const data: EmberMeta = {
+      './app/components/list.gts': {
+        meta: { Option: 'Option' },
+        signatures: { Option: OPTION_FULL }
+      }
+    };
+
+    const result = collectSubcomponents(blocks, data);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Option');
+  });
+
+  test('resolves the Default sentinel to the class name via the component map', () => {
+    const ref = { filePath: './app/components/card.gts', exportName: Default };
+
+    const data: EmberMeta = {
+      './app/components/card.gts': {
+        meta: { [Default]: 'Card' },
+        signatures: {}
+      }
+    };
+
+    expect(componentDisplayName(ref, data)).toBe('Card');
+  });
+
+  test('resolves export aliases to the internal declaration name', () => {
+    const ref = { filePath: './app/components/card.gts', exportName: 'CardExport' };
+
+    const data: EmberMeta = {
+      './app/components/card.gts': {
+        meta: { CardExport: 'Card' },
+        signatures: {}
+      }
+    };
+
+    expect(componentDisplayName(ref, data)).toBe('Card');
+  });
+
+  test('lists template-only subcomponents without a signature by name only', () => {
+    const blocks: Record<string, { params: BlockParam[] }> = {
+      default: {
+        params: [
+          {
+            name: 'Section',
+            type: 'Invokable',
+            componentRef: { filePath: './app/components/section.gts', exportName: Default }
+          }
+        ]
+      }
+    };
+
+    const result = collectSubcomponents(blocks, {});
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Section');
     expect(result[0].signature).toBeUndefined();
   });
 });

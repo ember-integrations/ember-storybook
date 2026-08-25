@@ -110,10 +110,33 @@ function resolveKnownModules(
   const resolve = (specifier: string): string | undefined =>
     ts.resolveModuleName(specifier, anchorFile, options, host).resolvedModule?.resolvedFileName;
 
+  // Some specifiers (notably `@ember/component/template-only`) may be
+  // provided as ambient module declarations — e.g. by
+  // `@glint/ember-tsc/types` — instead of resolvable packages. Locate the
+  // declaring source file so origin checks still succeed.
+  const checker = program.getTypeChecker();
+
+  const resolveAmbient = (specifier: string): string | undefined => {
+    for (const symbol of checker.getAmbientModules()) {
+      const name = symbol.name.replaceAll('\'', '').replaceAll('"', '');
+
+      if (name !== specifier) continue;
+
+      return symbol.declarations?.[0]?.getSourceFile().fileName;
+    }
+
+    return undefined;
+  };
+
+  const withAmbientFallback =
+    (specifier: string) =>
+    (resolved: string | undefined): string | undefined =>
+      resolved ?? resolveAmbient(specifier);
+
   return {
-    templateOnly: resolve(TEMPLATE_ONLY_MODULE),
-    glint: resolve(GLINT_TEMPLATE_MODULE),
-    component: resolve(COMPONENT_MODULE)
+    templateOnly: withAmbientFallback(TEMPLATE_ONLY_MODULE)(resolve(TEMPLATE_ONLY_MODULE)),
+    glint: withAmbientFallback(GLINT_TEMPLATE_MODULE)(resolve(GLINT_TEMPLATE_MODULE)),
+    component: withAmbientFallback(COMPONENT_MODULE)(resolve(COMPONENT_MODULE))
   };
 }
 
@@ -199,14 +222,25 @@ function wrapperReferenceNodes(declaration: TS.VariableDeclaration): TS.TypeRefe
     nodes.push(annotation);
   }
 
+  // Walk `as` / `satisfies` chains on the initializer
   let current = declaration.initializer;
 
-  while (current && ts.isAsExpression(current)) {
-    if (ts.isTypeReferenceNode(current.type)) {
-      nodes.push(current.type);
-    }
+  while (current) {
+    if (ts.isAsExpression(current)) {
+      if (ts.isTypeReferenceNode(current.type)) {
+        nodes.push(current.type);
+      }
 
-    current = current.expression;
+      current = current.expression;
+    } else if (ts.isSatisfiesExpression(current)) {
+      if (ts.isTypeReferenceNode(current.type)) {
+        nodes.push(current.type);
+      }
+
+      current = current.expression;
+    } else {
+      break;
+    }
   }
 
   return nodes;
@@ -451,10 +485,20 @@ function resolveComponentNode(
       : symbol;
 
   const declaration = resolved?.declarations?.find(
-    (d) => ts.isClassDeclaration(d) || ts.isVariableDeclaration(d)
+    (d) =>
+      ts.isClassDeclaration(d) || ts.isVariableDeclaration(d) || ts.isExportAssignment(d)
   );
 
   if (!declaration) return undefined;
+
+  // A bare template file (`<template>…</template>`) compiles to
+  // `export default template_…(…)`. Its default export has no class or
+  // variable name, so fall back to the module file's own basename.
+  if (ts.isExportAssignment(declaration)) {
+    const filePath = relativeKey(ctx, declaration.getSourceFile().fileName);
+
+    return { filePath, exportName: Default };
+  }
 
   const declarationFile = declaration.getSourceFile();
   const filePath = relativeKey(ctx, declarationFile.fileName);
@@ -735,6 +779,16 @@ function signatureTypeOfExport(
   symbol: TS.Symbol,
   ctx: ExtractContext
 ): TS.Type | undefined {
+  // Export-specifier aliases (`export { H as Header }`) and default exports
+  // re-exporting a local — resolve to the underlying declaration first.
+  if ((symbol.flags & ts.SymbolFlags.Alias) !== 0) {
+    const aliased = ctx.checker.getAliasedSymbol(symbol);
+
+    if (aliased !== symbol) return signatureTypeOfExport(aliased, ctx);
+
+    return undefined;
+  }
+
   for (const declaration of symbol.getDeclarations() ?? []) {
     // Class extending `Component<Signature>` — verified against
     // `@glimmer/component` by import origin.
@@ -829,13 +883,12 @@ export async function parseSignatures(
       if (!signatureType) continue;
 
       const key = relativeKey(ctx, sourceFile.fileName);
-      const name =
-        (exported.flags & ts.SymbolFlags.Alias) !== 0
-          ? (checker.getAliasedSymbol(exported).name)
-          : exported.name;
+      // Key by the module's export name — this is what consumers
+      // (story parser, source decorator) look signatures up by.
+      const name = exported.name === 'default' ? Default : exported.name;
 
       signatures[key] ??= {};
-      signatures[key][name === 'default' ? Default : name] = parseSignature(signatureType, ctx);
+      signatures[key][name] = parseSignature(signatureType, ctx);
     }
   }
 

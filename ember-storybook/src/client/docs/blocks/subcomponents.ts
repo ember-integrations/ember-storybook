@@ -6,6 +6,7 @@ import { BlocksTable, ParamRow, ParamType } from './blocks';
 import { ElementBlock } from './element';
 import { H2 } from './ui';
 
+import type { EmberMeta } from '../../../node/types';
 import type { SubcomponentRef } from '../signature';
 import type { ComponentSignature } from 'ember-docgen';
 
@@ -29,7 +30,8 @@ const SectionLabel = styled.div(({ theme }) => ({
 function renderSubcomponentSignature(
   sig: ComponentSignature,
   subcomponentNames: Set<string>,
-  defaultName: string
+  defaultName: string,
+  data?: EmberMeta
 ): ReactNode[] {
   const children: ReactNode[] = [];
 
@@ -47,14 +49,20 @@ function renderSubcomponentSignature(
   if (Object.keys(sig.blocks).length > 0) {
     children.push(
       createElement(SectionLabel, { key: 'blocks-label', style: { marginTop: 12 } }, 'Blocks'),
-      createElement(BlocksTable, { blocks: sig.blocks, subcomponentNames, defaultName })
+      createElement(BlocksTable, { blocks: sig.blocks, subcomponentNames, defaultName, data })
     );
   }
 
   return children;
 }
 
-export function SubcomponentsArea({ components }: { components: SubcomponentRef[] }) {
+export function SubcomponentsArea({
+  components,
+  data
+}: {
+  components: SubcomponentRef[];
+  data?: EmberMeta;
+}) {
   if (components.length === 0) return;
 
   const subcomponentNames = new Set(components.map((c) => c.name));
@@ -73,7 +81,9 @@ export function SubcomponentsArea({ components }: { components: SubcomponentRef[
         )
       );
     } else if (comp.signature) {
-      children.push(...renderSubcomponentSignature(comp.signature, subcomponentNames, comp.name));
+      children.push(
+        ...renderSubcomponentSignature(comp.signature, subcomponentNames, comp.name, data)
+      );
     }
 
     return createElement(

@@ -328,6 +328,21 @@ export default class Page extends Component<Signature> {}
     expect(Object.keys(meta)).toHaveLength(2);
   });
 
+  test('records directly exported class components', () => {
+    using fix = tempFixture({
+      'list.gts': `import Component from '@glimmer/component';
+export class Option extends Component<OptionSignature> {}
+export class List extends Component<ListSignature> {}
+`
+    });
+
+    const compPath = path.join(fix.base, 'list.gts');
+    const meta = parseComponentFile(compPath) as ComponentMap;
+
+    expect(meta.Option).toBe('Option');
+    expect(meta.List).toBe('List');
+  });
+
   test('handles specifier re-export: internal name ≠ export name', () => {
     const fixture = tempFixture({
       'card.gts': `const Card = <template><div>Hello</div></template>;\nexport { Card as CardExport };`

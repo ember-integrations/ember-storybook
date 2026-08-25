@@ -155,6 +155,19 @@ export function parseComponentFile(compPath: string): ComponentMap | undefined {
         }
       }
 
+      // Directly exported class components (`export class Foo …`)
+      if (
+        node.declaration?.type === 'ClassDeclaration' &&
+        node.declaration.id?.type === 'Identifier'
+      ) {
+        const name = node.declaration.id.name;
+
+        if (!handled.has(name)) {
+          handled.add(name);
+          result[name] = name;
+        }
+      }
+
       if (node.specifiers.length > 0) {
         const specExported = firstSpecExportName(node.specifiers);
         const specLocal = firstSpecLocalName(node.specifiers);

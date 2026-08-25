@@ -13,6 +13,7 @@ export type StoryFile = {
   component: {
     file?: string;
     signatureName?: string;
+    name?: string;
   };
   source?: Record<string, StorySource>;
 };

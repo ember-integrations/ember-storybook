@@ -484,4 +484,174 @@ export const Misuse = {} as unknown as EmptyObject<MisuseSignature>;
 
     expect(sigs).toEqual({});
   });
+
+  test('resolves componentRefs for template-only subcomponents in a yield hash', async () => {
+    using fix = fixture({
+      // A template-only component defined as an inline TOC var
+      'sectioned-page.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+export interface SectionSignature {
+  Element: HTMLDivElement;
+  Args: { title?: string };
+  Blocks: { default: [] };
+}
+
+export const Section = {} as unknown as TOC<SectionSignature>;
+
+export interface SectionedPageSignature {
+  Element: HTMLElement;
+  Args: {};
+  Blocks: {
+    default: [{ Section: typeof Section }];
+  };
+}
+
+export const SectionedPage = {} as unknown as TOC<SectionedPageSignature>;
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/sectioned-page.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+    const page = sigs['app/sectioned-page.gts'].SectionedPage;
+    const param = (page.blocks.default!.params[0] as HashBlockParam).Section!;
+
+    expect(param.componentRef).toBeDefined();
+    expect(param.componentRef).toMatchObject({
+      filePath: 'app/sectioned-page.gts',
+      exportName: 'Section'
+    });
+  });
+
+  test('resolves componentRefs for template-only subcomponents imported from another file', async () => {
+    using fix = fixture({
+      'section.gts': `
+<template>
+  <div ...attributes>{{yield}}</div>
+</template>
+`.trim(),
+      'sectioned-page.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+import Section from './section.gts';
+
+export interface SectionedPageSignature {
+  Element: HTMLElement;
+  Args: {};
+  Blocks: {
+    default: [{ Section: typeof Section }];
+  };
+}
+
+export const SectionedPage = {} as unknown as TOC<SectionedPageSignature>;
+`.trim()
+    });
+
+    const files = ['section.gts', 'sectioned-page.gts'].map((f) =>
+      path.join(fix.base, 'app', f)
+    );
+    const sigs = await parseSignatures(files, {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+    const page = sigs['app/sectioned-page.gts'].SectionedPage;
+    const param = (page.blocks.default!.params[0] as HashBlockParam).Section!;
+
+    expect(param.componentRef).toBeDefined();
+  });
+
+  test('extracts signature through `satisfies TOC<Signature>` with alias export', async () => {
+    using fix = fixture({
+      'header.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+export interface Signature {
+  Args: {
+    user?: { name: string };
+    login: () => void;
+    logout: () => void;
+  };
+}
+
+const H = <template>
+  <header>Welcome</header>
+</template> satisfies TOC<Signature>;
+
+export { H as Header };
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/header.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+    const sig = sigs['app/header.gts'].Header;
+
+    expect(Object.keys(sig.args).sort()).toEqual(['login', 'logout', 'user']);
+    expect(sig.args.user.required).toBe(false);
+    expect(sig.args.login.type.category).toBe('function');
+  });
+
+  test('keys aliased re-exports by their export name', async () => {
+    using fix = fixture({
+      'card.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+export interface CardSignature {
+  Element: HTMLDivElement;
+  Blocks: {
+    header?: [];
+    body?: [];
+  };
+}
+
+const Card: TOC<CardSignature> = <template>
+  <div class="card">{{yield}}</div>
+</template>;
+
+export { Card as CardExport };
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/card.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+
+    // Keyed by the EXPORT name (`CardExport`), not the internal name (`Card`)
+    expect(sigs['app/card.gts'].CardExport).toBeDefined();
+    expect(sigs['app/card.gts'].CardExport.blocks).toHaveProperty('header');
+  });
+
+  test('keys plain re-exports by their export name', async () => {
+    using fix = fixture({
+      'greeting.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+interface GreetingSignature {
+  Element: HTMLDivElement;
+  Args: {
+    name: string;
+  };
+}
+
+const Greeting: TOC<GreetingSignature> = <template>
+  <div>Hello {{@name}}</div>
+</template>;
+
+export { Greeting };
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/greeting.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+    const sig = sigs['app/greeting.gts'].Greeting;
+
+    expect(sig.args.name.required).toBe(true);
+    expect(sig.args.name.type.category).toBe('string');
+    expect(sig.element).toBe('HTMLDivElement');
+  });
 });

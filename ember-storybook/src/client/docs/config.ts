@@ -31,6 +31,11 @@ function resolveSig(entry: StoryFile | ComponentFile): ComponentSignature | unde
   return compEntry.signatures[comp.signatureName];
 }
 
+/** Last path segment of a CSF title — used to match stories without `fileName`. */
+function titleLeaf(title: string | undefined): string | undefined {
+  return title?.split('/').pop();
+}
+
 export const argTypesEnhancers: ((
   context: StoryContextForEnhancers<EmberRenderer>
 ) => StrictArgTypes)[] = [
@@ -47,10 +52,16 @@ export const argTypesEnhancers: ((
       return context.argTypes;
     }
 
-    const titleName = context.title.split('/').pop();
+    // No `parameters.fileName` — fall back to matching the CSF title leaf
+    // against indexed story files instead of picking an arbitrary signature.
+    const leaf = titleLeaf(context.title);
 
-    if (titleName) {
+    if (leaf) {
       for (const entry of Object.values(data)) {
+        if (!('meta' in entry)) continue;
+
+        if (titleLeaf(entry.meta.title) !== leaf) continue;
+
         const sig = resolveSig(entry);
 
         if (sig) {
