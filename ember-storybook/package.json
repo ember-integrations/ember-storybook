@@ -74,7 +74,8 @@
     "oxc-parser": "catalog:build",
     "tinyglobby": "^0.2.17",
     "ts-dedent": "^2.3.0",
-    "typedoc": "catalog:lib"
+    "typedoc": "catalog:lib",
+    "typedoc-plugin-ember": "workspace:*"
   },
   "peerDependencies": {
     "@glimmer/component": "^2.1.1",
@@ -83,7 +84,6 @@
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
   },
   "devDependencies": {
-    "typedoc-plugin-ember": "workspace:*",
     "ember-docgen": "workspace:*",
     "@babel/core": "catalog:build",
     "@babel/plugin-transform-typescript": "catalog:build",
