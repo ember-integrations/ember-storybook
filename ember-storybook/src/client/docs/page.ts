@@ -16,12 +16,12 @@ import { ElementBlock } from './blocks/element';
 import { CssPropertiesTable, PartsTable } from './blocks/style';
 import { SubcomponentsArea } from './blocks/subcomponents';
 import { H2 } from './blocks/ui';
-import { collectSubcomponents, DEFAULT_EXPORT } from './signature';
+import { collectSubcomponents } from './signature';
 
 import type { EmberMeta } from '../../node/types';
 import type { ComponentSignature } from 'ember-docgen';
 
-function addSignature(signature: ComponentSignature, data: EmberMeta, componentName?: string) {
+function addSignature(signature: ComponentSignature, data: EmberMeta) {
   const children: ReactNode[] = [];
 
   if (signature.element) {
@@ -40,12 +40,7 @@ function addSignature(signature: ComponentSignature, data: EmberMeta, componentN
     const subcomponentNames = new Set(subcomponents.map((s) => s.name));
 
     children.push(
-      createElement(BlocksSection, {
-        blocks: signature.blocks,
-        subcomponentNames,
-        componentName,
-        data
-      })
+      createElement(BlocksSection, { blocks: signature.blocks, subcomponentNames, data })
     );
 
     if (subcomponents.length > 0) {
@@ -102,9 +97,6 @@ export default function Page() {
   const signatureName = storyComponent?.signatureName ?? '';
   const signature =
     compEntry && 'signatures' in compEntry ? compEntry.signatures[signatureName] : undefined;
-  const componentName =
-    storyComponent?.name ??
-    (signatureName === DEFAULT_EXPORT ? undefined : signatureName || undefined);
 
   const children: ReactNode[] = [
     createElement(Title),
@@ -114,7 +106,7 @@ export default function Page() {
   ];
 
   if (signature) {
-    children.push(...addSignature(signature, data, componentName));
+    children.push(...addSignature(signature, data));
   }
 
   children.push(createElement(Stories));

@@ -30,7 +30,6 @@ const SectionLabel = styled.div(({ theme }) => ({
 function renderSubcomponentSignature(
   sig: ComponentSignature,
   subcomponentNames: Set<string>,
-  defaultName: string,
   data?: EmberMeta
 ): ReactNode[] {
   const children: ReactNode[] = [];
@@ -49,7 +48,7 @@ function renderSubcomponentSignature(
   if (Object.keys(sig.blocks).length > 0) {
     children.push(
       createElement(SectionLabel, { key: 'blocks-label', style: { marginTop: 12 } }, 'Blocks'),
-      createElement(BlocksTable, { blocks: sig.blocks, subcomponentNames, defaultName, data })
+      createElement(BlocksTable, { blocks: sig.blocks, subcomponentNames, data })
     );
   }
 
@@ -81,9 +80,7 @@ export function SubcomponentsArea({
         )
       );
     } else if (comp.signature) {
-      children.push(
-        ...renderSubcomponentSignature(comp.signature, subcomponentNames, comp.name, data)
-      );
+      children.push(...renderSubcomponentSignature(comp.signature, subcomponentNames, data));
     }
 
     return createElement(

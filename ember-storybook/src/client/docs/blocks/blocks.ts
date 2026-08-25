@@ -168,12 +168,10 @@ function renderParams(
 export function BlocksTable({
   blocks,
   subcomponentNames,
-  defaultName,
   data
 }: {
   blocks: Record<string, BlockInfo>;
   subcomponentNames: Set<string>;
-  defaultName: string;
   data?: EmberMeta;
 }) {
   const entries = Object.entries(blocks).toSorted(([nameA, _a], [nameB, _b]) => {
@@ -188,7 +186,7 @@ export function BlocksTable({
   const rows = [];
 
   for (const [name, block] of entries) {
-    const displayName = name === 'default' ? `<${defaultName}>` : `<:${name}>`;
+    const displayName = `<:${name}>`;
 
     rows.push(
       createElement('tr', { key: name }, createElement(BlocksNameCell, undefined, displayName))
@@ -213,23 +211,16 @@ export function BlocksTable({
 export function BlocksSection({
   blocks,
   subcomponentNames,
-  componentName,
   data
 }: {
   blocks: Record<string, BlockInfo>;
   subcomponentNames: Set<string>;
-  componentName?: string;
   data?: EmberMeta;
 }) {
   return createElement(
     BlocksDiv,
     undefined,
     createElement(Subheading, undefined, 'Blocks'),
-    BlocksTable({
-      blocks,
-      subcomponentNames,
-      defaultName: componentName ?? 'Component',
-      data
-    })
+    BlocksTable({ blocks, subcomponentNames, data })
   );
 }
