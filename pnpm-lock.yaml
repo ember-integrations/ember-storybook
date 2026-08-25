@@ -335,6 +335,9 @@ importers:
       typedoc:
         specifier: catalog:lib
         version: 0.28.20(typescript@6.0.3)
+      typedoc-plugin-ember:
+        specifier: workspace:*
+        version: link:../packages/typedoc-plugin-ember
     devDependencies:
       '@babel/core':
         specifier: catalog:build
@@ -402,9 +405,6 @@ importers:
       tsdown:
         specifier: catalog:build
         version: 0.22.4(oxc-resolver@11.20.0)(typescript@6.0.3)(unrun@0.2.39(synckit@0.11.13))
-      typedoc-plugin-ember:
-        specifier: workspace:*
-        version: link:../packages/typedoc-plugin-ember
       typescript:
         specifier: catalog:build
         version: 6.0.3
