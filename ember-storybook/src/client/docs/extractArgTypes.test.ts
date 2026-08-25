@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildArgTypes, extractArgTypes } from './extractArgTypes';
+import { buildArgTypes } from './extractArgTypes';
 
 import type { ComponentSignature } from 'ember-docgen';
 
@@ -112,21 +112,5 @@ describe('buildArgTypes', () => {
     expect((result.name as { table: { defaultValue: unknown } }).table.defaultValue).toEqual({
       summary: 'World'
     });
-  });
-});
-
-describe('extractArgTypes', () => {
-  it('returns null for unnamed objects', () => {
-    expect(extractArgTypes({})).toBeNull();
-    expect(extractArgTypes({ foo: 'bar' })).toBeNull();
-  });
-
-  it('returns null when component name has no signature', () => {
-    expect(extractArgTypes({ name: 'Unknown' })).toBeNull();
-    expect(extractArgTypes({ displayName: 'Unknown' })).toBeNull();
-  });
-
-  it('uses displayName as fallback', () => {
-    expect(extractArgTypes({ displayName: 'Unknown' })).toBeNull();
   });
 });

@@ -1,31 +1,4 @@
-import emberData from 'virtual:ember-storybook';
-
-import type { StorySource } from '../../node/types';
 import type { ArgTypeInfo, ComponentSignature } from 'ember-docgen';
-
-const data = emberData as Record<
-  string,
-  {
-    component?: { file?: string; signatureName?: string };
-    source?: Record<string, StorySource>;
-    signatures?: Record<string, ComponentSignature>;
-  }
->;
-
-const byName = new Map<string, ComponentSignature>();
-
-for (const entry of Object.values(data)) {
-  const comp = entry.component;
-
-  if (!comp?.signatureName) continue;
-
-  const compEntry = comp.file ? data[comp.file] : undefined;
-  const sig = compEntry?.signatures?.[comp.signatureName];
-
-  if (sig) {
-    byName.set(comp.signatureName, sig);
-  }
-}
 
 function mapTypeToControl(
   type: ArgTypeInfo
@@ -81,21 +54,4 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
   }
 
   return argTypes;
-}
-
-export function extractArgTypes(
-  component: Record<string, unknown>
-): Record<string, unknown> | null {
-  const name =
-    (component.name as string | undefined) ?? (component.displayName as string | undefined);
-
-  // eslint-disable-next-line unicorn/no-null
-  if (!name) return null;
-
-  const sig = byName.get(name);
-
-  // eslint-disable-next-line unicorn/no-null
-  if (!sig) return null;
-
-  return buildArgTypes(sig);
 }

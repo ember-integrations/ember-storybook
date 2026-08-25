@@ -1,7 +1,7 @@
 import type { TOC } from '@ember/component/template-only';
 
 // for ember < 7.1
-const or = (a: boolean, b: boolean) => a && b;
+const or = (a: boolean, b: boolean) => a || b;
 
 export interface CardSignature {
   Element: HTMLDivElement;

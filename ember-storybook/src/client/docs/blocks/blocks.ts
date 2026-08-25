@@ -1,9 +1,12 @@
-import { Subheading, useOf } from '@storybook/addon-docs/blocks';
-import { createElement, Fragment, type ReactNode } from 'react';
+import { DocsContext, Subheading } from '@storybook/addon-docs/blocks';
+import { createElement, Fragment, type MouseEvent, type ReactNode, useContext } from 'react';
+import { NAVIGATE_URL } from 'storybook/internal/core-events';
 import { styled } from 'storybook/theming';
 
+import { componentDisplayName } from '../signature';
 import { TableWrapper } from './ui';
 
+import type { EmberMeta } from '../../../node/types';
 import type { BlockInfo, BlockParam, HashBlockParam } from 'ember-docgen';
 
 export const ParamType = styled.code(({ theme }) => ({
@@ -58,25 +61,68 @@ const Indent = styled.span(() => ({
   marginInlineStart: '20px'
 }));
 
-function renderType(param: BlockParam, subcomponentNames: Set<string>): ReactNode {
-  if (param.type === 'Invokable') {
-    const displayType = param.componentRef?.exportName ?? param.type;
+/**
+ * In-page anchor to a subcomponent section. Mirrors Storybook's own
+ * in-docs navigation (TableOfContents / AnchorInPage): the default anchor
+ * behavior is prevented — it would resolve against the preview iframe's
+ * `<base>` and navigate away from Storybook — and instead the docs page
+ * scrolls to the target while `NAVIGATE_URL` keeps the address-bar hash
+ * (deep-linkable) in sync via the manager.
+ */
+function SubcomponentAnchor({ name, children }: { name: string; children?: ReactNode }) {
+  const context = useContext(DocsContext);
+  const hash = `#subcomponent-${name}`;
+
+  return createElement(
+    SubcomponentLink,
+    {
+      href: hash,
+      target: '_self',
+      onClick: (event: MouseEvent) => {
+        event.preventDefault();
+
+        const target = document.querySelector(`#${CSS.escape(hash.slice(1))}`);
+
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          context.channel.emit(NAVIGATE_URL, hash);
+        }
+      }
+    },
+    children
+  );
+}
+
+/** Display name for a block param's type: the referenced component's own
+ * name when available, otherwise the raw type string. */
+function displayTypeName(param: BlockParam, data?: EmberMeta): string {
+  return (data ? componentDisplayName(param.componentRef, data) : undefined) ?? param.type;
+}
+
+function renderType(
+  param: BlockParam,
+  subcomponentNames: Set<string>,
+  data?: EmberMeta
+): ReactNode {
+  const displayType = displayTypeName(param, data);
+
+  if (param.componentRef) {
     const typeIsSubcomponent = subcomponentNames.has(displayType);
 
     return typeIsSubcomponent
-      ? createElement(
-          SubcomponentLink,
-          { key: 'type', href: `#subcomponent-${displayType}` },
-          displayType
-        )
+      ? createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
       : createElement(ParamType, { key: 'type' }, displayType);
   }
 
   return createElement(ParamType, { key: 'type' }, param.type);
 }
 
-function renderParam(param: BlockParam, subcomponentNames: Set<string>): ReactNode[] {
-  const type = renderType(param, subcomponentNames);
+function renderParam(
+  param: BlockParam,
+  subcomponentNames: Set<string>,
+  data?: EmberMeta
+): ReactNode[] {
+  const type = renderType(param, subcomponentNames, data);
   const name = createElement(ParamName, { key: 'name' }, param.name);
 
   return [name, createElement('span', { key: 'colon' }, ': '), type];
@@ -86,17 +132,21 @@ function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
   return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
 }
 
-function renderParams(params: BlockInfo['params'], subcomponentNames: Set<string>): ReactNode[] {
+function renderParams(
+  params: BlockInfo['params'],
+  subcomponentNames: Set<string>,
+  data?: EmberMeta
+): ReactNode[] {
   return params.map((param, i) => {
     if (!isBlockParam(param)) {
       const children: ReactNode[] = [
         createElement('span', { key: 'open' }, '- {'),
-        createElement('br'),
-        ...Object.values(param).map((p) => [
-          createElement(Indent),
-          renderParam(p, subcomponentNames)
+        createElement('br', { key: 'br-open' }),
+        ...Object.entries(param).flatMap(([key, p]) => [
+          createElement(Indent, { key: `indent-${key}` }),
+          renderParam(p, subcomponentNames, data)
         ]),
-        createElement('br'),
+        createElement('br', { key: 'br-close' }),
         createElement('span', { key: 'close' }, '}')
       ];
 
@@ -104,7 +154,7 @@ function renderParams(params: BlockInfo['params'], subcomponentNames: Set<string
     }
 
     const isNamed = param.name && !param.name.startsWith('param');
-    const displayType = param.componentRef?.exportName ?? param.type;
+    const displayType = displayTypeName(param, data);
 
     const isSubcomponent = subcomponentNames.has(displayType);
 
@@ -113,11 +163,7 @@ function renderParams(params: BlockInfo['params'], subcomponentNames: Set<string
 
     if (isSubcomponent) {
       typeChildren.push(
-        createElement(
-          SubcomponentLink,
-          { key: 'type', href: `#subcomponent-${displayType}` },
-          displayType
-        )
+        createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
       );
     } else {
       typeChildren.push(createElement(ParamType, { key: 'type' }, displayType));
@@ -147,11 +193,11 @@ function renderParams(params: BlockInfo['params'], subcomponentNames: Set<string
 export function BlocksTable({
   blocks,
   subcomponentNames,
-  defaultName
+  data
 }: {
   blocks: Record<string, BlockInfo>;
   subcomponentNames: Set<string>;
-  defaultName: string;
+  data?: EmberMeta;
 }) {
   const entries = Object.entries(blocks).toSorted(([nameA, _a], [nameB, _b]) => {
     if (nameA === 'default') return -1;
@@ -165,16 +211,18 @@ export function BlocksTable({
   const rows = [];
 
   for (const [name, block] of entries) {
-    const displayName = name === 'default' ? `<${defaultName}>` : `<:${name}>`;
+    const displayName = `<:${name}>`;
 
     rows.push(
       createElement('tr', { key: name }, createElement(BlocksNameCell, undefined, displayName))
     );
 
     if (block.params.length > 0) {
-      const params = renderParams(block.params, subcomponentNames);
+      const params = renderParams(block.params, subcomponentNames, data);
 
-      rows.push(createElement('tr', undefined, createElement('td', undefined, ...params)));
+      rows.push(
+        createElement('tr', { key: `${name}-params` }, createElement('td', undefined, ...params))
+      );
     }
   }
 
@@ -187,18 +235,17 @@ export function BlocksTable({
 
 export function BlocksSection({
   blocks,
-  subcomponentNames
+  subcomponentNames,
+  data
 }: {
   blocks: Record<string, BlockInfo>;
   subcomponentNames: Set<string>;
+  data?: EmberMeta;
 }) {
-  const { preparedMeta } = useOf('meta', ['meta']);
-  const componentName = preparedMeta.title;
-
   return createElement(
     BlocksDiv,
     undefined,
     createElement(Subheading, undefined, 'Blocks'),
-    BlocksTable({ blocks, subcomponentNames, defaultName: componentName })
+    BlocksTable({ blocks, subcomponentNames, data })
   );
 }

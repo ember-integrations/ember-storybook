@@ -18,7 +18,7 @@ import { SubcomponentsArea } from './blocks/subcomponents';
 import { H2 } from './blocks/ui';
 import { collectSubcomponents } from './signature';
 
-import type { EmberMeta, StorySource } from '../../node/types';
+import type { EmberMeta } from '../../node/types';
 import type { ComponentSignature } from 'ember-docgen';
 
 function addSignature(signature: ComponentSignature, data: EmberMeta) {
@@ -28,22 +28,23 @@ function addSignature(signature: ComponentSignature, data: EmberMeta) {
     children.push(createElement(ElementBlock, { element: signature.element }));
   }
 
+  // Render unfiltered — the argTypes enhancer already merges
+  // buildArgTypes(signature) into the store, so this mirrors
+  // the Controls panel exactly.
   if (Object.keys(signature.args).length > 0) {
-    children.push(
-      createElement(Subheading, undefined, 'Args'),
-      // createElement(ArgTypes, { include: Object.keys(signature.args) }),
-      createElement(Controls, { include: Object.keys(signature.args) })
-    );
+    children.push(createElement(Subheading, undefined, 'Args'), createElement(Controls));
   }
 
   if (Object.keys(signature.blocks).length > 0) {
     const subcomponents = collectSubcomponents(signature.blocks, data);
     const subcomponentNames = new Set(subcomponents.map((s) => s.name));
 
-    children.push(createElement(BlocksSection, { blocks: signature.blocks, subcomponentNames }));
+    children.push(
+      createElement(BlocksSection, { blocks: signature.blocks, subcomponentNames, data })
+    );
 
     if (subcomponents.length > 0) {
-      children.push(createElement(SubcomponentsArea, { components: subcomponents }));
+      children.push(createElement(SubcomponentsArea, { components: subcomponents, data }));
     }
   }
 
@@ -87,21 +88,15 @@ export default function Page() {
     };
   } = useOf('meta', ['meta']);
 
-  const data = emberData as Record<
-    string,
-    {
-      meta?: unknown;
-      component?: { file?: string; signatureName?: string };
-      source?: Record<string, StorySource>;
-      signatures?: Record<string, ComponentSignature>;
-    }
-  >;
+  const data = emberData as EmberMeta;
   const storyFile = resolved.preparedMeta?.parameters?.fileName as string | undefined;
   const storyEntry = storyFile ? data[storyFile] : undefined;
-  const storyComponent = storyEntry?.component;
+  const storyComponent = storyEntry && 'component' in storyEntry ? storyEntry.component : undefined;
   const compFile = storyComponent?.file;
   const compEntry = compFile ? data[compFile] : undefined;
-  const signature = compEntry?.signatures?.[storyComponent?.signatureName ?? ''];
+  const signatureName = storyComponent?.signatureName ?? '';
+  const signature =
+    compEntry && 'signatures' in compEntry ? compEntry.signatures[signatureName] : undefined;
 
   const children: ReactNode[] = [
     createElement(Title),
@@ -111,8 +106,7 @@ export default function Page() {
   ];
 
   if (signature) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    children.push(...addSignature(signature, emberData));
+    children.push(...addSignature(signature, data));
   }
 
   children.push(createElement(Stories));

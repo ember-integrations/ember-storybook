@@ -47,15 +47,20 @@ cd demo && pnpm test                                  # vitest (unit)
 # browser smoke tests (addon-vitest + Playwright): see Testing & regression
 ```
 
+## Playwright MCP & Storybook
+
+- Start Storybook: `pnpm exec storybook dev --no-open` (background it, log to a file inside the repo). The port is dynamic — read the "Local:" line from the log.
+- Don't pass `--port` (fails) or `--quiet` (suppresses the URL output).
+- Browser is headless (`chrome-for-testing`)
+- Always shut down Storybook and the Playwright browser when done.
+
 ### Playwright MCP (browser navigation & verification)
 
 - MCP server `playwright` is configured in `opencode.json` → local
-  `@playwright/mcp` (`node_modules/.bin/playwright-mcp`), browser `chromium`.
+  `@playwright/mcp`
 - Use the `playwright_browser_*` tools (navigate, snapshot, click, fill,
   evaluate) to drive Storybook headless — do not rely on `curl` for interactive
   behavior.
-- URLs: dev Storybook `http://localhost:6006/`; a story
-  `/?path=/story/<title>--<story>`; docs `/?path=/docs/<title>--docs`.
 - Inspect rendered output inside the preview `<iframe>` via `browser_snapshot`.
 
 ## Development loop (edit → see the change)
@@ -94,4 +99,3 @@ every fix**. Two test layers:
   milestone 1 "Fix renderToCanvas" covers issues #27, #30, #31, #33.
 - Do **not** perform git operations (commits, branches, PRs) — the user handles
   those.
-
