@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
-import { buildArgTypes } from './extractArgTypes';
+import { buildArgTypes, mergeArgTypes, shouldShowArgsSection } from './extractArgTypes';
 
 import type { ComponentSignature } from 'ember-docgen';
 
@@ -61,7 +61,7 @@ describe('buildArgTypes', () => {
     style: { customProperties: {}, parts: {} }
   };
 
-  it('maps Args to interactive controls with the Args category', () => {
+  test('maps Args to interactive controls with the Args category', () => {
     const result = buildArgTypes(fullSignature);
 
     expect(result.greeting).toMatchObject({
@@ -86,13 +86,13 @@ describe('buildArgTypes', () => {
     });
   });
 
-  it('returns empty object for empty signature', () => {
+  test('returns empty object for empty signature', () => {
     const result = buildArgTypes(minimalSignature);
 
     expect(Object.keys(result)).toHaveLength(0);
   });
 
-  it('includes defaultValue when present', () => {
+  test('includes defaultValue when present', () => {
     const sig: ComponentSignature = {
       args: {
         name: {
@@ -112,5 +112,143 @@ describe('buildArgTypes', () => {
     expect((result.name as { table: { defaultValue: unknown } }).table.defaultValue).toEqual({
       summary: 'World'
     });
+  });
+});
+
+describe('mergeArgTypes', () => {
+  const signatureArgTypes = buildArgTypes({
+    args: {
+      size: {
+        type: {
+          category: 'enum',
+          raw: 'small | medium | large',
+          options: ['small', 'medium', 'large']
+        },
+        required: false,
+        description: 'How large should the button be?',
+        defaultValue: undefined
+      },
+      push: {
+        type: { category: 'function', raw: '() => void' },
+        required: true,
+        description: 'Click handler',
+        defaultValue: undefined
+      }
+    },
+    blocks: {},
+    element: undefined,
+    style: { customProperties: {}, parts: {} }
+  });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/45 (Case 1)
+  test('keeps signature-derived type, table and description when the story only enhances control/options', () => {
+    const storyArgTypes = {
+      size: { control: { type: 'radio' }, options: ['small', 'medium', 'large'] }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.size).toMatchObject({
+      description: 'How large should the button be?',
+      type: { name: 'small | medium | large', required: false },
+      control: { type: 'radio' },
+      options: ['small', 'medium', 'large'],
+      table: { type: { summary: 'small | medium | large' } }
+    });
+  });
+
+  test('lets story-provided values win where both sides define the same field', () => {
+    const storyArgTypes = {
+      size: {
+        name: 'Size',
+        description: 'Custom size description',
+        control: { type: 'radio' }
+      }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    // story wins on fields the signature also defines
+    expect(result.size).toMatchObject({
+      name: 'Size',
+      description: 'Custom size description',
+      control: { type: 'radio' }
+    });
+
+    // fields only the signature defines are preserved
+    expect(result.size).toMatchObject({
+      type: { name: 'small | medium | large', required: false },
+      table: { type: { summary: 'small | medium | large' } }
+    });
+  });
+
+  test('does not overwrite signature values with undefined story values', () => {
+    const storyArgTypes = {
+      size: { description: undefined, control: undefined }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.size).toMatchObject({
+      description: 'How large should the button be?',
+      control: { type: 'select', options: ['small', 'medium', 'large'] }
+    });
+  });
+
+  test('keeps story-only argTypes that are not in the signature', () => {
+    const storyArgTypes = {
+      backgroundColor: { control: 'color' }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.backgroundColor).toEqual({ control: 'color' });
+    expect(result.size).toBeDefined();
+  });
+
+  test('keeps signature-only argTypes the story does not mention', () => {
+    const result = mergeArgTypes(signatureArgTypes, {});
+
+    expect(result.size).toEqual(signatureArgTypes.size);
+    expect(result.push).toEqual(signatureArgTypes.push);
+  });
+});
+
+describe('shouldShowArgsSection', () => {
+  const signatureWithArgs: ComponentSignature = {
+    args: {
+      size: {
+        type: { category: 'enum', raw: 'small | medium | large' },
+        required: false,
+        description: '',
+        defaultValue: undefined
+      }
+    },
+    blocks: {},
+    element: undefined,
+    style: { customProperties: {}, parts: {} }
+  };
+
+  const signatureWithoutArgs: ComponentSignature = {
+    args: {},
+    blocks: {},
+    element: undefined,
+    style: { customProperties: {}, parts: {} }
+  };
+
+  test('returns true when the signature has args', () => {
+    expect(shouldShowArgsSection(signatureWithArgs, undefined)).toBe(true);
+  });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/45 (Case 2)
+  test('returns true for a signature without args when story argTypes exist', () => {
+    expect(shouldShowArgsSection(signatureWithoutArgs, { position: { control: 'radio' } })).toBe(
+      true
+    );
+  });
+
+  test('returns false when neither the signature nor the meta has argTypes', () => {
+    expect(shouldShowArgsSection(signatureWithoutArgs, undefined)).toBe(false);
+    expect(shouldShowArgsSection(signatureWithoutArgs, {})).toBe(false);
   });
 });
