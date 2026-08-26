@@ -16,12 +16,17 @@ import { ElementBlock } from './blocks/element';
 import { CssPropertiesTable, PartsTable } from './blocks/style';
 import { SubcomponentsArea } from './blocks/subcomponents';
 import { H2 } from './blocks/ui';
+import { shouldShowArgsSection } from './extractArgTypes';
 import { collectSubcomponents } from './signature';
 
 import type { EmberMeta } from '../../node/types';
 import type { ComponentSignature } from 'ember-docgen';
 
-function addSignature(signature: ComponentSignature, data: EmberMeta) {
+function addSignature(
+  signature: ComponentSignature,
+  data: EmberMeta,
+  metaArgTypes?: Record<string, unknown>
+) {
   const children: ReactNode[] = [];
 
   if (signature.element) {
@@ -30,8 +35,9 @@ function addSignature(signature: ComponentSignature, data: EmberMeta) {
 
   // Render unfiltered — the argTypes enhancer already merges
   // buildArgTypes(signature) into the store, so this mirrors
-  // the Controls panel exactly.
-  if (Object.keys(signature.args).length > 0) {
+  // the Controls panel exactly. Also render story-provided argTypes
+  // when the signature has no args (e.g. template-only components).
+  if (shouldShowArgsSection(signature, metaArgTypes)) {
     children.push(createElement(Subheading, undefined, 'Args'), createElement(Controls));
   }
 
@@ -106,7 +112,7 @@ export default function Page() {
   ];
 
   if (signature) {
-    children.push(...addSignature(signature, data));
+    children.push(...addSignature(signature, data, resolved.preparedMeta?.argTypes));
   }
 
   children.push(createElement(Stories));
