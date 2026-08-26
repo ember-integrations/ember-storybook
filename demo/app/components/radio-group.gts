@@ -1,5 +1,6 @@
 import Component from '@glimmer/component';
 
+import type Owner from '@ember/owner';
 import type { WithBoundArgs } from '@glint/template';
 
 interface RadioButtonSignature {
@@ -18,6 +19,11 @@ interface RadioButtonSignature {
 }
 
 class RadioButton extends Component<RadioButtonSignature> {
+  constructor(owner: Owner, args: RadioButtonSignature['Args']) {
+    super(owner, args);
+    args.register(args.value);
+  }
+
   <template>
     <button
       type="button"
@@ -52,7 +58,11 @@ export class RadioGroup extends Component<RadioGroupSignature> {
   Button = RadioButton;
   IconButton = RadioButton;
 
-  register = (_value: string) => {};
+  registered = new Set<string>();
+
+  register = (value: string) => {
+    this.registered.add(value);
+  };
 
   isSelected = (value: string) => this.args.value === value;
 
@@ -60,12 +70,8 @@ export class RadioGroup extends Component<RadioGroupSignature> {
     <div class="radio-group" ...attributes>
       {{yield
         (hash
-          Button=(component
-            this.Button register=this.register isSelected=this.isSelected
-          )
-          IconButton=(component
-            this.IconButton register=this.register isSelected=this.isSelected
-          )
+          Button=(component this.Button register=this.register isSelected=this.isSelected)
+          IconButton=(component this.IconButton register=this.register isSelected=this.isSelected)
         )
       }}
     </div>

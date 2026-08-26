@@ -12,6 +12,7 @@ export const Demo = {
         <nav.Item @label="Home" />
       </:nav>
       <:aux as |aux|>
+        {{! @glint-ignore }}
         <aux.Item @label="Search" />
       </:aux>
     </AppHeader>
