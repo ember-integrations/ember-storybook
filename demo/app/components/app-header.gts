@@ -1,3 +1,5 @@
+import { hash } from '@ember/helper'; // for ember versions < 7.1
+
 import type { TOC } from '@ember/component/template-only';
 import type { ComponentLike } from '@glint/template';
 
