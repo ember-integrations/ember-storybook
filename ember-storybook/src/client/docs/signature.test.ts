@@ -265,6 +265,19 @@ describe('collectSubcomponents', () => {
     expect(componentDisplayName(ref, data)).toBe('Card');
   });
 
+  test('falls back to the export name for transitive files without a declaration map', () => {
+    const ref = { filePath: './app/components/nav-link.gts', exportName: 'NavLink' };
+
+    // Transitive subcomponents contribute only `signatures`, no `meta`
+    const data = {
+      './app/components/nav-link.gts': {
+        signatures: { NavLink: OPTION_FULL }
+      }
+    } as unknown as EmberMeta;
+
+    expect(componentDisplayName(ref, data)).toBe('NavLink');
+  });
+
   test('lists template-only subcomponents without a signature by name only', () => {
     const blocks: Record<string, { params: BlockParam[] }> = {
       default: {
@@ -283,5 +296,47 @@ describe('collectSubcomponents', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('Section');
     expect(result[0].signature).toBeUndefined();
+  });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/46
+  test('names local (non-exported) subcomponents by the yield-key name', () => {
+    const blocks: Record<string, { params: BlockParam[] }> = {
+      default: {
+        params: [
+          {
+            name: 'Button',
+            type: 'Invokable<(named: ...) => ComponentReturn<...>>',
+            componentRef: {
+              filePath: './app/components/radio-button-group.gts',
+              exportName: 'RadioButton',
+              local: true,
+              modifiers: [
+                {
+                  name: 'WithBoundArgs',
+                  typeArgs: ['isSelected', 'registerItem', 'unregisterItem']
+                }
+              ]
+            }
+          }
+        ]
+      }
+    };
+
+    const data: EmberMeta = {
+      './app/components/radio-button-group.gts': {
+        meta: {},
+        signatures: { RadioButton: OPTION_FULL }
+      }
+    };
+
+    const result = collectSubcomponents(blocks, data);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Button');
+
+    const signature = result[0].signature;
+
+    expect(signature).toBeDefined();
+    expect(Object.keys(signature?.args ?? {})).toEqual(['value']);
   });
 });

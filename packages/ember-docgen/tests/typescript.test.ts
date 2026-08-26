@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { tempFixture } from './test-support';
 
-import { parseSignatures } from '../src';
+import { Default, parseSignatures } from '../src';
 
 import type { HashBlockParam } from '../src';
 
@@ -653,5 +653,234 @@ export { Greeting };
     expect(sig.args.name.required).toBe(true);
     expect(sig.args.name.type.category).toBe('string');
     expect(sig.element).toBe('HTMLDivElement');
+  });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/46
+  describe('unfolds local (non-exported) components in block params', () => {
+    test('resolves a local class referenced via WithBoundArgs<typeof X> and extracts its signature', async () => {
+      using fix = fixture({
+        'radio-button-group.gts': `
+import Component from '@glimmer/component';
+
+import type { WithBoundArgs } from '@glint/template';
+
+interface RadioButtonSignature {
+  Element: HTMLButtonElement;
+  Args: {
+    value: string;
+    register: () => void;
+    isSelected: () => boolean;
+  };
+}
+
+class RadioButton extends Component<RadioButtonSignature> {}
+
+interface RadioButtonGroupSignature {
+  Element: HTMLDivElement;
+  Blocks: {
+    default: [
+      {
+        Button: WithBoundArgs<typeof RadioButton, 'register' | 'isSelected'>;
+      }
+    ];
+  };
+}
+
+export default class RadioButtonGroup extends Component<RadioButtonGroupSignature> {}
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/radio-button-group.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const group = sigs['app/radio-button-group.gts'][Default];
+      const blockParam = (group.blocks.default!.params[0] as HashBlockParam).Button!;
+
+      // Unfolds the local component: marked `local`, pointing at the local name
+      expect(blockParam.componentRef).toMatchObject({
+        filePath: 'app/radio-button-group.gts',
+        exportName: 'RadioButton',
+        local: true
+      });
+      expect(blockParam.componentRef?.modifiers).toEqual([
+        { name: 'WithBoundArgs', typeArgs: ['register', 'isSelected'] }
+      ]);
+
+      // Local component signature is extracted so the subcomponent has content
+      expect(sigs['app/radio-button-group.gts'].RadioButton).toBeDefined();
+      expect(Object.keys(sigs['app/radio-button-group.gts'].RadioButton.args).sort()).toEqual([
+        'isSelected',
+        'register',
+        'value'
+      ]);
+    });
+
+    test('resolves a local TOC const referenced via typeof X and extracts its signature', async () => {
+      using fix = fixture({
+        'navigation-list.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+const Title: TOC<{ Blocks: { default: [] } }> = <template>
+  <span part="title">{{yield}}</span>
+</template>;
+
+export interface NavigationListSignature {
+  Element: HTMLElement;
+  Blocks: {
+    default?: [{ Title: typeof Title }];
+  };
+}
+
+export const NavigationList: TOC<NavigationListSignature> = <template>
+  <nav>{{yield (hash Title=Title)}}</nav>
+</template>;
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/navigation-list.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const blockParam = (sigs['app/navigation-list.gts'].NavigationList.blocks.default!.params[0] as HashBlockParam)
+        .Title!;
+
+      expect(blockParam.componentRef).toMatchObject({
+        filePath: 'app/navigation-list.gts',
+        exportName: 'Title',
+        local: true
+      });
+
+      expect(sigs['app/navigation-list.gts'].Title).toBeDefined();
+      expect(Object.keys(sigs['app/navigation-list.gts'].Title.blocks)).toEqual(['default']);
+    });
+
+    test('unfolds ComponentLike<typeof X> in a block param', async () => {
+      using fix = fixture({
+        'app-header.gts': `
+import type { TOC } from '@ember/component/template-only';
+import type { ComponentLike } from '@glint/template';
+
+const NavItem: TOC<{ Args: { label: string } }> = <template>
+  {{yield}}
+</template>;
+
+export interface AppHeaderSignature {
+  Element: HTMLElement;
+  Blocks: {
+    aux?: [{ Item: ComponentLike<typeof NavItem> }];
+  };
+}
+
+export const AppHeader: TOC<AppHeaderSignature> = <template>
+  <header>{{yield (hash Item=NavItem) to="aux"}}</header>
+</template>;
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/app-header.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const blockParam = (sigs['app/app-header.gts'].AppHeader.blocks.aux!.params[0] as HashBlockParam).Item!;
+
+      expect(blockParam.componentRef).toMatchObject({
+        filePath: 'app/app-header.gts',
+        exportName: 'NavItem',
+        local: true
+      });
+    });
+
+    test('does not unfold a local wrapper shim named like a component wrapper', async () => {
+      using fix = fixture({
+        'shim.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+// A LOCAL type alias — NOT the canonical wrapper from
+// '@ember/component/template-only'
+type ComponentLike<T> = { [K in keyof T]: T[K] };
+
+const Item: TOC<{ Args: { label: string } }> = <template>
+  {{yield}}
+</template>;
+
+export interface ShimSignature {
+  Blocks: {
+    default?: [{ Item: ComponentLike<typeof Item> }];
+  };
+}
+
+export const Shim: TOC<ShimSignature> = <template>
+  {{yield (hash Item=Item)}}
+</template>;
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/shim.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const blockParam = (sigs['app/shim.gts'].Shim.blocks.default!.params[0] as HashBlockParam).Item!;
+
+      // The local `ComponentLike` shim must not be treated as a wrapper
+      expect(blockParam.componentRef).toBeUndefined();
+    });
+
+    test('extracts the signature of a cross-file component referenced via typeof X', async () => {
+      using fix = fixture({
+        'nav-link.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+export interface NavLinkSignature {
+  Element: HTMLAnchorElement;
+  Args: { href?: string };
+}
+
+export const NavLink: TOC<NavLinkSignature> = <template>
+  <a ...attributes>{{yield}}</a>
+</template>;
+`.trim(),
+        'navigation-list.gts': `
+import type { TOC } from '@ember/component/template-only';
+
+import { NavLink } from './nav-link.gts';
+
+export interface NavigationListSignature {
+  Element: HTMLElement;
+  Blocks: {
+    default?: [{ Item: typeof NavLink }];
+  };
+}
+
+export const NavigationList: TOC<NavigationListSignature> = <template>
+  <nav>{{yield (hash Item=NavLink)}}</nav>
+</template>;
+`.trim()
+      });
+
+      // Only the story component is an entry point — NavLink is transitive
+      const file = path.join(fix.base, 'app/navigation-list.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const blockParam = (sigs['app/navigation-list.gts'].NavigationList.blocks.default!.params[0] as HashBlockParam)
+        .Item!;
+
+      // Cross-file refs keep the component's own name (not `local`)
+      expect(blockParam.componentRef).toMatchObject({
+        filePath: 'app/nav-link.gts',
+        exportName: 'NavLink'
+      });
+      expect(blockParam.componentRef?.local).toBeUndefined();
+
+      // The referenced file's signature is extracted so NavLink isn't empty
+      expect(sigs['app/nav-link.gts'].NavLink).toBeDefined();
+      expect(sigs['app/nav-link.gts'].NavLink.element).toBe('HTMLAnchorElement');
+    });
   });
 });

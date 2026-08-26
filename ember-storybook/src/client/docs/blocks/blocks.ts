@@ -94,8 +94,11 @@ function SubcomponentAnchor({ name, children }: { name: string; children?: React
 }
 
 /** Display name for a block param's type: the referenced component's own
- * name when available, otherwise the raw type string. */
+ * name when available, the yield key for local components, otherwise the
+ * raw type string. */
 function displayTypeName(param: BlockParam, data?: EmberMeta): string {
+  if (param.componentRef?.local) return param.name;
+
   return (data ? componentDisplayName(param.componentRef, data) : undefined) ?? param.type;
 }
 

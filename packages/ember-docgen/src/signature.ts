@@ -52,6 +52,8 @@ export interface BlockParam {
         filePath: string;
         exportName: string;
         importPath?: string;
+        /** The referenced component is local to the block's own file — name it by the yield key. */
+        local?: boolean;
         modifiers?: { name: string; typeArgs: string[] }[];
       };
 }
