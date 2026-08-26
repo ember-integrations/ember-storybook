@@ -1,5 +1,6 @@
 import { unwrapBlockParams } from './block-params';
 
+import type { ComponentMap } from '../../node/parser';
 import type { ComponentFile, EmberMeta } from '../../node/types';
 import type { BlockInfo, ComponentSignature } from 'ember-docgen';
 
@@ -42,11 +43,15 @@ export function componentDisplayName(
     return ref.exportName === DEFAULT_EXPORT ? undefined : ref.exportName;
   }
 
+  // Transitive component files contribute only `signatures` (no declaration
+  // map) — fall back to the export name instead of the unresolved meta.
+  const meta = (componentEntry as { meta?: ComponentMap }).meta;
+
   if (ref.exportName === DEFAULT_EXPORT) {
-    return componentEntry.meta[DEFAULT_EXPORT] ?? undefined;
+    return meta?.[DEFAULT_EXPORT];
   }
 
-  return componentEntry.meta[ref.exportName] ?? ref.exportName;
+  return meta?.[ref.exportName] ?? ref.exportName;
 }
 
 export function applyModifiers(
@@ -93,8 +98,11 @@ export function collectSubcomponents(
 
       const { filePath, exportName, importPath, modifiers } = param.componentRef;
 
-      // Prefer the referenced component's own name over the yield-hash key
-      const name = componentDisplayName(param.componentRef, data) ?? param.name;
+      // Local components (non-exported) are named by the yield key — the
+      // declaration name is an implementation detail.
+      const name = param.componentRef.local
+        ? param.name
+        : (componentDisplayName(param.componentRef, data) ?? param.name);
 
       if (seen.has(name)) {
         // eslint-disable-next-line unicorn/no-break-in-nested-loop

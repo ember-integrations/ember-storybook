@@ -1,7 +1,8 @@
-import { ArgTypes, Subheading } from '@storybook/addon-docs/blocks';
+import { PureArgsTable, Subheading } from '@storybook/addon-docs/blocks';
 import { createElement, type ReactNode } from 'react';
 import { styled } from 'storybook/theming';
 
+import { buildArgTypes } from '../extractArgTypes';
 import { BlocksTable, ParamRow, ParamType } from './blocks';
 import { ElementBlock } from './element';
 import { H2 } from './ui';
@@ -9,6 +10,7 @@ import { H2 } from './ui';
 import type { EmberMeta } from '../../../node/types';
 import type { SubcomponentRef } from '../signature';
 import type { ComponentSignature } from 'ember-docgen';
+import type { ArgTypes } from 'storybook/internal/types';
 
 const SubcomponentsSection = styled.div(() => ({
   marginTop: 25,
@@ -39,9 +41,11 @@ function renderSubcomponentSignature(
   }
 
   if (Object.keys(sig.args).length > 0) {
+    // Render from the subcomponent's own signature — the global argTypes
+    // store only carries the main component's args.
     children.push(
       createElement(SectionLabel, undefined, 'Args'),
-      createElement(ArgTypes, { include: Object.keys(sig.args) })
+      createElement(PureArgsTable, { rows: buildArgTypes(sig) as ArgTypes })
     );
   }
 
