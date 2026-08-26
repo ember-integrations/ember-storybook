@@ -282,6 +282,43 @@ describe('mergeArgTypes', () => {
     expect(result.size).toEqual(signatureArgTypes.size);
     expect(result.push).toEqual(signatureArgTypes.push);
   });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/48
+  test('keeps signature `required` when the story provides a partial `type`', () => {
+    const storyArgTypes = {
+      push: { type: { name: '() => void' } }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.push).toMatchObject({
+      type: { name: '() => void', required: true }
+    });
+  });
+
+  test('lets the story override `required` explicitly', () => {
+    const storyArgTypes = {
+      push: { type: { name: '() => void', required: false } }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.push).toMatchObject({
+      type: { name: '() => void', required: false }
+    });
+  });
+
+  test('lets the story override `type.name` while keeping the signature `required`', () => {
+    const storyArgTypes = {
+      push: { type: { name: 'ClickHandler' } }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.push).toMatchObject({
+      type: { name: 'ClickHandler', required: true }
+    });
+  });
 });
 
 describe('shouldShowArgsSection', () => {

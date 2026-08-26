@@ -75,7 +75,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
  * rendering (custom `name`, `control`, `options`, ...). For args present in
  * both, story fields win — but only when they carry an actual value, so an
  * explicit `undefined` never masks a signature field. The signature keeps the
- * `type`, `table` and `description` the story does not override.
+ * `table` and `description` the story does not override.
+ *
+ * The `type` object is deep-merged: a story-provided partial `type` (e.g.
+ * `type: 'string'`) keeps the signature's `required` flag unless the story
+ * explicitly sets it, while the story's `type.name` still wins.
  */
 export function mergeArgTypes(
   signatureArgTypes: Record<string, unknown>,
@@ -97,7 +101,16 @@ export function mergeArgTypes(
       Object.entries(storyArg).filter(([, value]) => value !== undefined)
     );
 
-    merged[name] = { ...sigArg, ...storyFields };
+    const mergedArg = { ...sigArg, ...storyFields };
+
+    // Deep-merge `type` so a story-provided partial `type` does not drop the
+    // signature's `required` flag (issue #48). The story's `type.name` still
+    // wins; `required` survives unless the story explicitly sets it.
+    if (isObject(sigArg.type) && isObject(storyFields.type)) {
+      mergedArg.type = { ...sigArg.type, ...storyFields.type };
+    }
+
+    merged[name] = mergedArg;
   }
 
   return merged;
