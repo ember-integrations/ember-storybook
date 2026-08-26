@@ -34,6 +34,14 @@ function mapTypeToControl(
   }
 }
 
+/**
+ * Returns a new argTypes object with entries sorted alphabetically by name,
+ * matching Storybook's `alpha` sort order. The input object is not mutated.
+ */
+export function sortArgTypes(argTypes: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(argTypes).toSorted(([a], [b]) => a.localeCompare(b)));
+}
+
 export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> {
   const argTypes: Record<string, unknown> = {};
 
@@ -53,7 +61,7 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
     };
   }
 
-  return argTypes;
+  return sortArgTypes(argTypes);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
