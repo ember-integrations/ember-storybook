@@ -1,6 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { buildArgTypes, mergeArgTypes, shouldShowArgsSection } from './extractArgTypes';
+import {
+  buildArgTypes,
+  mergeArgTypes,
+  shouldShowArgsSection,
+  sortArgTypes
+} from './extractArgTypes';
 
 import type { ComponentSignature } from 'ember-docgen';
 
@@ -92,6 +97,41 @@ describe('buildArgTypes', () => {
     expect(Object.keys(result)).toHaveLength(0);
   });
 
+  test('sorts args alphabetically by name', () => {
+    const sig: ComponentSignature = {
+      args: {
+        zebra: {
+          type: { category: 'string', raw: 'string' },
+          required: false,
+          description: '',
+          defaultValue: undefined
+        },
+        alpha: {
+          type: { category: 'number', raw: 'number' },
+          required: false,
+          description: '',
+          defaultValue: undefined
+        },
+        mike: {
+          type: { category: 'boolean', raw: 'boolean' },
+          required: false,
+          description: '',
+          defaultValue: undefined
+        }
+      },
+      blocks: {},
+      element: undefined,
+      style: { customProperties: {}, parts: {} }
+    };
+
+    const result = buildArgTypes(sig);
+
+    expect(Object.keys(result)).toEqual(['alpha', 'mike', 'zebra']);
+    expect((result.alpha as { name: string }).name).toBe('alpha');
+    expect((result.mike as { name: string }).name).toBe('mike');
+    expect((result.zebra as { name: string }).name).toBe('zebra');
+  });
+
   test('includes defaultValue when present', () => {
     const sig: ComponentSignature = {
       args: {
@@ -112,6 +152,36 @@ describe('buildArgTypes', () => {
     expect((result.name as { table: { defaultValue: unknown } }).table.defaultValue).toEqual({
       summary: 'World'
     });
+  });
+});
+
+describe('sortArgTypes', () => {
+  test('sorts entries alphabetically by name', () => {
+    const argTypes = {
+      zebra: { name: 'zebra' },
+      alpha: { name: 'alpha' },
+      mike: { name: 'mike' }
+    };
+
+    expect(Object.keys(sortArgTypes(argTypes))).toEqual(['alpha', 'mike', 'zebra']);
+  });
+
+  test('compares names case-insensitively via localeCompare', () => {
+    const argTypes = {
+      Beta: { name: 'Beta' },
+      alpha: { name: 'alpha' },
+      Zebra: { name: 'Zebra' }
+    };
+
+    expect(Object.keys(sortArgTypes(argTypes))).toEqual(['alpha', 'Beta', 'Zebra']);
+  });
+
+  test('does not mutate the input object', () => {
+    const argTypes = { zebra: { name: 'zebra' }, alpha: { name: 'alpha' } };
+
+    sortArgTypes(argTypes);
+
+    expect(Object.keys(argTypes)).toEqual(['zebra', 'alpha']);
   });
 });
 
