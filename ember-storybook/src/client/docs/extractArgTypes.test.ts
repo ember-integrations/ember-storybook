@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { buildArgTypes, mergeArgTypes, shouldShowArgsSection } from './extractArgTypes';
 
@@ -61,7 +61,7 @@ describe('buildArgTypes', () => {
     style: { customProperties: {}, parts: {} }
   };
 
-  it('maps Args to interactive controls with the Args category', () => {
+  test('maps Args to interactive controls with the Args category', () => {
     const result = buildArgTypes(fullSignature);
 
     expect(result.greeting).toMatchObject({
@@ -86,13 +86,13 @@ describe('buildArgTypes', () => {
     });
   });
 
-  it('returns empty object for empty signature', () => {
+  test('returns empty object for empty signature', () => {
     const result = buildArgTypes(minimalSignature);
 
     expect(Object.keys(result)).toHaveLength(0);
   });
 
-  it('includes defaultValue when present', () => {
+  test('includes defaultValue when present', () => {
     const sig: ComponentSignature = {
       args: {
         name: {
@@ -141,7 +141,7 @@ describe('mergeArgTypes', () => {
   });
 
   // https://github.com/ember-integrations/ember-storybook/issues/45 (Case 1)
-  it('keeps signature-derived type, table and description when the story only enhances control/options', () => {
+  test('keeps signature-derived type, table and description when the story only enhances control/options', () => {
     const storyArgTypes = {
       size: { control: { type: 'radio' }, options: ['small', 'medium', 'large'] }
     };
@@ -157,21 +157,32 @@ describe('mergeArgTypes', () => {
     });
   });
 
-  it('lets story-provided values win when present', () => {
+  test('lets story-provided values win where both sides define the same field', () => {
     const storyArgTypes = {
-      size: { name: 'Size', control: { type: 'radio' }, options: ['small', 'medium', 'large'] }
+      size: {
+        name: 'Size',
+        description: 'Custom size description',
+        control: { type: 'radio' }
+      }
     };
 
     const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
 
+    // story wins on fields the signature also defines
     expect(result.size).toMatchObject({
       name: 'Size',
-      control: { type: 'radio' },
-      options: ['small', 'medium', 'large']
+      description: 'Custom size description',
+      control: { type: 'radio' }
+    });
+
+    // fields only the signature defines are preserved
+    expect(result.size).toMatchObject({
+      type: { name: 'small | medium | large', required: false },
+      table: { type: { summary: 'small | medium | large' } }
     });
   });
 
-  it('does not overwrite signature values with undefined story values', () => {
+  test('does not overwrite signature values with undefined story values', () => {
     const storyArgTypes = {
       size: { description: undefined, control: undefined }
     };
@@ -184,7 +195,7 @@ describe('mergeArgTypes', () => {
     });
   });
 
-  it('keeps story-only argTypes that are not in the signature', () => {
+  test('keeps story-only argTypes that are not in the signature', () => {
     const storyArgTypes = {
       backgroundColor: { control: 'color' }
     };
@@ -195,7 +206,7 @@ describe('mergeArgTypes', () => {
     expect(result.size).toBeDefined();
   });
 
-  it('keeps signature-only argTypes the story does not mention', () => {
+  test('keeps signature-only argTypes the story does not mention', () => {
     const result = mergeArgTypes(signatureArgTypes, {});
 
     expect(result.size).toEqual(signatureArgTypes.size);
@@ -225,18 +236,18 @@ describe('shouldShowArgsSection', () => {
     style: { customProperties: {}, parts: {} }
   };
 
-  it('returns true when the signature has args', () => {
+  test('returns true when the signature has args', () => {
     expect(shouldShowArgsSection(signatureWithArgs, undefined)).toBe(true);
   });
 
   // https://github.com/ember-integrations/ember-storybook/issues/45 (Case 2)
-  it('returns true for a signature without args when story argTypes exist', () => {
+  test('returns true for a signature without args when story argTypes exist', () => {
     expect(shouldShowArgsSection(signatureWithoutArgs, { position: { control: 'radio' } })).toBe(
       true
     );
   });
 
-  it('returns false when neither the signature nor the meta has argTypes', () => {
+  test('returns false when neither the signature nor the meta has argTypes', () => {
     expect(shouldShowArgsSection(signatureWithoutArgs, undefined)).toBe(false);
     expect(shouldShowArgsSection(signatureWithoutArgs, {})).toBe(false);
   });
