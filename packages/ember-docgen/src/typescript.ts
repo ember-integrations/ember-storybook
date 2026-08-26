@@ -13,6 +13,7 @@ import {
 
 import { resolveTsconfigFile } from './config';
 import { Default } from './signature';
+import { unwrapBlockParams } from './typedoc/analyze';
 
 import type {
   ArgInfo,
@@ -34,6 +35,9 @@ const ts = require('typescript') as typeof TS;
 
 /** Type wrappers around block-param components that carry bound-args info. */
 const BOUND_ARGS_WRAPPER = 'WithBoundArgs';
+
+/** Component wrappers whose type argument may reference a component (`typeof X`). */
+const COMPONENT_WRAPPER_NAMES = new Set(['ComponentLike', 'TOC', 'TemplateOnlyComponent', 'Invokable']);
 
 /** TypeScript lib globals — ambient, matched by name (no import exists). */
 const LIB_WRAPPERS = new Set(['Omit', 'Pick']);
@@ -470,14 +474,48 @@ function exportNameForDeclaration(
   return undefined;
 }
 
+/** Whether a declaration is a component: class extends `Component<S>`, or a
+ * variable annotated with a signature wrapper (`TOC<S>`, `ComponentLike<S>`, …). */
+function isComponentLikeDeclaration(declaration: TS.Declaration, ctx: ExtractContext): boolean {
+  if (ts.isClassDeclaration(declaration)) {
+    for (const clause of declaration.heritageClauses ?? []) {
+      if (clause.token !== ts.SyntaxKind.ExtendsKeyword) continue;
+
+      for (const heritageType of clause.types) {
+        if (
+          originFamily(ctx.checker.getSymbolAtLocation(heritageType.expression), ctx) ===
+          'component'
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  if (ts.isVariableDeclaration(declaration)) {
+    for (const refNode of wrapperReferenceNodes(declaration)) {
+      if (isSignatureWrapperSymbol(ctx.checker.getSymbolAtLocation(refNode.typeName), ctx)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 /**
  * Resolve a name node referencing a component to its source file and
  * export name, following export aliases (`typeof X` where X is imported).
+ *
+ * Local (non-exported) components resolve to their declaration name and are
+ * marked `local` — consumers then name the subcomponent by the yield key.
  */
 function resolveComponentNode(
   node: TS.Node,
   ctx: ExtractContext
-): { filePath: string; exportName: string } | undefined {
+): { filePath: string; exportName: string; local?: boolean } | undefined {
   const symbol = ctx.checker.getSymbolAtLocation(node);
   const resolved =
     symbol && (symbol.flags & ts.SymbolFlags.Alias) !== 0
@@ -504,9 +542,21 @@ function resolveComponentNode(
   const filePath = relativeKey(ctx, declarationFile.fileName);
   const exportName = exportNameForDeclaration(declarationFile, declaration, ctx);
 
-  if (!exportName) return undefined;
+  if (exportName) return { filePath, exportName };
 
-  return { filePath, exportName };
+  // Local (non-exported) component — `typeof X` in a block param. Only its
+  // declaration name survives, and only components are worth unfolding.
+  const nameNode =
+    ts.isClassDeclaration(declaration) || ts.isVariableDeclaration(declaration)
+      ? declaration.name
+      : undefined;
+  const localName = nameNode && ts.isIdentifier(nameNode) ? nameNode.text : undefined;
+
+  if (localName && isComponentLikeDeclaration(declaration, ctx)) {
+    return { filePath, exportName: localName, local: true };
+  }
+
+  return undefined;
 }
 
 /**
@@ -565,6 +615,23 @@ function componentRefFromTypeNode(
 
           return { ...inner, modifiers: [{ name: BOUND_ARGS_WRAPPER, typeArgs }] };
         }
+      }
+
+      return undefined;
+    }
+
+    // Other component wrappers (`ComponentLike<typeof X>`, `TOC<…>`,
+    // `Invokable<…>`, …): unfold by walking the type arguments for the
+    // referenced component. Verified by origin so local type shims named
+    // like a wrapper are ignored.
+    if (
+      COMPONENT_WRAPPER_NAMES.has(boundArgsName) &&
+      isSignatureWrapperSymbol(ctx.checker.getSymbolAtLocation(node.typeName), ctx)
+    ) {
+      for (const arg of args) {
+        const inner = componentRefFromTypeNode(arg, ctx);
+
+        if (inner) return inner;
       }
 
       return undefined;
@@ -838,6 +905,87 @@ function signatureTypeOfExport(
 
 // ── Public API ─────────────────────────────────────────────────
 
+/** Source file for a tsconfig-relative componentRef path, handling the
+ * virtual `.gts.ts` naming added for the ember compiler host. */
+function refSourceFile(
+  filePath: string,
+  ctx: ExtractContext,
+  program: TS.Program
+): TS.SourceFile | undefined {
+  const abs = path.resolve(ctx.base, filePath);
+
+  return program.getSourceFile(abs) ?? program.getSourceFile(`${abs}.ts`);
+}
+
+/** Extract signatures for one source file: exported and local component declarations. */
+function extractFileSignatures(
+  sourceFile: TS.SourceFile,
+  signatures: ComponentSignatureMap,
+  ctx: ExtractContext
+): void {
+  const checker = ctx.checker;
+  const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
+
+  if (!moduleSymbol) return;
+
+  const key = relativeKey(ctx, sourceFile.fileName);
+  const entry = signatures[key] ?? {};
+
+  for (const exported of checker.getExportsOfModule(moduleSymbol)) {
+    const signatureType = signatureTypeOfExport(exported, ctx);
+
+    if (!signatureType) continue;
+
+    // Key by the module's export name — this is what consumers
+    // (story parser, source decorator) look signatures up by.
+    const name = exported.name === 'default' ? Default : exported.name;
+
+    entry[name] = parseSignature(signatureType, ctx);
+  }
+
+  // Local (non-exported) components referenced via `typeof X` in block
+  // params — extract them so their subcomponents have content. Keyed by
+  // the declaration name; block refs point at it via componentRef.
+  for (const statement of sourceFile.statements) {
+    const declarations: TS.Declaration[] = [];
+
+    if (ts.isClassDeclaration(statement) && statement.name) {
+      declarations.push(statement);
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (declaration.name && ts.isIdentifier(declaration.name)) {
+          declarations.push(declaration);
+        }
+      }
+    }
+
+    for (const declaration of declarations) {
+      const nameNode = declaration.name;
+
+      if (!nameNode || !ts.isIdentifier(nameNode)) continue;
+
+      const name = nameNode.text;
+
+      if (name === Default || exportNameForDeclaration(sourceFile, declaration, ctx) !== undefined) {
+        continue;
+      }
+
+      const symbol = checker.getSymbolAtLocation(nameNode);
+      const signatureType = symbol ? signatureTypeOfExport(symbol, ctx) : undefined;
+
+      if (!signatureType) continue;
+
+      entry[name] = parseSignature(signatureType, ctx);
+    }
+  }
+
+  // Keep entries only for files that yielded at least one component, so
+  // component-less files stay absent from the map.
+  if (Object.keys(entry).length > 0) {
+    signatures[key] = entry;
+  }
+}
+
 /**
  * Extract component signatures by executing the TypeScript type system:
  * the signature types are resolved through a real compiler program, so
@@ -866,29 +1014,49 @@ export async function parseSignatures(
   };
   const signatures: ComponentSignatureMap = {};
 
+  // Breadth-first over entry points and every file referenced by a block
+  // param's componentRef (transitive subcomponents), so their signatures
+  // are available for the docs page.
+  const visited = new Set<string>();
+  const queue: TS.SourceFile[] = [];
+
   for (const file of files) {
     // Undo the virtual `.gts.ts` naming added for the ember compiler host
     const rootName = isEmberTemplate(file) ? `${file}.ts` : file;
     const sourceFile = program.getSourceFile(rootName);
 
-    if (!sourceFile) continue;
+    if (sourceFile) queue.push(sourceFile);
+  }
 
-    const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
+  while (queue.length > 0) {
+    const sourceFile = queue.shift()!;
+    const key = relativeKey(ctx, sourceFile.fileName);
 
-    if (!moduleSymbol) continue;
+    if (visited.has(key)) continue;
 
-    for (const exported of checker.getExportsOfModule(moduleSymbol)) {
-      const signatureType = signatureTypeOfExport(exported, ctx);
+    visited.add(key);
 
-      if (!signatureType) continue;
+    extractFileSignatures(sourceFile, signatures, ctx);
 
-      const key = relativeKey(ctx, sourceFile.fileName);
-      // Key by the module's export name — this is what consumers
-      // (story parser, source decorator) look signatures up by.
-      const name = exported.name === 'default' ? Default : exported.name;
+    const entry = signatures[key];
 
-      signatures[key] ??= {};
-      signatures[key][name] = parseSignature(signatureType, ctx);
+    if (!entry) continue;
+
+    for (const compSig of Object.values(entry)) {
+      for (const blockInfo of Object.values(compSig.blocks)) {
+        for (const param of unwrapBlockParams(blockInfo.params)) {
+          // External packages carry importPath and are not part of the program
+          if (param.componentRef?.importPath) continue;
+
+          const refFile = param.componentRef?.filePath;
+
+          if (!refFile) continue;
+
+          const refSource = refSourceFile(refFile, ctx, program);
+
+          if (refSource) queue.push(refSource);
+        }
+      }
     }
   }
 
