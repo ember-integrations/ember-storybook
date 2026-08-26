@@ -1,5 +1,22 @@
 # Changelog
 
+## Release (2026-08-26)
+
+* ember-storybook 0.2.0 (minor)
+
+#### :rocket: Enhancement
+* `ember-storybook`
+  * [#52](https://github.com/ember-integrations/ember-storybook/pull/52) Sort args in Control alphabetically ([@gossi](https://github.com/gossi))
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#53](https://github.com/ember-integrations/ember-storybook/pull/53) keep required types required ([@gossi](https://github.com/gossi))
+  * [#51](https://github.com/ember-integrations/ember-storybook/pull/51) ArgTypes and signature merging no longer eliminate information ([@gossi](https://github.com/gossi))
+  * [#49](https://github.com/ember-integrations/ember-storybook/pull/49) Unfold types in rendering the signature ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-25)
 
 * ember-storybook 0.1.6 (patch)
