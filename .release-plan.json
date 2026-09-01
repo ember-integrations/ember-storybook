@@ -1,15 +1,11 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "minor",
-      "oldVersion": "0.1.6",
-      "newVersion": "0.2.0",
+      "impact": "patch",
+      "oldVersion": "0.2.0",
+      "newVersion": "0.2.1",
       "tagName": "latest",
       "constraints": [
-        {
-          "impact": "minor",
-          "reason": "Appears in changelog section :rocket: Enhancement"
-        },
         {
           "impact": "patch",
           "reason": "Appears in changelog section :bug: Bug Fix"
@@ -21,5 +17,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-08-26)\n\n* ember-storybook 0.2.0 (minor)\n\n#### :rocket: Enhancement\n* `ember-storybook`\n  * [#52](https://github.com/ember-integrations/ember-storybook/pull/52) Sort args in Control alphabetically ([@gossi](https://github.com/gossi))\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#53](https://github.com/ember-integrations/ember-storybook/pull/53) keep required types required ([@gossi](https://github.com/gossi))\n  * [#51](https://github.com/ember-integrations/ember-storybook/pull/51) ArgTypes and signature merging no longer eliminate information ([@gossi](https://github.com/gossi))\n  * [#49](https://github.com/ember-integrations/ember-storybook/pull/49) Unfold types in rendering the signature ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-09-01)\n\n* ember-storybook 0.2.1 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#56](https://github.com/ember-integrations/ember-storybook/pull/56) Unfold interfaces as hash block params into the docs ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }

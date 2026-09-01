@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-09-01)
+
+* ember-storybook 0.2.1 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#56](https://github.com/ember-integrations/ember-storybook/pull/56) Unfold interfaces as hash block params into the docs ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-08-26)
 
 * ember-storybook 0.2.0 (minor)
