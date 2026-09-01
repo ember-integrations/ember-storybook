@@ -1,4 +1,4 @@
-import type { BlockInfo, BlockParam, HashBlockParam } from 'ember-docgen';
+import type { BlockInfo, BlockParam, HashBlockParam } from './signature';
 
 function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
   return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
@@ -17,8 +17,8 @@ export function unwrapBlockParamsShallow(params: BlockInfo['params']): BlockPara
 /**
  * Unwrap every block param: yield hashes expand to their named entries and
  * unfolded named types descend into all members — the whole param tree. Use
- * wherever every referenced component must be found (subcomponent
- * collection, ref rewriting).
+ * wherever every referenced component must be found (transitive file
+ * queueing, subcomponent collection, ref rewriting).
  */
 export function unwrapBlockParams(params: BlockInfo['params']): BlockParam[] {
   const result: BlockParam[] = [];

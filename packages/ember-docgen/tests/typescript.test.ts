@@ -883,4 +883,249 @@ export const NavigationList: TOC<NavigationListSignature> = <template>
       expect(sigs['app/nav-link.gts'].NavLink.element).toBe('HTMLAnchorElement');
     });
   });
+
+  describe('unfolds named non-component types in block params', () => {
+    test('unfolds a type alias of a single-component hash (MenuDefaultBlock)', async () => {
+      using fix = fixture({
+        'menu.gts': `
+import Component from '@glimmer/component';
+import type { WithBoundArgs } from '@glint/template';
+
+export type MenuDefaultBlock = {
+  Item: WithBoundArgs<typeof MenuItem, 'registerItem' | 'unregisterItem'>;
+};
+
+interface MenuItemSignature {
+  Element: HTMLButtonElement;
+  Args: { registerItem: (item: unknown) => void };
+}
+
+class MenuItem extends Component<MenuItemSignature> {}
+
+export interface MenuSignature {
+  Element: HTMLDivElement;
+  Blocks: { default: [MenuDefaultBlock] };
+}
+
+export class Menu extends Component<MenuSignature> {}
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/menu.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const block = sigs['app/menu.gts'].Menu.blocks.default!;
+      // The whole `MenuDefaultBlock` reference becomes one param, unfolded.
+      expect(block.params).toHaveLength(1);
+
+      const param = block.params[0] as { nested: { name: string; componentRef?: unknown }[] };
+
+      // The member is folded into `nested`
+      expect(param.nested).toHaveLength(1);
+
+      const item = param.nested[0] as {
+        name: string;
+        componentRef?: { filePath: string; exportName: string; modifiers?: { name: string }[] };
+      };
+
+      expect(item.name).toBe('Item');
+      expect(item.componentRef).toMatchObject({
+        filePath: 'app/menu.gts',
+        exportName: 'MenuItem'
+      });
+      expect(item.componentRef?.modifiers).toEqual([
+        { name: 'WithBoundArgs', typeArgs: ['registerItem', 'unregisterItem'] }
+      ]);
+    });
+
+    test('unfolds an interface with component, nested-interface and plain members (FormBuilder)', async () => {
+      using fix = fixture({
+        'form.gts': `
+import Component from '@glimmer/component';
+import type { WithBoundArgs } from '@glint/template';
+
+interface BoundField<DATA> {
+  label: string;
+  value: DATA;
+}
+
+export interface FormBuilder<DATA> {
+  Checkbox: WithBoundArgs<typeof CheckboxField, 'Field'>;
+  Field: BoundField<DATA>;
+  Submit: typeof Submit;
+  invalid: boolean;
+  submit: () => void;
+}
+
+interface FieldSignature {
+  Element: HTMLInputElement;
+  Args: { Field: unknown };
+}
+
+class CheckboxField extends Component<FieldSignature> {}
+
+class Submit extends Component<{ Element: HTMLButtonElement; Args: {} }> {}
+
+export interface FormSignature<DATA> {
+  Element: HTMLFormElement;
+  Blocks: { default: [FormBuilder<DATA>] };
+}
+
+export class Form<DATA> extends Component<FormSignature<DATA>> {}
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/form.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const block = sigs['app/form.gts'].Form.blocks.default!;
+      expect(block.params).toHaveLength(1);
+
+      const builder = block.params[0] as {
+        nested: {
+          name: string;
+          componentRef?: { exportName: string; modifiers?: { name: string }[] };
+          nested?: { name: string }[];
+        }[];
+      };
+
+      const byName = Object.fromEntries(builder.nested.map((m) => [m.name, m]));
+
+      // Component member resolves to a componentRef
+      expect(byName.Checkbox.componentRef?.exportName).toBe('CheckboxField');
+      expect(byName.Checkbox.componentRef?.modifiers).toEqual([
+        { name: 'WithBoundArgs', typeArgs: ['Field'] }
+      ]);
+
+      // Component member (typeof X)
+      expect(byName.Submit.componentRef?.exportName).toBe('Submit');
+
+      // Nested interface member is itself unfolded
+      expect(byName.Field.nested).toBeDefined();
+      expect(byName.Field.nested).toHaveLength(2);
+
+      // Plain-value members have no componentRef and no nested
+      expect(byName.invalid.componentRef).toBeUndefined();
+      expect(byName.invalid.nested).toBeUndefined();
+      expect(byName.submit.componentRef).toBeUndefined();
+      expect(byName.submit.nested).toBeUndefined();
+    });
+
+    test('extracts signatures of components referenced inside unfolded types', async () => {
+      using fix = fixture({
+        'checkbox.gts': `
+import Component from '@glimmer/component';
+
+export interface CheckboxSignature {
+  Element: HTMLInputElement;
+  Args: { name: string };
+}
+
+export class CheckboxField extends Component<CheckboxSignature> {}
+`.trim(),
+        'form.gts': `
+import Component from '@glimmer/component';
+
+import { CheckboxField } from './checkbox.gts';
+
+import type { WithBoundArgs } from '@glint/template';
+
+export interface FormBuilder {
+  Checkbox: WithBoundArgs<typeof CheckboxField, 'name'>;
+  invalid: boolean;
+}
+
+export interface FormSignature {
+  Element: HTMLFormElement;
+  Blocks: { default: [FormBuilder] };
+}
+
+export class Form extends Component<FormSignature> {}
+`.trim()
+      });
+
+      // Only form.gts is an entry point — checkbox.gts is reached solely
+      // through a componentRef nested inside the unfolded FormBuilder.
+      const file = path.join(fix.base, 'app/form.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      expect(sigs['app/checkbox.gts']?.CheckboxField).toBeDefined();
+      expect(Object.keys(sigs['app/checkbox.gts'].CheckboxField.args)).toEqual(['name']);
+    });
+
+    test('guards against cyclic type references', async () => {
+      using fix = fixture({
+        'cycle.gts': `
+import Component from '@glimmer/component';
+
+export interface Node {
+  label: string;
+  child?: Node;
+}
+
+export interface CycleSignature {
+  Element: HTMLDivElement;
+  Blocks: { default: [Node] };
+}
+
+export class Cycle extends Component<CycleSignature> {}
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/cycle.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const block = sigs['app/cycle.gts'].Cycle.blocks.default!;
+      const root = block.params[0] as { nested?: unknown[] };
+
+      // The self-referential `child?: Node` member is NOT unfolded again.
+      expect(root.nested).toBeDefined();
+      const child = (root.nested as { child?: { nested?: unknown[] } }[])[0];
+      expect(child.child?.nested).toBeUndefined();
+    });
+
+    test('does not unfold a name that is both an interface and a component class', async () => {
+      using fix = fixture({
+        'widget.gts': `
+import Component from '@glimmer/component';
+
+export interface Widget {
+  label: string;
+  count: number;
+}
+
+export interface WidgetSignature {
+  Element: HTMLDivElement;
+  Blocks: { default: [Widget] };
+}
+
+export class Widget extends Component<WidgetSignature> {
+  count = 0;
+  <template><div>{{yield}}</div></template>
+}
+`.trim()
+      });
+
+      const file = path.join(fix.base, 'app/widget.gts');
+      const sigs = await parseSignatures([file], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      const block = sigs['app/widget.gts'].Widget.blocks.default!;
+      const param = block.params[0] as { nested?: unknown[]; componentRef?: unknown };
+
+      // Declaration merging: the merged symbol resolves to the component
+      // class, so the type reference is treated as a componentRef — not unfolded.
+      expect(param.componentRef).toBeDefined();
+      expect(param.nested).toBeUndefined();
+    });
+  });
 });

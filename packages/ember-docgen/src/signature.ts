@@ -56,6 +56,9 @@ export interface BlockParam {
         local?: boolean;
         modifiers?: { name: string; typeArgs: string[] }[];
       };
+  /** When the param's type is a named non-component type (interface or type
+   * alias) that should be unfolded, its members. Recursively populated. */
+  nested?: BlockInfo['params'];
 }
 
 /** A yield hash block param, keyed by the hash key (e.g. `{ Option: ... }`) */

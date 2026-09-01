@@ -3,7 +3,7 @@ import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 import emberData from 'virtual:ember-storybook';
 
 import { isEmberStoryResult } from '../story-result';
-import { unwrapBlockParams } from './block-params';
+import { unwrapBlockParamsShallow } from './block-params';
 
 import type { StorySource } from '../../node/types';
 import type { StoryFn } from '../public-types';
@@ -64,7 +64,7 @@ function generateBlockContent(blockInfo: BlockInfo): string {
     return '...';
   }
 
-  const paramNames = unwrapBlockParams(blockInfo.params)
+  const paramNames = unwrapBlockParamsShallow(blockInfo.params)
     .map((p) => p.name)
     .join(', ');
 
@@ -90,7 +90,7 @@ export function generateBlockSourceCode(
       continue;
     }
 
-    const params = unwrapBlockParams(blockInfo.params)
+    const params = unwrapBlockParamsShallow(blockInfo.params)
       .map((p) => p.name)
       .join(' ');
     const slotBindings = params ? ` as |${params}|` : '';

@@ -8,6 +8,7 @@ import { ReflectionKind } from 'typedoc';
 
 import { extractBlockParamModifiers, extractTypeMembers } from './ast';
 
+import { unwrapBlockParams } from '../block-params';
 import {
   COMPONENT_BASE_NAME,
   COMPONENT_MODULE,
@@ -395,17 +396,6 @@ function derivePackageName(packagePath: string): string {
 
   // Unscoped: package-name
   return parts[0] ?? withoutNodeModules;
-}
-
-// ── Block param helpers ────────────────────────────────────────
-
-function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
-  return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
-}
-
-/** Flatten the params union into plain block params, unwrapping yield hashes. */
-export function unwrapBlockParams(params: BlockInfo['params']): BlockParam[] {
-  return params.flatMap((param) => (isBlockParam(param) ? [param] : Object.values(param)));
 }
 
 // ── Reflection map ─────────────────────────────────────────────

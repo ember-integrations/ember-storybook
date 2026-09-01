@@ -11,9 +11,9 @@ import {
   TEMPLATE_ONLY_MODULE
 } from './modules';
 
+import { unwrapBlockParams } from './block-params';
 import { resolveTsconfigFile } from './config';
 import { Default } from './signature';
-import { unwrapBlockParams } from './typedoc/analyze';
 
 import type {
   ArgInfo,
@@ -653,17 +653,119 @@ function nodeDescription(node: TS.Node): string {
   return jsDoc.replace(/\s+/g, ' ').trim();
 }
 
-function blockParamFromNode(name: string, node: TS.TypeNode, ctx: ExtractContext): BlockParam {
+/**
+ * Unfold a block-param type that references a named non-component type
+ * (an interface or type alias like `FormBuilder<DATA>` or `MenuDefaultBlock`)
+ * into its members. Recurses into nested non-component types, guarded against
+ * cycles via `stack` of `file:name` keys.
+ */
+function nestedFromTypeNode(
+  node: TS.TypeNode | undefined,
+  ctx: ExtractContext,
+  stack: Set<string>
+): BlockInfo['params'] | undefined {
+  if (!node) return undefined;
+
+  if (ts.isParenthesizedTypeNode(node)) {
+    return nestedFromTypeNode(node.type, ctx, stack);
+  }
+
+  if (!ts.isTypeReferenceNode(node)) return undefined;
+
+  // Never unfold a type that is itself a component reference or a component
+  // wrapper (WithBoundArgs<typeof X>, ComponentLike<...>, TOC<...>, ...) —
+  // those are resolved as componentRefs instead.
+  if (componentRefFromTypeNode(node, ctx)) return undefined;
+
+  const symbol = ctx.checker.getSymbolAtLocation(node.typeName);
+  const resolved =
+    symbol && (symbol.flags & ts.SymbolFlags.Alias) !== 0
+      ? ctx.checker.getAliasedSymbol(symbol)
+      : symbol;
+
+  const declaration = resolved?.declarations?.find(
+    (d) => ts.isInterfaceDeclaration(d) || ts.isTypeAliasDeclaration(d)
+  );
+
+  if (!declaration) return undefined;
+
+  // Components are already handled via componentRef — never unfold them here.
+  if (isComponentLikeDeclaration(declaration, ctx)) return undefined;
+
+  const key = `${declaration.getSourceFile().fileName}:${resolved!.name}`;
+
+  if (stack.has(key)) return undefined;
+
+  stack.add(key);
+
+  try {
+    if (ts.isTypeAliasDeclaration(declaration)) {
+      return parseBlockParams(declaration.type, ctx, stack);
+    }
+
+    return paramsFromInterfaceMembers(declaration.members, ctx, stack);
+  } finally {
+    stack.delete(key);
+  }
+}
+
+/** Build block params from a type alias RHS or interface's own members. */
+function paramsFromInterfaceMembers(
+  members: TS.NodeArray<TS.TypeElement>,
+  ctx: ExtractContext,
+  stack: Set<string>
+): BlockInfo['params'] {
+  const params: BlockInfo['params'] = [];
+
+  for (const member of members) {
+    if (!member.name) continue;
+
+    const name = member.name.getText();
+
+    if (ts.isPropertySignature(member)) {
+      if (!member.type) continue;
+
+      const symbol = ctx.checker.getSymbolAtLocation(member.name);
+
+      params.push({
+        ...blockParamFromNode(name, member.type, ctx, stack),
+        description: symbol ? symbolDescription(symbol, ctx) : ''
+      });
+    } else if (ts.isMethodSignature(member)) {
+      params.push({
+        name,
+        type: ctx.checker.typeToString(ctx.checker.getTypeAtLocation(member)),
+        description: '',
+        componentRef: undefined,
+        nested: undefined
+      });
+    }
+  }
+
+  return params;
+}
+
+function blockParamFromNode(
+  name: string,
+  node: TS.TypeNode,
+  ctx: ExtractContext,
+  stack: Set<string>
+): BlockParam {
   return {
     name,
     type: ctx.checker.typeToString(ctx.checker.getTypeAtLocation(node)),
     description: '',
-    componentRef: componentRefFromTypeNode(node, ctx)
+    componentRef: componentRefFromTypeNode(node, ctx),
+    nested: nestedFromTypeNode(node, ctx, stack)
   };
 }
 
 /** Params of a single block, derived from its declared tuple/object shape. */
-function parseBlockParams(typeNode: TS.TypeNode, ctx: ExtractContext): BlockInfo['params'] {
+function parseBlockParams(
+  typeNode: TS.TypeNode,
+  ctx: ExtractContext,
+  stack: Set<string> = new Set()
+): BlockInfo['params'] {
   const params: BlockInfo['params'] = [];
 
   if (ts.isTupleTypeNode(typeNode)) {
@@ -673,7 +775,8 @@ function parseBlockParams(typeNode: TS.TypeNode, ctx: ExtractContext): BlockInfo
           name: element.name.getText(),
           type: ctx.checker.typeToString(ctx.checker.getTypeAtLocation(element.type)),
           description: nodeDescription(element),
-          componentRef: componentRefFromTypeNode(element.type, ctx)
+          componentRef: componentRefFromTypeNode(element.type, ctx),
+          nested: nestedFromTypeNode(element.type, ctx, stack)
         });
       } else if (ts.isTypeLiteralNode(element)) {
         // Yield hash: one entry per named member
@@ -689,7 +792,7 @@ function parseBlockParams(typeNode: TS.TypeNode, ctx: ExtractContext): BlockInfo
           const symbol = ctx.checker.getSymbolAtLocation(member.name);
 
           hash[member.name.getText()] = {
-            ...blockParamFromNode(member.name.getText(), innerType, ctx),
+            ...blockParamFromNode(member.name.getText(), innerType, ctx, stack),
             description:
               symbol && symbolDescription(symbol, ctx)
                 ? symbolDescription(symbol, ctx)
@@ -699,7 +802,7 @@ function parseBlockParams(typeNode: TS.TypeNode, ctx: ExtractContext): BlockInfo
 
         if (Object.keys(hash).length > 0) params.push(hash);
       } else {
-        params.push(blockParamFromNode(`param${params.length}`, element, ctx));
+        params.push(blockParamFromNode(`param${params.length}`, element, ctx, stack));
       }
     }
 
@@ -714,7 +817,7 @@ function parseBlockParams(typeNode: TS.TypeNode, ctx: ExtractContext): BlockInfo
       const symbol = ctx.checker.getSymbolAtLocation(member.name);
 
       params.push({
-        ...blockParamFromNode(member.name.getText(), member.type, ctx),
+        ...blockParamFromNode(member.name.getText(), member.type, ctx, stack),
         description: symbol ? symbolDescription(symbol, ctx) : ''
       });
     }
