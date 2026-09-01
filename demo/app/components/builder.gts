@@ -1,4 +1,5 @@
 import Component from '@glimmer/component';
+import { hash } from '@ember/helper'; // for ember versions < 7.1
 
 import type { TOC } from '@ember/component/template-only';
 import type { WithBoundArgs } from '@glint/template';
