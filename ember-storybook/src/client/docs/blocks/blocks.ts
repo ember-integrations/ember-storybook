@@ -57,8 +57,9 @@ const SubcomponentLink = styled.a(({ theme }) => ({
   '&:hover': { textDecoration: 'underline' }
 }));
 
-const Indent = styled.span(() => ({
-  marginInlineStart: '20px'
+const CodeLine = styled.div(({ theme }) => ({
+  fontSize: theme.typography.size.s2 - 1,
+  lineHeight: '19px'
 }));
 
 /**
@@ -102,94 +103,147 @@ function displayTypeName(param: BlockParam, data?: EmberMeta): string {
   return (data ? componentDisplayName(param.componentRef, data) : undefined) ?? param.type;
 }
 
-function renderType(
+function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
+  return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
+}
+
+type MemberEntry = [name: string, param: BlockParam];
+
+function isNamedParam(name: string): boolean {
+  return Boolean(name) && !name.startsWith('param');
+}
+
+/**
+ * A `BlockParam` whose type was unfolded from a named non-component type is
+ * an object just like an inline yield hash — normalize its members to
+ * `[name, param]` entries. `undefined` for scalar params.
+ */
+function memberEntriesOf(param: BlockParam): MemberEntry[] | undefined {
+  const nested = param.nested;
+
+  if (!nested || nested.length === 0) return undefined;
+
+  return nested.flatMap((entry): MemberEntry[] =>
+    isBlockParam(entry) ? [[entry.name, entry]] : Object.entries(entry)
+  );
+}
+
+function renderTypeValue(
   param: BlockParam,
   subcomponentNames: Set<string>,
   data?: EmberMeta
 ): ReactNode {
   const displayType = displayTypeName(param, data);
 
-  if (param.componentRef) {
-    const typeIsSubcomponent = subcomponentNames.has(displayType);
+  return subcomponentNames.has(displayType)
+    ? createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
+    : createElement(ParamType, { key: 'type' }, displayType);
+}
 
-    return typeIsSubcomponent
-      ? createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
-      : createElement(ParamType, { key: 'type' }, displayType);
+function descLine(param: BlockParam, key: string, depth?: number): ReactNode | undefined {
+  if (!param.description) return undefined;
+
+  const style = depth === undefined ? undefined : { marginBottom: 0, marginLeft: depth * 20 + 10 };
+
+  return createElement(ParamDesc, { key, style }, param.description);
+}
+
+function codeLine(key: string, depth: number, children: ReactNode[]): ReactNode {
+  return createElement(CodeLine, { key, style: { paddingInlineStart: depth * 20 } }, ...children);
+}
+
+/**
+ * Render an object param JSON-style: an opening brace line (optionally
+ * prefixed `name: `), member lines one level deeper, and a closing brace —
+ * no dashes, no blank lines between the object's lines. Object members
+ * recurse; scalar members render as `name: type`.
+ */
+function renderParamBlock(
+  name: string | undefined,
+  entries: MemberEntry[],
+  subcomponentNames: Set<string>,
+  data: EmberMeta | undefined,
+  depth: number,
+  key: string
+): ReactNode[] {
+  const head: ReactNode[] = name ? [createElement(ParamName, { key: `${key}-n` }, name), ': '] : [];
+
+  const lines = [codeLine(`${key}-o`, depth, [...head, '{'])];
+
+  for (const [i, [memberName, memberParam]] of entries.entries()) {
+    const memberKey = `${key}-${i}`;
+    const memberEntries = memberEntriesOf(memberParam);
+
+    if (memberEntries) {
+      lines.push(
+        ...renderParamBlock(
+          memberName,
+          memberEntries,
+          subcomponentNames,
+          data,
+          depth + 1,
+          memberKey
+        )
+      );
+    } else {
+      lines.push(
+        codeLine(`${memberKey}-l`, depth + 1, [
+          createElement(ParamName, { key: `${memberKey}-n` }, memberName),
+          ': ',
+          renderTypeValue(memberParam, subcomponentNames, data)
+        ])
+      );
+    }
+
+    const desc = descLine(memberParam, `${memberKey}-d`, depth + 1);
+
+    if (desc) lines.push(desc);
   }
 
-  return createElement(ParamType, { key: 'type' }, param.type);
-}
+  lines.push(codeLine(`${key}-x`, depth, ['}']));
 
-function renderParam(
-  param: BlockParam,
-  subcomponentNames: Set<string>,
-  data?: EmberMeta
-): ReactNode[] {
-  const type = renderType(param, subcomponentNames, data);
-  const name = createElement(ParamName, { key: 'name' }, param.name);
-
-  return [name, createElement('span', { key: 'colon' }, ': '), type];
-}
-
-function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
-  return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
+  return lines;
 }
 
 function renderParams(
   params: BlockInfo['params'],
   subcomponentNames: Set<string>,
-  data?: EmberMeta
+  data?: EmberMeta,
+  keyPrefix = 'p'
 ): ReactNode[] {
-  return params.map((param, i) => {
+  return params.flatMap((param, i) => {
+    const key = `${keyPrefix}-${i}`;
+
     if (!isBlockParam(param)) {
-      const children: ReactNode[] = [
-        createElement('span', { key: 'open' }, '- {'),
-        createElement('br', { key: 'br-open' }),
-        ...Object.entries(param).flatMap(([key, p]) => [
-          createElement(Indent, { key: `indent-${key}` }),
-          renderParam(p, subcomponentNames, data)
-        ]),
-        createElement('br', { key: 'br-close' }),
-        createElement('span', { key: 'close' }, '}')
-      ];
-
-      return createElement(Fragment, { key: i }, ...children);
+      // Inline yield hash — an object, never a dashed list item.
+      return renderParamBlock(undefined, Object.entries(param), subcomponentNames, data, 0, key);
     }
 
-    const isNamed = param.name && !param.name.startsWith('param');
-    const displayType = displayTypeName(param, data);
+    const entries = memberEntriesOf(param);
 
-    const isSubcomponent = subcomponentNames.has(displayType);
+    if (entries) {
+      // A named non-component type unfolded into its members — an object.
+      const name = isNamedParam(param.name) ? param.name : undefined;
+      const lines = renderParamBlock(name, entries, subcomponentNames, data, 0, key);
+      const desc = descLine(param, `${key}-d`, 0);
 
-    const children: ReactNode[] = [];
-    const typeChildren: ReactNode[] = [];
+      if (desc) lines.push(desc);
 
-    if (isSubcomponent) {
-      typeChildren.push(
-        createElement(SubcomponentAnchor, { key: 'type', name: displayType }, displayType)
-      );
-    } else {
-      typeChildren.push(createElement(ParamType, { key: 'type' }, displayType));
+      return lines;
     }
 
-    if (isNamed) {
-      children.push(
-        createElement('span', { key: 'sep' }, '- '),
-        createElement(ParamName, { key: 'name' }, param.name),
-        createElement('span', { key: 'colon' }, ': '),
-        ...typeChildren
-      );
-    } else {
-      children.push(createElement('span', { key: 'sep' }, '- '), ...typeChildren);
-    }
+    // Positional param — a list item with a dash.
+    const type = renderTypeValue(param, subcomponentNames, data);
+    const children: ReactNode[] = isNamedParam(param.name)
+      ? ['- ', createElement(ParamName, { key: 'name' }, param.name), ': ', type]
+      : ['- ', type];
 
     const rows: ReactNode[] = [createElement(ParamRow, { key: 'row' }, ...children)];
+    const desc = descLine(param, 'desc');
 
-    if (param.description) {
-      rows.push(createElement(ParamDesc, { key: 'desc' }, param.description));
-    }
+    if (desc) rows.push(desc);
 
-    return createElement(Fragment, { key: i }, ...rows);
+    return createElement(Fragment, { key }, ...rows);
   });
 }
 

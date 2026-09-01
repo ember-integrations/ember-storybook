@@ -339,4 +339,45 @@ describe('collectSubcomponents', () => {
     expect(signature).toBeDefined();
     expect(Object.keys(signature?.args ?? {})).toEqual(['value']);
   });
+
+  // https://github.com/ember-integrations/ember-storybook/issues/55
+  test('unfolds nested named-type block params into their subcomponents', () => {
+    const blocks: Record<string, { params: BlockParam[] }> = {
+      default: {
+        params: [
+          {
+            name: 'param0',
+            type: 'FormBuilder',
+            description: '',
+            nested: [
+              {
+                name: 'Checkbox',
+                type: 'WithBoundArgs<typeof CheckboxField, "Field">',
+                componentRef: {
+                  filePath: './app/components/form.gts',
+                  exportName: 'CheckboxField',
+                  modifiers: [{ name: 'WithBoundArgs', typeArgs: ['Field'] }]
+                }
+              },
+              { name: 'invalid', type: 'boolean', description: '' }
+            ]
+          }
+        ]
+      }
+    };
+
+    const data: EmberMeta = {
+      './app/components/form.gts': {
+        meta: {},
+        signatures: { CheckboxField: OPTION_FULL }
+      }
+    };
+
+    const result = collectSubcomponents(blocks, data);
+
+    // Only the nested component member (CheckboxField) surfaces; `invalid` is skipped.
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('CheckboxField');
+    expect(result[0].signature).toBeDefined();
+  });
 });
