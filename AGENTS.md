@@ -78,7 +78,7 @@ cd demo && pnpm test                                  # vitest (unit)
 ## Testing & regression prevention
 
 Regressions have happened (#23 introduced #27), so **add a regression test with
-every fix**. Two test layers:
+every fix**. Three test layers:
 
 1. **Addon unit tests** — `ember-storybook/src/**/*.test.ts` (vitest, node env).
    Use for pure logic: args merging, source decorator, parser, signature,
@@ -89,6 +89,28 @@ every fix**. Two test layers:
    Playwright/vitest project. This is the ideal guard for
    render-to-canvas regressions (#27, #31). Configured in `demo/vite.config.js`
    (`storybookScript: 'pnpm storybook --no-open'`).
+3. **Packaged-consumer build** — CI job `packaged-consumer` in
+   `.github/workflows/ci.yml`: re-installs the workspace with
+   `pnpm install --config.inject-workspace-packages=true` (pnpm injects
+   workspace deps as real installed package copies — `files`-filtered, own
+   `node_modules`, consumer-resolved peers — like a published tarball, not a
+   symlink to source), then runs `pnpm --filter demo build-storybook`. Guard
+   for anything only a *published* consumer hits (e.g. bare `@ember/*` imports
+   in manager-reachable `dist/` chunks breaking Storybook's esbuild manager
+   build). Local repro:
+
+   ```bash
+   pnpm build
+   pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
+   pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+   pnpm install   # back to the symlinked dev layout
+   ```
+
+   Keep `--config.inject-workspace-packages=true` on **every** pnpm command in
+   the sequence: the inject install records `settings.injectWorkspacePackages`
+   in the lockfile, and a later `pnpm run` without the flag trips
+   `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (CI, frozen) or silently re-links the
+   dependency back to the workspace source (local), defeating the test.
 
 **Policy:** While exploring a solution, skip lint/type. Run
 `lint:js` + `lint:types` only after the solution is finalized (they are slow).

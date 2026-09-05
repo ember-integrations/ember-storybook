@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { Select } from 'storybook/internal/components';
 import { addons, types, useGlobals } from 'storybook/manager-api';
 
-import { OUTLET_GLOBAL_KEY } from '../client/outlet';
+import { OUTLET_GLOBAL_KEY } from '../outlet-key';
 import { EmberIcon } from './ember-icon';
 
 import type { OutletMode } from '../client/types';

@@ -4,10 +4,10 @@ import { destroy } from '@ember/destroyable';
 import { renderComponent } from '@ember/renderer';
 import { VERSION } from '@ember/version';
 
+import { OUTLET_GLOBAL_KEY } from '../outlet-key';
 import {
   buildRouteOutletState,
   mountOutletView,
-  OUTLET_GLOBAL_KEY,
   resolveOutletStub,
   updateOutletView
 } from './outlet';

@@ -49,6 +49,29 @@ jobs:
         run: |
           echo "matrix=$(pnpm -s dlx @embroider/try list)" >> $GITHUB_OUTPUT
 
+  packaged-consumer:
+    name: packaged consumer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup
+        uses: ./.github/actions/setup
+      # Snapshot the built addon as an installed package copy (own node_modules,
+      # consumer-resolved peers) instead of a workspace symlink, so the demo
+      # builds Storybook exactly like a published-package consumer would.
+      # Reproduces e.g. the #58 manager leak: bare `@ember/*` imports in
+      # manager-reachable chunks fail Storybook's esbuild manager build.
+      - name: Re-install with injected workspace dependencies
+        run: pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
+      # The flag must stay on every later pnpm call: the recorded lockfile
+      # setting would otherwise fail (or silently undo) the pre-run dep check.
+      - name: Build Storybook as a consumer would
+        run: pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+      - name: Assert the build used the injected copy, not a workspace symlink
+        run: |
+          test "$(readlink -f demo/node_modules/ember-storybook)" != "$PWD/ember-storybook"
+
   try-scenarios:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest

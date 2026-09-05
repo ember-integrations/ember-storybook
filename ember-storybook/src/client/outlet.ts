@@ -47,17 +47,10 @@ export interface RouteStoryInput {
 
 const DEFAULT_OUTLET_NAME = 'outlet';
 
-/**
- * Name of the Storybook global that decides how `{{outlet}}` is rendered
- * (`hole` | `placeholder`). Declared here so the toolbar item and the renderer
- * read and write the same key.
- */
-export const OUTLET_GLOBAL_KEY = 'outlet';
-
 export interface OutletResolveInput {
   /** `parameters.ember.route` of the story being rendered. */
   route: RouteParameters;
-  /** Value of the {@link OUTLET_GLOBAL_KEY} global, if any. */
+  /** Value of the `outlet` global (see `src/outlet-key.ts`), if any. */
   mode?: OutletMode;
   /**
    * Produces the stub rendered when the global asks for a visible placeholder.
