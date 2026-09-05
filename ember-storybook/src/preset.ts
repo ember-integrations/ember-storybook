@@ -46,6 +46,13 @@ export const previewAnnotations: PresetProperty<'previewAnnotations'> = async (
   return annotations;
 };
 
+// `managerEntries` is a preset extension, not a `StorybookConfigRaw` key, so
+// `PresetProperty<'managerEntries'>` resolves to `never` — type it directly.
+export const managerEntries = (entries: string[] = []): string[] => [
+  ...entries,
+  fileURLToPath(import.meta.resolve('ember-storybook/manager'))
+];
+
 export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserConfig) => {
   const { mergeConfig } = await import('vite');
 

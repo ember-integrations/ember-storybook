@@ -1,5 +1,7 @@
-import { renderToCanvas } from 'ember-storybook';
+import { OutletPlaceholder, renderToCanvas } from 'ember-storybook';
 import { expect } from 'storybook/test';
+
+import OuterRoute from '#app/templates/outer.gts';
 
 import { Greeting } from './greeting.gts';
 
@@ -210,6 +212,75 @@ export const GlobalsUpdate: StoryObj = {
       expect(calls.length).toBe(2);
       expect(calls[1]).toEqual({ locale: 'de' });
       expect(canvas.textContent).toContain('there');
+    } finally {
+      unmount?.();
+      canvas.remove();
+    }
+  }
+};
+
+// `{{outlet}}` reads its child route from Glimmer's dynamic scope, which
+// `renderComponent` never populates: rendering a route template as a plain
+// component threw with "Cannot destructure property 'tag' of undefined".
+// `parameters.ember.route` renders through Ember's outlet root instead, and the
+// `outlet` global (the toolbar's Ember menu) decides hole vs. placeholder.
+export const StubbedOutlet: StoryObj = {
+  play: async (context) => {
+    const parameters = {
+      ...context.parameters,
+      ember: { ...context.parameters.ember, route: {} }
+    };
+    const canvas = createCanvas();
+    let unmount: (() => void) | undefined;
+
+    const mount = (
+      model: Record<string, unknown>,
+      {
+        outletMode = 'hole',
+        outlet
+      }: { outletMode?: 'hole' | 'placeholder'; outlet?: Record<string, unknown> } = {}
+    ) =>
+      renderTo(
+        canvas,
+        () => ({ component: OuterRoute, args: { model }, route: outlet ? { outlet } : {} }),
+        { ...context, parameters, args: { model }, globals: { outlet: outletMode } },
+        false
+      );
+
+    try {
+      unmount = await mount({ title: 'first' });
+      expect(canvas.textContent).toContain('first');
+      // The hole is really empty: no nested route markup.
+      expect(canvas.querySelector(':scope [data-test-nested-route]')).toBeNull();
+
+      // An arg change updates the outlet state in place: the route re-renders but
+      // the single outlet root is reused, so there is exactly one route element.
+      unmount = await mount({ title: 'second' });
+      expect(canvas.textContent).toContain('second');
+      expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
+
+      // The toolbar menu swaps the hole for the placeholder without re-appending
+      // the outlet root.
+      unmount = await mount({ title: 'second' }, { outletMode: 'placeholder' });
+      expect(canvas.querySelector(':scope [data-storybook-outlet]')?.textContent.trim()).toBe(
+        'outlet'
+      );
+      expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
+
+      // ...and back to a hole.
+      unmount = await mount({ title: 'second' }, { outletMode: 'hole' });
+      expect(canvas.querySelector(':scope [data-storybook-outlet]')).toBeNull();
+      expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
+
+      // An explicit stub is author intent: it renders regardless of the menu.
+      unmount = await mount(
+        { title: 'stubbed' },
+        { outletMode: 'hole', outlet: { template: OutletPlaceholder, model: 'child' } }
+      );
+      expect(canvas.querySelector(':scope [data-storybook-outlet]')?.textContent.trim()).toBe(
+        'child'
+      );
+      expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
     } finally {
       unmount?.();
       canvas.remove();

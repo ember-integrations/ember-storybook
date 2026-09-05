@@ -39,6 +39,10 @@
       "types": "./declarations/client/docs/preview-patch.d.ts",
       "default": "./dist/client/docs/preview-patch.mjs"
     },
+    "./manager": {
+      "types": "./declarations/manager/index.d.ts",
+      "default": "./dist/manager/index.mjs"
+    },
     "./node": {
       "types": "./declarations/node/index.d.ts",
       "default": "./dist/node/index.mjs"

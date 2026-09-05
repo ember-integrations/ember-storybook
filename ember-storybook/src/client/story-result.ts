@@ -1,3 +1,5 @@
+import type { RouteParameters } from './types';
+
 type Args = Record<string, unknown>;
 
 /**
@@ -18,10 +20,15 @@ export type ApplicationInstanceClass = new (...args: never[]) => object;
  * args to `render` via `originalStoryFn(args, context)` — but nothing else. To
  * make those args reach `renderToCanvas`, `render` reports them back alongside
  * the component instead of returning a bare component.
+ *
+ * `route` rides along the same way: it is the only channel by which a story
+ * rendered through `<RenderStory>` (which never sees the story context) can learn
+ * it is a route story.
  */
 export interface EmberStoryResult {
   component: object;
   args: Args;
+  route?: RouteParameters;
 }
 
 export function isEmberStoryResult(value: unknown): value is EmberStoryResult {
@@ -50,9 +57,10 @@ export function normalizeStoryResult(
 ): {
   component: object;
   args: Args;
+  route?: RouteParameters;
 } {
   if (isEmberStoryResult(result)) {
-    return { component: result.component, args: result.args };
+    return { component: result.component, args: result.args, route: result.route };
   }
 
   return { component: result as object, args: fallbackArgs };

@@ -129,6 +129,25 @@ export const LTR: StoryObj = {
     expect(result.component.signatureName).toBe('Greeting');
   });
 
+  test('does not resolve an aliased import into a component file path', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import Outer from '#app/templates/outer.gts';
+export default { component: Outer } satisfies Meta;
+`.trim()
+    });
+
+    const storyPath = path.join(fix.base, 'test.stories.gts');
+    const result = parseStoryFile(storyPath) as StoryFile;
+
+    // `#app/*` can only be resolved through the project's import map. Joining it
+    // onto the story's directory would hand TypeDoc a path that does not exist,
+    // which aborts signature extraction for *every* story in the batch.
+    expect(result.component.file).toBeUndefined();
+    expect(result.component.signatureName).toBe('Outer');
+    expect(result.meta.component).toBe('Outer');
+  });
+
   test('resolves component name from a default export in component file with multiple components', () => {
     using fix = tempFixture({
       'greeting.gts': `import Component from '@glimmer/component';
