@@ -48,7 +48,12 @@ function rewriteFilePaths(mapped: ComponentSignatureMap, base: string): void {
 }
 
 export async function runTypeDoc(entryPoints: string[]): Promise<ComponentSignatureMap> {
-  if (entryPoints.length === 0) {
+  // Only keep entry points that exist on disk. TypeDoc throws on a missing path,
+  // and because extraction runs for the whole batch, one bogus path would leave
+  // *every* story without signatures (silently dropping all Controls/docs).
+  const existing = entryPoints.filter((entryPoint) => existsSync(entryPoint));
+
+  if (existing.length === 0) {
     return {};
   }
 
@@ -61,7 +66,7 @@ export async function runTypeDoc(entryPoints: string[]): Promise<ComponentSignat
   try {
     // Component signatures, keyed by absolute entry-point paths.
     // One shared TS program resolves all files (and their transitive types).
-    const extracted = await parseSignatures(entryPoints, {
+    const extracted = await parseSignatures(existing, {
       tsconfigFile: path.join(base, 'tsconfig.json')
     });
 

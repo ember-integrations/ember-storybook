@@ -39,4 +39,11 @@ export type Loader<TArgs = StrictArgs> = LoaderFunction<EmberRenderer, TArgs>;
 export type StoryContext<TArgs = StrictArgs> = GenericStoryContext<EmberRenderer, TArgs>;
 export type Preview = ProjectAnnotations<EmberRenderer>;
 
-export { type EmberRenderer } from './types';
+export {
+  type EmberGlobals,
+  type EmberParameters,
+  type EmberRenderer,
+  type OutletMode,
+  type OutletStub,
+  type RouteParameters
+} from './types';

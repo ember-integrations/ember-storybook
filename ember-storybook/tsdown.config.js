@@ -15,6 +15,7 @@ export default defineConfig({
     'src/preset.ts',
     'src/client/index.ts',
     'src/client/config.ts',
+    'src/manager/index.ts',
     'src/client/docs/config.ts',
     'src/client/docs/renderer.ts',
     'src/client/docs/preview-patch.ts',

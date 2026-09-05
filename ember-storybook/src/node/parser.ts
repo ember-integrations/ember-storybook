@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { Preprocessor } from 'content-tag';
@@ -215,6 +215,25 @@ export function parseComponentFile(compPath: string): ComponentMap | undefined {
 }
 
 /**
+ * Resolve a component import to a file on disk.
+ *
+ * Only relative specifiers can be resolved here: subpath aliases (e.g.
+ * `#app/templates/outer.gts`) and bare package specifiers need the project's
+ * `tsconfig` `paths` / `imports` map, which this parser does not load. Returning
+ * `undefined` is important — feeding an unresolved path to TypeDoc as an entry
+ * point aborts extraction for *every* story, not just this one.
+ */
+function resolveLocalComponentFile(storyPath: string, source: string): string | undefined {
+  if (!source.startsWith('.')) {
+    return undefined;
+  }
+
+  const resolved = path.resolve(path.dirname(storyPath), source);
+
+  return existsSync(resolved) ? normalizeFilePath(resolved) : undefined;
+}
+
+/**
  * Parse a story file and return metadata about the component it references,
  * including template sources for each named story export.
  */
@@ -314,7 +333,18 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
     };
   }
 
-  const compPath = normalizeFilePath(path.resolve(path.dirname(storyPath), importInfo.source));
+  const compPath = resolveLocalComponentFile(storyPath, importInfo.source);
+
+  if (!compPath) {
+    // Not a local relative import (alias or bare specifier), or the file does not
+    // exist. No signature can be extracted from it, so report the local name.
+    return {
+      meta,
+      component: { signatureName: localComponentName },
+      stories
+    };
+  }
+
   const compMeta = parseComponentFile(compPath);
   const signatureName = findSignatureName(compMeta, importInfo.importedName);
 
