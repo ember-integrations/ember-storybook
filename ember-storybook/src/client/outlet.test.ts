@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { buildRouteOutletState, OUTLET_GLOBAL_KEY, resolveOutletStub } from './outlet';
+import { OUTLET_GLOBAL_KEY } from '../outlet-key';
+import { buildRouteOutletState, resolveOutletStub } from './outlet';
 
 import type { OutletStub, RouteParameters } from './types';
 

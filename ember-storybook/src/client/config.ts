@@ -1,6 +1,6 @@
 import { enhanceArgTypes } from 'storybook/internal/docs-tools';
 
-import { OUTLET_GLOBAL_KEY } from './outlet';
+import { OUTLET_GLOBAL_KEY } from '../outlet-key';
 
 import type { ArgTypesEnhancer, GlobalTypes, Parameters } from 'storybook/internal/types';
 
