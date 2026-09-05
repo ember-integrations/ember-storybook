@@ -102,9 +102,15 @@ every fix**. Three test layers:
    ```bash
    pnpm build
    pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
-   pnpm --filter demo build-storybook
+   pnpm --config.inject-workspace-packages=true --filter demo build-storybook
    pnpm install   # back to the symlinked dev layout
    ```
+
+   Keep `--config.inject-workspace-packages=true` on **every** pnpm command in
+   the sequence: the inject install records `settings.injectWorkspacePackages`
+   in the lockfile, and a later `pnpm run` without the flag trips
+   `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (CI, frozen) or silently re-links the
+   dependency back to the workspace source (local), defeating the test.
 
 **Policy:** While exploring a solution, skip lint/type. Run
 `lint:js` + `lint:types` only after the solution is finalized (they are slow).

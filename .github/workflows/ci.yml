@@ -64,11 +64,13 @@ jobs:
       # manager-reachable chunks fail Storybook's esbuild manager build.
       - name: Re-install with injected workspace dependencies
         run: pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
-      - name: Assert real install, not a workspace symlink
+      # The flag must stay on every later pnpm call: the recorded lockfile
+      # setting would otherwise fail (or silently undo) the pre-run dep check.
+      - name: Build Storybook as a consumer would
+        run: pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+      - name: Assert the build used the injected copy, not a workspace symlink
         run: |
           test "$(readlink -f demo/node_modules/ember-storybook)" != "$PWD/ember-storybook"
-      - name: Build Storybook as a consumer would
-        run: pnpm --filter demo build-storybook
 
   try-scenarios:
     name: ${{ matrix.name }}
