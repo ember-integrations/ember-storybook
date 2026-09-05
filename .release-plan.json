@@ -1,14 +1,14 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "minor",
-      "oldVersion": "0.2.1",
-      "newVersion": "0.3.0",
+      "impact": "patch",
+      "oldVersion": "0.3.0",
+      "newVersion": "0.3.1",
       "tagName": "latest",
       "constraints": [
         {
-          "impact": "minor",
-          "reason": "Appears in changelog section :rocket: Enhancement"
+          "impact": "patch",
+          "reason": "Appears in changelog section :house: Internal"
         }
       ],
       "pkgJSONPath": "./ember-storybook/package.json"
@@ -17,5 +17,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-09-05)\n\n* ember-storybook 0.3.0 (minor)\n\n#### :rocket: Enhancement\n* `ember-storybook`\n  * [#58](https://github.com/ember-integrations/ember-storybook/pull/58) Support `{{outlet}}` for route stories ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-09-05)\n\n* ember-storybook 0.3.1 (patch)\n\n#### :house: Internal\n* `ember-storybook`\n  * [#60](https://github.com/ember-integrations/ember-storybook/pull/60) Add Consumer/Smoke Tests ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }
