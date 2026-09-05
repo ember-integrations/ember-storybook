@@ -2,6 +2,17 @@
 
 ## Release (2026-09-05)
 
+* ember-storybook 0.3.1 (patch)
+
+#### :house: Internal
+* `ember-storybook`
+  * [#60](https://github.com/ember-integrations/ember-storybook/pull/60) Add Consumer/Smoke Tests ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
+## Release (2026-09-05)
+
 * ember-storybook 0.3.0 (minor)
 
 #### :rocket: Enhancement
