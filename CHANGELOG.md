@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-09-05)
+
+* ember-storybook 0.3.0 (minor)
+
+#### :rocket: Enhancement
+* `ember-storybook`
+  * [#58](https://github.com/ember-integrations/ember-storybook/pull/58) Support `{{outlet}}` for route stories ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-01)
 
 * ember-storybook 0.2.1 (patch)
