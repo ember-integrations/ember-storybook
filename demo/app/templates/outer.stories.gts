@@ -8,9 +8,11 @@ import type { Meta, StoryObj } from 'ember-storybook';
 // Route templates are the one kind of template a component story cannot render
 // as-is: `{{outlet}}` looks up its child route in Glimmer's *dynamic scope*, and
 // `renderComponent` never populates that scope, so rendering `Outer` directly
-// throws. Setting `parameters.ember.route` tells the renderer to mount the story
-// through Ember's own outlet root instead — the same view `Router` uses — which
-// makes `{{outlet}}` resolve normally.
+// throws. Since #62 the renderer recognizes an `{{outlet}}` template and mounts
+// it through Ember's own outlet root even *without* this annotation (see
+// `outer-unannotated.stories.gts`); `parameters.ember.route` is what supplies
+// the route data the implicit fallback has none of — `model`, `controller`, and
+// an `outlet` stub — on top of that same mechanism, the view `Router` uses.
 //
 // There is no routing here: the nested route (`templates/outer/nested.gts`,
 // reachable at `/outer/nested` in the demo app) is deliberately *not* injected.
