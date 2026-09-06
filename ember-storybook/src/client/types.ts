@@ -32,7 +32,12 @@ export interface OutletStub {
 }
 
 /**
- * Opt-in marker that a story renders a *route* template rather than a component.
+ * Route options for a story that renders a *route* template rather than a
+ * component.
+ *
+ * A story is rendered as a route story when this parameter is present, or when
+ * the story's template references `{{outlet}}` (#62) — the latter implicitly,
+ * with empty route parameters.
  *
  * Route templates receive only `@model` and `@controller` (that is all Ember's
  * outlet hands them), and their `{{outlet}}` is stubbed via {@link OutletStub}.
@@ -55,7 +60,11 @@ export interface EmberParameters {
     configure?: (app: ApplicationInstance) => void;
     owner?: Record<`${string}:${string}`, object>;
     updateGlobals?: (globals: Record<string, unknown>, owner: Owner) => void;
-    /** Present => render through Ember's outlet root so `{{outlet}}` works. */
+    /**
+     * Present => render through Ember's outlet root so `{{outlet}}` works.
+     * A template that uses `{{outlet}}` is rendered that way even without
+     * this parameter — then with empty route parameters (#62).
+     */
     route?: RouteParameters;
   };
 }

@@ -1,3 +1,4 @@
+import { getComponentTemplate } from '@ember/component';
 import { renderSettled } from '@ember/renderer';
 import { run } from '@ember/runloop';
 
@@ -77,6 +78,67 @@ export async function resolveOutletStub({
   }
 
   return mode === 'placeholder' ? await placeholder() : undefined;
+}
+
+/**
+ * The name `{{outlet}}` compiles to: the built-in keyword helper
+ * `{{component (-outlet)}}` (see ember-source's `transform-wrap-mount-and-outlet`).
+ */
+const OUTLET_KEYWORD = '-outlet';
+
+/**
+ * The ownerless template a template factory hands out, reduced to the one
+ * intimate API we read. `parsedLayout` is deliberately absent from Ember's
+ * public types (ember-source keeps it "because some addons use these intimate
+ * APIs"), so the shape is declared here rather than imported.
+ */
+interface ParsedTemplate {
+  parsedLayout?: { block?: unknown };
+}
+
+/**
+ * Story components are normally classes or template-only components (both
+ * reachable via `getComponentTemplate`); a raw `createTemplateFactory` result
+ * used directly as the component is only recognizable by its `__meta` marker.
+ */
+function asTemplateFactory(
+  component: object
+): ((owner?: unknown) => ParsedTemplate | undefined) | undefined {
+  return typeof component === 'function' && '__meta' in component
+    ? (component as unknown as (owner?: unknown) => ParsedTemplate | undefined)
+    : undefined;
+}
+
+/**
+ * Whether the component's *own* template references `{{outlet}}` — i.e. it is a
+ * route template, which is how an unannotated route-story is recognized (#62).
+ *
+ * A template factory caches a per-owner (plus ownerless) `TemplateImpl`; its
+ * `parsedLayout.block` is the parsed wire-format tuple
+ * `[statements, locals, upvars]`. Free names — every helper/keyword the
+ * template resolves, from the whole template including nested blocks — live
+ * exactly once in `upvars`, so checking that slot cannot mistake a string
+ * literal `"-outlet"` used as an argument for a real outlet.
+ */
+export function templateUsesOutlet(component: object): boolean {
+  const factory = getComponentTemplate(component) ?? asTemplateFactory(component);
+
+  if (!factory) {
+    return false;
+  }
+
+  // Calling the factory with no owner returns the memoized ownerless template —
+  // pure data: no owner, no compilation, no side effects on later owner renders.
+  const template = (factory as unknown as (owner?: unknown) => ParsedTemplate | undefined)(
+    undefined
+  );
+  const block = template?.parsedLayout?.block;
+
+  return (
+    Array.isArray(block) &&
+    Array.isArray(block[2]) &&
+    (block[2] as unknown[]).includes(OUTLET_KEYWORD)
+  );
 }
 
 // Ember has no named outlets any more: every `{{outlet}}` is the "main" one.

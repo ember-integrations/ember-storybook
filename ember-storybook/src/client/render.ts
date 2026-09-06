@@ -9,6 +9,7 @@ import {
   buildRouteOutletState,
   mountOutletView,
   resolveOutletStub,
+  templateUsesOutlet,
   updateOutletView
 } from './outlet';
 import { createAppResolver, type EmberStoryResult, normalizeStoryResult } from './story-result';
@@ -99,6 +100,13 @@ type RenderContextCache = {
 const contexts = new Map<EmberRenderer['canvasElement'], RenderContextCache>();
 
 /**
+ * Route parameters assumed for a story whose template references `{{outlet}}`
+ * but that never set `parameters.ember.route` (#62). Frozen and module-level so
+ * the identity is stable across renders of the same story.
+ */
+const DEFAULT_ROUTE: RouteParameters = Object.freeze({});
+
+/**
  * Tears the mounted story down, leaving the booted app alone so it can be
  * reused.
  *
@@ -186,9 +194,10 @@ async function mountStory({
 
   // `{{outlet}}` reads its child from Glimmer's dynamic scope, which
   // `renderComponent` never populates — so a route template rendered as a plain
-  // component throws instead of rendering. Route stories go through Ember's own
-  // outlet root; the toolbar global decides whether `{{outlet}}` is a hole or a
-  // placeholder (an explicit `route.outlet` overrides it).
+  // component throws instead of rendering. Route stories (annotated, or detected
+  // by their template's `{{outlet}}`, see `renderToCanvas`) go through Ember's
+  // own outlet root; the toolbar global decides whether `{{outlet}}` is a hole
+  // or a placeholder (an explicit `route.outlet` overrides it).
   const outletView = await mountOutletView(
     application,
     await routeOutletState({ component, args, route, globals, storyName, application }),
@@ -239,9 +248,17 @@ async function bootApp(
   }
 
   // configure and boot the instance so ember registers necessary environments
-  ember.configure?.(application);
-  await application.boot();
-  ember.updateGlobals?.(storyContext.globals, application);
+  try {
+    ember.configure?.(application);
+    await application.boot();
+    ember.updateGlobals?.(storyContext.globals, application);
+  } catch (error) {
+    // A half-booted app may not survive the failed render: the next render
+    // would boot a second app onto the same root element, which Ember asserts
+    // against ("You cannot use the same root element ... multiple times").
+    destroy(application);
+    throw error;
+  }
 
   return application;
 }
@@ -276,8 +293,14 @@ export async function renderToCanvas(
     route: routeFromStory
   } = normalizeStoryResult(storyResult, storyContext.args);
   // Stories that define their own `render` never report a route back, so the
-  // parameter is the fallback.
-  const route = routeFromStory ?? storyContext.parameters.ember?.route;
+  // parameter is the fallback. A story whose template contains `{{outlet}}` but
+  // that was never annotated is a route story too: rendering it as a plain
+  // component crashes on the outlet keyword (#62), so it is mounted through the
+  // outlet root with empty route parameters — hole/placeholder per the toolbar.
+  const route =
+    routeFromStory ??
+    storyContext.parameters.ember?.route ??
+    (templateUsesOutlet(component) ? DEFAULT_ROUTE : undefined);
 
   const existing = contexts.get(canvasElement);
   const previousGlobals = relevantGlobals(route, existing?.globals ?? {});
@@ -296,97 +319,118 @@ export async function renderToCanvas(
   // An outlet root is not tracked by the mount cache that broke component re-renders
   // (#27, #33), so it can be updated in place exactly the way the router swaps route
   // state. That preserves the route tree's component state and avoids re-appending.
-  if (route && existing?.outletView && !forceRemount) {
-    if (globalsChanged) {
-      storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
+  //
+  // The whole update-or-mount section is guarded: a booted app must never survive
+  // a failed render, or the retry boots a second app onto the same `canvasElement`
+  // and Ember's EventDispatcher assert masks the real error (#62).
+  let application: ApplicationInstance | undefined;
+  let mount: HTMLElement | undefined;
+
+  try {
+    if (route && existing?.outletView && !forceRemount) {
+      if (globalsChanged) {
+        storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
+      }
+
+      await updateOutletView(
+        existing.outletView,
+        await routeOutletState({
+          component,
+          args,
+          route,
+          globals: storyContext.globals,
+          storyName: storyContext.name,
+          application: existing.application
+        })
+      );
+
+      contexts.set(canvasElement, { ...existing, args, globals: { ...storyContext.globals } });
+
+      showMain();
+
+      return () => {
+        unregister(canvasElement);
+      };
     }
 
-    await updateOutletView(
-      existing.outletView,
-      await routeOutletState({
-        component,
-        args,
-        route,
-        globals: storyContext.globals,
-        storyName: storyContext.name,
-        application: existing.application
-      })
-    );
+    // Reuse the booted app across arg/globals updates, but always render into a
+    // fresh mount: reusing the same mount makes Ember's render cache serve a stale
+    // entry, which destroyed renders with obscure node errors (#27, #33).
+    //
+    // A route story and a component story cannot share an app: the outlet root can
+    // only be dropped by destroying the app, so switching modes remounts.
+    const canReuseApp =
+      existing !== undefined && !forceRemount && Boolean(existing.outletView) === Boolean(route);
 
-    contexts.set(canvasElement, { ...existing, args, globals: { ...storyContext.globals } });
+    if (isEmberBelow(6, 12)) {
+      // Exception: ember-source < 6.12 has no per-owner renderer cache, so every
+      // `renderComponent` call builds a new renderer (EvaluationContext) and
+      // re-rendering an already-rendered owner corrupts the shared opcode table,
+      // crashing with "reading 'syscall'". Boot a fresh app on every render instead,
+      // so each owner is only ever rendered once (at the cost of app state + perf).
+      if (existing) {
+        unregister(canvasElement);
+      }
+
+      application = await bootApp(storyContext, canvasElement);
+    } else if (canReuseApp) {
+      // ember-source >= 6.12 caches one renderer per owner, so we can keep the same
+      // app instance across re-renders. This preserves component/app state (@tracked
+      // fields, services) and avoids re-booting on every control/global change.
+      if (globalsChanged) {
+        storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
+      }
+
+      application = existing.application;
+      teardownMount(existing);
+    } else {
+      if (existing) {
+        unregister(canvasElement);
+      }
+
+      application = await bootApp(storyContext, canvasElement);
+    }
+
+    mount = document.createElement('div');
+
+    canvasElement.append(mount);
+
+    const mounted = await mountStory({
+      application,
+      component,
+      args,
+      route,
+      globals: storyContext.globals,
+      storyName: storyContext.name,
+      mount
+    });
+
+    contexts.set(canvasElement, {
+      application,
+      mount,
+      args,
+      globals: { ...storyContext.globals },
+      ...mounted
+    });
 
     showMain();
 
     return () => {
       unregister(canvasElement);
     };
-  }
-
-  // Reuse the booted app across arg/globals updates, but always render into a
-  // fresh mount: reusing the same mount makes Ember's render cache serve a stale
-  // entry, which destroyed renders with obscure node errors (#27, #33).
-  //
-  // A route story and a component story cannot share an app: the outlet root can
-  // only be dropped by destroying the app, so switching modes remounts.
-  const canReuseApp =
-    existing !== undefined && !forceRemount && Boolean(existing.outletView) === Boolean(route);
-
-  let application: ApplicationInstance;
-
-  if (isEmberBelow(6, 12)) {
-    // Exception: ember-source < 6.12 has no per-owner renderer cache, so every
-    // `renderComponent` call builds a new renderer (EvaluationContext) and
-    // re-rendering an already-rendered owner corrupts the shared opcode table,
-    // crashing with "reading 'syscall'". Boot a fresh app on every render instead,
-    // so each owner is only ever rendered once (at the cost of app state + perf).
-    if (existing) {
+  } catch (error) {
+    // `unregister` covers the reuse paths (the still-registered context owns the
+    // app); the fresh-boot paths have no context yet, so destroy their app here.
+    if (contexts.has(canvasElement)) {
       unregister(canvasElement);
+    } else {
+      mount?.remove();
+
+      if (application) {
+        destroy(application);
+      }
     }
 
-    application = await bootApp(storyContext, canvasElement);
-  } else if (canReuseApp) {
-    // ember-source >= 6.12 caches one renderer per owner, so we can keep the same
-    // app instance across re-renders. This preserves component/app state (@tracked
-    // fields, services) and avoids re-booting on every control/global change.
-    if (globalsChanged) {
-      storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
-    }
-
-    application = existing.application;
-    teardownMount(existing);
-  } else {
-    if (existing) {
-      unregister(canvasElement);
-    }
-
-    application = await bootApp(storyContext, canvasElement);
+    throw error;
   }
-
-  const mount = document.createElement('div');
-
-  canvasElement.append(mount);
-
-  const mounted = await mountStory({
-    application,
-    component,
-    args,
-    route,
-    globals: storyContext.globals,
-    storyName: storyContext.name,
-    mount
-  });
-
-  contexts.set(canvasElement, {
-    application,
-    mount,
-    args,
-    globals: { ...storyContext.globals },
-    ...mounted
-  });
-
-  showMain();
-
-  return () => {
-    unregister(canvasElement);
-  };
 }

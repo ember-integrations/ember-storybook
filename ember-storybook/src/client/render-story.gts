@@ -4,6 +4,7 @@ import { renderComponent } from '@ember/renderer';
 
 import { modifier } from 'ember-modifier';
 
+import { templateUsesOutlet } from './outlet';
 import { normalizeStoryResult } from './story-result';
 
 interface RenderStorySignature {
@@ -20,14 +21,14 @@ export class RenderStory extends Component<RenderStorySignature> {
     const { component, args, route } = normalizeStoryResult(story, this.args.args);
     const owner = getOwner(this);
 
-    if (route) {
+    if (route || templateUsesOutlet(component)) {
       // `{{outlet}}` is resolved from Glimmer's dynamic scope, which only a root
       // render can seed. Rendering it in here would nest a second outlet root
       // inside an already-rendering tree, so route stories are canvas-only.
       throw new Error(
-        'ember-storybook: this story sets `parameters.ember.route`, but route stories ' +
-          'can only be rendered by `renderToCanvas`, not through <RenderStory> ' +
-          '(portable stories).'
+        'ember-storybook: this story renders a route template (it uses `{{outlet}}`), ' +
+          'but route stories can only be rendered by `renderToCanvas`, not through ' +
+          '<RenderStory> (portable stories).'
       );
     }
 

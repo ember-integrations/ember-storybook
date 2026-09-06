@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { OUTLET_GLOBAL_KEY } from '../outlet-key';
-import { buildRouteOutletState, resolveOutletStub } from './outlet';
+import { buildRouteOutletState, resolveOutletStub, templateUsesOutlet } from './outlet';
 
 import type { OutletStub, RouteParameters } from './types';
 
@@ -11,6 +11,16 @@ import type { OutletStub, RouteParameters } from './types';
 // above the imports.)
 vi.mock('@ember/renderer', () => ({ renderSettled: () => Promise.resolve() }));
 vi.mock('@ember/runloop', () => ({ run: (callback: () => void) => callback() }));
+
+// `templateUsesOutlet` reaches the story component's template through
+// `getComponentTemplate`; back it with a registry the tests fill per component.
+const { templateRegistry } = vi.hoisted(() => ({
+  templateRegistry: new WeakMap<object, unknown>()
+}));
+
+vi.mock('@ember/component', () => ({
+  getComponentTemplate: (component: object) => templateRegistry.get(component)
+}));
 
 const template = { tag: 'template' };
 const owner = { factory: 'owner' };
@@ -164,5 +174,93 @@ describe('buildRouteOutletState', () => {
     const state = buildRouteOutletState(input({ outlet: placeholderStub }));
 
     expect(state.outlets.main?.outlets.main).toBeUndefined();
+  });
+});
+
+// A fake template factory: a callable that hands out the ownerless template
+// whose `parsedLayout.block` is the given wire-format tuple
+// `[statements, locals, upvars]`, as ember's `templateFactory` does.
+function compiledFactory(block: unknown) {
+  return vi.fn((_owner?: unknown) => ({ parsedLayout: { block } }));
+}
+
+const outletBlock = [
+  [[10, 'div'], [46, [28, [31, 2], undefined, undefined], undefined, undefined, undefined], [13]],
+  ['@model'],
+  ['if', 'component', '-outlet']
+];
+
+describe('templateUsesOutlet', () => {
+  test('detects the -outlet keyword in the template upvars', () => {
+    const routeTemplate = {};
+
+    templateRegistry.set(routeTemplate, compiledFactory(outletBlock));
+
+    expect(templateUsesOutlet(routeTemplate)).toBe(true);
+  });
+
+  test('asks the factory for the ownerless template', () => {
+    const routeTemplate = {};
+    const factory = compiledFactory(outletBlock);
+
+    templateRegistry.set(routeTemplate, factory);
+
+    templateUsesOutlet(routeTemplate);
+
+    expect(factory.mock.calls[0][0]).toBeUndefined();
+  });
+
+  test('a template without the outlet keyword is not a route story', () => {
+    const plainComponent = {};
+    const plainBlock = [[[10, 'div'], [1, 'hello'], [13]], [], ['if']];
+
+    templateRegistry.set(plainComponent, compiledFactory(plainBlock));
+
+    expect(templateUsesOutlet(plainComponent)).toBe(false);
+  });
+
+  test('a "-outlet" string literal in the statements is not an outlet', () => {
+    const literalComponent = {};
+    const literalBlock = [[[1, '-outlet']], [], ['concat']];
+
+    templateRegistry.set(literalComponent, compiledFactory(literalBlock));
+
+    expect(templateUsesOutlet(literalComponent)).toBe(false);
+  });
+
+  test('a raw template factory used as the component is recognized', () => {
+    const factory = Object.assign(compiledFactory(outletBlock), {
+      __meta: { moduleName: 'app/templates/some-route' }
+    });
+
+    expect(templateUsesOutlet(factory)).toBe(true);
+  });
+
+  test('a component without any template is not a route story', () => {
+    expect(templateUsesOutlet({ template: 'not registered' })).toBe(false);
+    expect(templateUsesOutlet(() => false)).toBe(false);
+  });
+
+  test('degrades to false for template shapes it does not understand', () => {
+    const cases: unknown[] = [
+      // factory that hands out no template data
+      () => false,
+      // a compile-error template
+      () => ({ result: 'error' }),
+      // no parsed layout
+      () => ({}),
+      // block without an upvars slot
+      () => ({ parsedLayout: { block: [[], ['@model']] } }),
+      // block that was never parsed from its JSON string
+      () => ({ parsedLayout: { block: 'not parsed yet' } })
+    ];
+
+    for (const factory of cases) {
+      const routeLike = {};
+
+      templateRegistry.set(routeLike, factory);
+
+      expect(templateUsesOutlet(routeLike)).toBe(false);
+    }
   });
 });
