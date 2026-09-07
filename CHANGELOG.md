@@ -1,5 +1,17 @@
 # Changelog
 
+## Release (2026-09-07)
+
+* ember-storybook 0.3.2 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#65](https://github.com/ember-integrations/ember-storybook/pull/65) Revert arg sorting ([@gossi](https://github.com/gossi))
+  * [#63](https://github.com/ember-integrations/ember-storybook/pull/63) Fix `{{outlet}}` ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-05)
 
 * ember-storybook 0.3.1 (patch)
