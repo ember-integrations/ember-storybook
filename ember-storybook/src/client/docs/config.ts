@@ -1,7 +1,7 @@
 import { SourceType } from 'storybook/internal/docs-tools';
 import emberData from 'virtual:ember-storybook';
 
-import { buildArgTypes, mergeArgTypes, sortArgTypes } from './extractArgTypes';
+import { buildArgTypes, mergeArgTypes } from './extractArgTypes';
 import Page from './page';
 import { sourceDecorator } from './source-decorator';
 
@@ -46,10 +46,10 @@ export const argTypesEnhancers: ((
       const sig = resolveSig(data[filePath]);
 
       if (sig) {
-        return sortArgTypes(mergeArgTypes(buildArgTypes(sig), context.argTypes)) as StrictArgTypes;
+        return mergeArgTypes(buildArgTypes(sig), context.argTypes) as StrictArgTypes;
       }
 
-      return sortArgTypes(context.argTypes) as StrictArgTypes;
+      return context.argTypes;
     }
 
     // No `parameters.fileName` — fall back to matching the CSF title leaf
@@ -65,14 +65,12 @@ export const argTypesEnhancers: ((
         const sig = resolveSig(entry);
 
         if (sig) {
-          return sortArgTypes(
-            mergeArgTypes(buildArgTypes(sig), context.argTypes)
-          ) as StrictArgTypes;
+          return mergeArgTypes(buildArgTypes(sig), context.argTypes) as StrictArgTypes;
         }
       }
     }
 
-    return sortArgTypes(context.argTypes) as StrictArgTypes;
+    return context.argTypes;
   }
 ];
 

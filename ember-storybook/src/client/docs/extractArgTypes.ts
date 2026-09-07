@@ -34,14 +34,6 @@ function mapTypeToControl(
   }
 }
 
-/**
- * Returns a new argTypes object with entries sorted alphabetically by name,
- * matching Storybook's `alpha` sort order. The input object is not mutated.
- */
-export function sortArgTypes(argTypes: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(argTypes).toSorted(([a], [b]) => a.localeCompare(b)));
-}
-
 export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> {
   const argTypes: Record<string, unknown> = {};
 
@@ -61,7 +53,7 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
     };
   }
 
-  return sortArgTypes(argTypes);
+  return argTypes;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -80,17 +72,24 @@ function isObject(value: unknown): value is Record<string, unknown> {
  * The `type` object is deep-merged: a story-provided partial `type` (e.g.
  * `type: 'string'`) keeps the signature's `required` flag unless the story
  * explicitly sets it, while the story's `type.name` still wins.
+ *
+ * Key order is meaningful: story-provided keys come first in the order the
+ * user defined them (user intent wins), followed by the remaining
+ * signature-derived keys in declaration order. Alphabetising is a display
+ * concern handled by Storybook itself (`parameters.controls.sort` for the
+ * panel, `parameters.docs.controls.sort` for the docs Controls block).
  */
 export function mergeArgTypes(
   signatureArgTypes: Record<string, unknown>,
   storyArgTypes: Record<string, unknown>
 ): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...signatureArgTypes };
+  const merged: Record<string, unknown> = {};
 
+  // Story keys first, in the order the user defined them.
   for (const [name, storyArg] of Object.entries(storyArgTypes)) {
     if (storyArg === undefined) continue;
 
-    const sigArg = merged[name];
+    const sigArg = signatureArgTypes[name];
 
     if (!isObject(sigArg) || !isObject(storyArg)) {
       merged[name] = storyArg;
@@ -111,6 +110,13 @@ export function mergeArgTypes(
     }
 
     merged[name] = mergedArg;
+  }
+
+  // Signature-only keys follow, in the component's declaration order.
+  for (const [name, sigArg] of Object.entries(signatureArgTypes)) {
+    if (!Object.hasOwn(merged, name)) {
+      merged[name] = sigArg;
+    }
   }
 
   return merged;
