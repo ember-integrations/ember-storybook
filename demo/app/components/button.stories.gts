@@ -2,6 +2,8 @@ import { expect, fn } from 'storybook/test';
 
 import Button from './button.gts';
 
+import type { StoryObj } from 'ember-storybook';
+
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories
 export default {
   title: 'Example/Button',
@@ -23,7 +25,7 @@ export default {
   args: { push: fn() }
 };
 
-export const Primary = {
+export const Primary: StoryObj = {
   args: {
     label: 'Button',
     primary: true,
