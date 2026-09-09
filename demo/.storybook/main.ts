@@ -3,7 +3,12 @@ import type { StorybookConfig } from 'ember-storybook';
 const config: StorybookConfig = {
   stories: ['../**/*.stories.g(j|t)s'],
 
-  addons: ['@storybook/addon-docs', '@storybook/addon-a11y', '@storybook/addon-vitest'],
+  addons: [
+    '@storybook/addon-docs',
+    '@storybook/addon-a11y',
+    '@storybook/addon-vitest',
+    'storybook-addon-test-codegen'
+  ],
 
   framework: {
     name: 'ember-storybook',

@@ -48,6 +48,7 @@
     "eslint-plugin-storybook": "catalog:lint",
     "prettier": "catalog:lint",
     "storybook": "catalog:lib",
+    "storybook-addon-test-codegen": "^3.0.4",
     "typescript": "catalog:build",
     "vite": "catalog:build",
     "vitest": "catalog:test"

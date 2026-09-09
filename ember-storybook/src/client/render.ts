@@ -308,8 +308,8 @@ export async function renderToCanvas(
   const globalsChanged =
     existing !== undefined && !forceRemount && !shallowEqual(previousGlobals, currentGlobals);
 
-  // Nothing to do: a globals-only change (or a no-op call) must not tear down the
-  // mounted component.
+  // Nothing to do: neither args nor any relevant global changed, so the no-op
+  // call (or an irrelevant-global change) must not tear down the mounted component.
   if (existing && !forceRemount && !globalsChanged && shallowEqual(existing.args, args)) {
     return () => {
       unregister(canvasElement);
@@ -343,6 +343,26 @@ export async function renderToCanvas(
           application: existing.application
         })
       );
+
+      contexts.set(canvasElement, { ...existing, args, globals: { ...storyContext.globals } });
+
+      showMain();
+
+      return () => {
+        unregister(canvasElement);
+      };
+    }
+
+    // A globals-only change never recreates a component story: templates never
+    // read globals, so `updateGlobals` — or a decorator's own reaction — is the
+    // only channel through which a global can reach a mounted story. Remounting
+    // here would throw away the component's `@tracked` state for nothing, which
+    // is how the Interaction Recorder appeared to "reset" stories: its toolbar
+    // toggles are pure globals changes.
+    if (existing && !forceRemount && !route && shallowEqual(existing.args, args)) {
+      if (globalsChanged) {
+        storyContext.parameters.ember?.updateGlobals?.(storyContext.globals, existing.application);
+      }
 
       contexts.set(canvasElement, { ...existing, args, globals: { ...storyContext.globals } });
 
