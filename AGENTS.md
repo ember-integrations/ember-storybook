@@ -8,7 +8,8 @@ monorepo that ships a Storybook framework for Ember components.
 | Path | Purpose |
 | --- | --- |
 | `ember-storybook/` | The addon / Storybook framework (the thing being developed) |
-| `demo/` | Ember app + Storybook + tests used to exercise the addon |
+| `demo/` | Ember app + Storybook + tests used to exercise the addon (classic CSF) |
+| `csf-next-demo/` | Minimal two-component demo using the CSF Next factory syntax |
 | `packages/ember-docgen/` | TypeDoc-based docs extraction addon |
 | `packages/typedoc-plugin-ember/` | TypeDoc plugin for Ember |
 
@@ -46,6 +47,20 @@ cd demo && pnpm build-storybook                       # static build -> storyboo
 cd demo && pnpm test                                  # vitest (unit)
 # browser smoke tests (addon-vitest + Playwright): see Testing & regression
 ```
+
+### CSF Next demo (factory-syntax consumer)
+
+See [CSF-next](https://storybook.js.org/docs/api/csf/csf-next).
+
+```bash
+cd csf-next-demo && pnpm sb --no-open                 # Storybook dev, headless (CSF Next stories)
+cd csf-next-demo && pnpm build-storybook              # static build
+cd csf-next-demo && pnpm test                         # browser smoke tests (renders CSF Next stories)
+```
+
+`csf-next-demo` is the regression guard for the CSF Next factory syntax
+(`defineMain`/`definePreview`/`preview.meta`/`meta.story`/`.extend`) — it uses no
+classic CSF. The two demos share the same addon build; keep both green.
 
 ## Playwright MCP & Storybook
 
