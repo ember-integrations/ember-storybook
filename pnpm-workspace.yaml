@@ -1,6 +1,7 @@
 packages:
   - ember-storybook/
   - demo/
+  - csf-next-demo/
   - packages/*
 allowBuilds:
   "@swc/core": false
