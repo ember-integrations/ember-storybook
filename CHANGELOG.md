@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-09-09)
+
+* ember-storybook 0.4.0 (minor)
+
+#### :rocket: Enhancement
+* `ember-storybook`
+  * [#67](https://github.com/ember-integrations/ember-storybook/pull/67) Support csf-next syntax ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-07)
 
 * ember-storybook 0.3.2 (patch)
