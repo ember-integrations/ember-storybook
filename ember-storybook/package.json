@@ -31,6 +31,10 @@
       "types": "./declarations/client/config.d.ts",
       "default": "./dist/client/config.mjs"
     },
+    "./client/docs/addon-preview": {
+      "types": "./declarations/client/docs/addon-preview.d.ts",
+      "default": "./dist/client/docs/addon-preview.mjs"
+    },
     "./client/docs/config": {
       "types": "./declarations/client/docs/config.d.ts",
       "default": "./dist/client/docs/config.mjs"

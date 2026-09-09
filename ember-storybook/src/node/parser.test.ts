@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+import { sanitize } from 'storybook/internal/csf';
 import { describe, expect, test } from 'vitest';
 
 import { tempFixture } from './test-support';
@@ -8,10 +9,12 @@ import { type ComponentMap, parseComponentFile, parseStoryFile, type StoryFile }
 import { Default } from './shared';
 
 function findStory(
-  stories: { name?: string; localName?: string; inlineTemplate?: string }[],
+  stories: { id: string; name?: string; localName?: string; inlineTemplate?: string }[],
   name: string
 ) {
-  return stories.find((s) => s.localName === name || s.name === name);
+  return stories.find(
+    (s) => s.localName === name || s.name === name || s.id.endsWith(`--${sanitize(name)}`)
+  );
 }
 
 describe('parseStoryFile', () => {
@@ -325,6 +328,93 @@ export const Story: StoryObj = {
 
     expect(result.meta.component).toBe('Missing');
     expect(result.component.signatureName).toBe('Missing');
+  });
+});
+
+describe('parseStoryFile — CSF Next factory syntax', () => {
+  test('resolves the component from preview.meta()', () => {
+    using fix = tempFixture({
+      'greeting.gts': `export const Greeting = <template><div>Hello</div></template>;`,
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({ component: Greeting, title: 'Greetings' });
+export const LTR = meta.story({
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+});
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(result.meta.component).toBe('Greeting');
+    expect(result.meta.title).toBe('Greetings');
+    expect(result.component.file).toMatch(/greeting\.gts$/);
+    expect(result.component.signatureName).toBe('Greeting');
+  });
+
+  test('extracts inline template from meta.story()', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({ component: Greeting, title: 'Greetings' });
+export const LTR = meta.story({
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+});
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    const story = findStory(result.stories, 'LTR');
+
+    expect(story?.id).toBe('greetings--ltr');
+    expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
+  });
+
+  test('matches a renamed story by its sanitized export id, not display name', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({ component: Greeting, title: 'Greetings' });
+export const RTL = meta.story({
+  name: 'Right To Left',
+  render: (args) => <template><Greeting @name={{args.name}} dir="rtl" /></template>
+});
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    const story = findStory(result.stories, 'RTL');
+
+    expect(story?.name).toBe('Right To Left');
+    expect(story?.id).toBe('greetings--rtl');
+    expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} dir="rtl" />');
+  });
+
+  test('parses .extend() child stories with their own inline template', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({ component: Greeting, title: 'Greetings' });
+export const LTR = meta.story({
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+});
+export const RTL = LTR.extend({
+  args: { dir: 'rtl' }
+});
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(result.stories.map((s) => s.id)).toEqual(['greetings--ltr', 'greetings--rtl']);
+
+    const rtl = findStory(result.stories, 'RTL');
+
+    expect(rtl?.inlineTemplate).toBeUndefined();
   });
 });
 

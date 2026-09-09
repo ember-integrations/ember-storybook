@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { Preprocessor } from 'content-tag';
 import { parseSync, Visitor } from 'oxc-parser';
+import { sanitize } from 'storybook/internal/csf';
 import { loadCsf, type StaticMeta, type StaticStory } from 'storybook/internal/csf-tools';
 
 import { Default, type ExportedName, normalizeFilePath } from './shared';
@@ -287,7 +288,8 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       if (first.id.type !== 'Identifier') return;
 
       const name = (first.id as { name: string }).name;
-      const story = stories.find((s) => (s.localName ?? s.name) === name);
+      const suffix = `--${sanitize(name)}`;
+      const story = stories.find((s) => (s.localName ?? s.name) === name || s.id.endsWith(suffix));
 
       exportStack.push(story);
     },

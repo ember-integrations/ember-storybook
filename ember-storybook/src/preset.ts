@@ -14,13 +14,32 @@ import type { Plugin, UserConfig } from 'vite';
 // with the stable-key DocsRenderer (the framework's own `docs.renderer` never
 // wins the annotation merge, and mutating the module in place is unreliable due
 // to Vite dep pre-bundling splitting module instances).
-function docsRendererPlugin(docsPreviewPatch: string): Plugin {
+//
+// The second rule covers CSF Next: a csf-next project registers addon-docs in
+// its preview file as `import addonDocs from '@storybook/addon-docs'` +
+// `addons: [addonDocs()]` (the preset path is bypassed entirely there), so the
+// bare root import is redirected to a factory module that wraps the real
+// annotations with the same patched renderer plus the Ember autodocs page.
+// The factory re-exports the real root (`DocsRenderer`, default), so it must
+// resolve `@storybook/addon-docs` for real when *it* is the importer —
+// otherwise the redirect would recurse into itself.
+function docsRendererPlugin(docsPreviewPatch: string, docsAddonFactory: string): Plugin {
+  const factoryFile = docsAddonFactory.split('/').slice(-3).join('/');
+
   return {
     name: 'ember-storybook:docs-renderer',
     enforce: 'pre',
-    resolveId(source) {
+    resolveId(source, importer) {
       if (source.includes('@storybook/addon-docs') && source.endsWith('preview.js')) {
         return docsPreviewPatch;
+      }
+
+      // Suffix compare: Vite reports importers as plain fsPaths or `/@fs/…`
+      // depending on how the module was loaded.
+      const fromFactory = importer?.replace(/^\/@fs/, '').endsWith(factoryFile);
+
+      if (source === '@storybook/addon-docs' && !fromFactory) {
+        return docsAddonFactory;
       }
     }
   };
@@ -61,9 +80,12 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
   const docsPreviewPatch = fileURLToPath(
     import.meta.resolve('ember-storybook/client/docs/preview-patch')
   );
+  const docsAddonFactory = fileURLToPath(
+    import.meta.resolve('ember-storybook/client/docs/addon-preview')
+  );
 
   return mergeConfig(config, {
-    plugins: [...emberStorybookPlugin(), docsRendererPlugin(docsPreviewPatch)],
+    plugins: [...emberStorybookPlugin(), docsRendererPlugin(docsPreviewPatch, docsAddonFactory)],
     optimizeDeps: {
       exclude: ['object-inspect']
     },

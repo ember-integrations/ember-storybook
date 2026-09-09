@@ -23,4 +23,45 @@ You can also build a [static version](https://storybook.js.org/docs/sharing/publ
 - [Configurations](https://storybook.js.org/docs/configure?renderer=ember&ref=readme)
 - [Addons](https://storybook.js.org/docs/configure/user-interface/storybook-addons?renderer=ember&ref=readme)
 
+## CSF Next
+
+This framework supports the [CSF Next factory syntax](https://storybook.js.org/docs/api/csf/csf-next)
+alongside classic CSF. Wire up `defineMain` and `definePreview`, then build
+stories from `preview.meta()` — story `args` are inferred from the component's
+Ember signature:
+
+```ts
+// .storybook/main.ts
+import { defineMain } from 'ember-storybook/node';
+
+export default defineMain({
+  stories: ['../**/*.stories.g(j|t)s'],
+  addons: ['@storybook/addon-docs']
+});
+```
+
+```ts
+// .storybook/preview.ts
+import { definePreview } from 'ember-storybook';
+import addonDocs from '@storybook/addon-docs';
+
+export default definePreview({
+  addons: [addonDocs()],
+  parameters: {
+    ember: { app: createApp }
+  }
+});
+```
+
+```gts
+// button.stories.gts
+import preview from '../.storybook/preview';
+import { Button } from './button.gts';
+
+const meta = preview.meta({ component: Button });
+
+export const Primary = meta.story({ args: { label: 'Click me' } });
+export const Small = Primary.extend({ args: { size: 'small' } });
+```
+
 Learn more about Storybook at [storybook.js.org](https://storybook.js.org/?ref=readme).
