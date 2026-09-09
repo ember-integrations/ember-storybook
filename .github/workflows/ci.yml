@@ -68,6 +68,10 @@ jobs:
       # setting would otherwise fail (or silently undo) the pre-run dep check.
       - name: Build Storybook as a consumer would
         run: pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+      # The CSF Next factory syntax must survive a published-package install too
+      # (its preview annotations bypass the preset, so resolution differs).
+      - name: Build the CSF Next Storybook as a consumer would
+        run: pnpm --config.inject-workspace-packages=true --filter csf-next-demo build-storybook
       - name: Assert the build used the injected copy, not a workspace symlink
         run: |
           test "$(readlink -f demo/node_modules/ember-storybook)" != "$PWD/ember-storybook"

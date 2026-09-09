@@ -1,0 +1,61 @@
+{
+  "name": "csf-next-demo",
+  "private": true,
+  "description": "Lightweight Storybook for Ember demo using the CSF Next factory syntax",
+  "license": "MIT",
+  "type": "module",
+  "imports": {
+    "#app/*": "./app/*"
+  },
+  "scripts": {
+    "lint": "pnpm run '/^lint:(?!.*(fix)).*$/'",
+    "lint:fix": "pnpm run '/^lint:[^:]*:fix/'",
+    "lint:js": "eslint . --cache",
+    "lint:js:fix": "eslint . --fix",
+    "lint:types": "ember-tsc --noEmit",
+    "sb": "storybook dev --no-open",
+    "build-storybook": "storybook build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@glimmer/component": "catalog:frontend",
+    "ember-modifier": "catalog:frontend",
+    "ember-source": "7.1.0",
+    "ember-storybook": "workspace:*",
+    "ember-strict-application-resolver": "catalog:frontend"
+  },
+  "devDependencies": {
+    "@babel/core": "catalog:build",
+    "@babel/plugin-transform-runtime": "catalog:build",
+    "@babel/plugin-transform-typescript": "catalog:build",
+    "@babel/runtime": "catalog:build",
+    "@ember/app-tsconfig": "catalog:build",
+    "@embroider/core": "catalog:build",
+    "@embroider/macros": "catalog:frontend",
+    "@embroider/vite": "catalog:build",
+    "@glint/ember-tsc": "catalog:build",
+    "@glint/template": "catalog:build",
+    "@gossi/config-eslint": "catalog:lint",
+    "@gossi/config-prettier": "catalog:lint",
+    "@rollup/plugin-babel": "7.1.0",
+    "@storybook/addon-docs": "catalog:lib",
+    "@storybook/addon-vitest": "catalog:lib",
+    "@vitest/browser-playwright": "catalog:test",
+    "babel-plugin-ember-template-compilation": "catalog:build",
+    "decorator-transforms": "catalog:build",
+    "eslint": "catalog:lint",
+    "eslint-plugin-ember": "catalog:lint",
+    "eslint-plugin-storybook": "catalog:lint",
+    "prettier": "catalog:lint",
+    "storybook": "catalog:lib",
+    "typescript": "catalog:build",
+    "vite": "catalog:build",
+    "vitest": "catalog:test"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "ember": {
+    "edition": "octane"
+  }
+}

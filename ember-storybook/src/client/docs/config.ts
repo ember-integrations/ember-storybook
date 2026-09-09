@@ -1,87 +1,20 @@
-import { SourceType } from 'storybook/internal/docs-tools';
-import emberData from 'virtual:ember-storybook';
-
-import { buildArgTypes, mergeArgTypes } from './extractArgTypes';
+import { parameters as baseParameters } from './annotations';
 import Page from './page';
-import { sourceDecorator } from './source-decorator';
 
-import type { ComponentFile, EmberMeta, StoryFile } from '../../node/types';
-import type { EmberRenderer } from '../types';
-import type { ComponentSignature } from 'ember-docgen';
-import type {
-  DecoratorFunction,
-  Parameters,
-  StoryContextForEnhancers,
-  StrictArgTypes
-} from 'storybook/internal/types';
+import type { Parameters } from 'storybook/internal/types';
 
-const data = emberData as EmberMeta;
+// The CSF3 preview-annotations module (loaded via the preset's
+// `previewAnnotations`). In CSF Next mode presets are bypassed — the docs tier
+// there arrives through `definePreview` injecting `./annotations` plus the
+// patched addon-docs factory (see `./addon-preview`).
+export { argTypesEnhancers, decorators } from './annotations';
 
-function resolveSig(entry: StoryFile | ComponentFile): ComponentSignature | undefined {
-  if (!('component' in entry)) return undefined;
-
-  const comp = entry.component;
-
-  if (!comp.signatureName) return undefined;
-
-  const compEntry = comp.file ? data[comp.file] : undefined;
-
-  if (!compEntry || !('signatures' in compEntry)) return undefined;
-
-  return compEntry.signatures[comp.signatureName];
-}
-
-/** Last path segment of a CSF title — used to match stories without `fileName`. */
-function titleLeaf(title: string | undefined): string | undefined {
-  return title?.split('/').pop();
-}
-
-export const argTypesEnhancers: ((
-  context: StoryContextForEnhancers<EmberRenderer>
-) => StrictArgTypes)[] = [
-  (context) => {
-    const filePath = (context.parameters as Record<string, unknown>).fileName as string | undefined;
-
-    if (filePath && Object.hasOwn(data, filePath)) {
-      const sig = resolveSig(data[filePath]);
-
-      if (sig) {
-        return mergeArgTypes(buildArgTypes(sig), context.argTypes) as StrictArgTypes;
-      }
-
-      return context.argTypes;
-    }
-
-    // No `parameters.fileName` — fall back to matching the CSF title leaf
-    // against indexed story files instead of picking an arbitrary signature.
-    const leaf = titleLeaf(context.title);
-
-    if (leaf) {
-      for (const entry of Object.values(data)) {
-        if (!('meta' in entry)) continue;
-
-        if (titleLeaf(entry.meta.title) !== leaf) continue;
-
-        const sig = resolveSig(entry);
-
-        if (sig) {
-          return mergeArgTypes(buildArgTypes(sig), context.argTypes) as StrictArgTypes;
-        }
-      }
-    }
-
-    return context.argTypes;
-  }
-];
+const docs = (baseParameters as { docs?: Record<string, unknown> }).docs;
 
 export const parameters: Parameters = {
+  ...baseParameters,
   docs: {
-    source: {
-      type: SourceType.DYNAMIC,
-      language: 'html'
-    },
+    ...docs,
     page: Page
   }
 };
-
-export const decorators: DecoratorFunction<EmberRenderer>[] = [sourceDecorator];
