@@ -1,14 +1,14 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "minor",
-      "oldVersion": "0.3.2",
-      "newVersion": "0.4.0",
+      "impact": "patch",
+      "oldVersion": "0.4.0",
+      "newVersion": "0.4.1",
       "tagName": "latest",
       "constraints": [
         {
-          "impact": "minor",
-          "reason": "Appears in changelog section :rocket: Enhancement"
+          "impact": "patch",
+          "reason": "Appears in changelog section :bug: Bug Fix"
         }
       ],
       "pkgJSONPath": "./ember-storybook/package.json"
@@ -17,5 +17,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-09-09)\n\n* ember-storybook 0.4.0 (minor)\n\n#### :rocket: Enhancement\n* `ember-storybook`\n  * [#67](https://github.com/ember-integrations/ember-storybook/pull/67) Support csf-next syntax ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-09-09)\n\n* ember-storybook 0.4.1 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#69](https://github.com/ember-integrations/ember-storybook/pull/69) Support Test Codegen plugin ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }

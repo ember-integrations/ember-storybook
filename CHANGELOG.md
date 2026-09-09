@@ -2,6 +2,17 @@
 
 ## Release (2026-09-09)
 
+* ember-storybook 0.4.1 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#69](https://github.com/ember-integrations/ember-storybook/pull/69) Support Test Codegen plugin ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
+## Release (2026-09-09)
+
 * ember-storybook 0.4.0 (minor)
 
 #### :rocket: Enhancement
