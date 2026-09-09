@@ -1,14 +1,14 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "patch",
-      "oldVersion": "0.3.1",
-      "newVersion": "0.3.2",
+      "impact": "minor",
+      "oldVersion": "0.3.2",
+      "newVersion": "0.4.0",
       "tagName": "latest",
       "constraints": [
         {
-          "impact": "patch",
-          "reason": "Appears in changelog section :bug: Bug Fix"
+          "impact": "minor",
+          "reason": "Appears in changelog section :rocket: Enhancement"
         }
       ],
       "pkgJSONPath": "./ember-storybook/package.json"
@@ -17,5 +17,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-09-07)\n\n* ember-storybook 0.3.2 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#65](https://github.com/ember-integrations/ember-storybook/pull/65) Revert arg sorting ([@gossi](https://github.com/gossi))\n  * [#63](https://github.com/ember-integrations/ember-storybook/pull/63) Fix `{{outlet}}` ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-09-09)\n\n* ember-storybook 0.4.0 (minor)\n\n#### :rocket: Enhancement\n* `ember-storybook`\n  * [#67](https://github.com/ember-integrations/ember-storybook/pull/67) Support csf-next syntax ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }
