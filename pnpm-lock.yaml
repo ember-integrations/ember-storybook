@@ -263,6 +263,9 @@ importers:
       storybook:
         specifier: catalog:lib
         version: 10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      storybook-addon-test-codegen:
+        specifier: ^3.0.4
+        version: 3.0.4(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       typescript:
         specifier: catalog:build
         version: 6.0.3
@@ -390,6 +393,9 @@ importers:
       storybook:
         specifier: catalog:lib
         version: 10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      storybook-addon-test-codegen:
+        specifier: ^3.0.4
+        version: 3.0.4(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       typedoc:
         specifier: catalog:lib
         version: 0.28.20(typescript@6.0.3)
@@ -5494,6 +5500,11 @@ packages:
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
+
+  storybook-addon-test-codegen@3.0.4:
+    resolution: {integrity: sha512-rJEqNEsV1gT1C5VoQeF5Aj45v0wlVYJAGaGVI91Ze2jhri52JV40walbjwfen3r00T7oGAMluHfC5/IMzXBbPQ==}
+    peerDependencies:
+      storybook: ^0.0.0-0 || ^10.0.0 || ^10.0.0-0 || ^10.1.0-0 || ^10.2.0-0 || ^10.3.0-0
 
   storybook@10.6.0:
     resolution: {integrity: sha512-H48X6AURAFTpfN2zEux6vNesee5Oq8Gxj1IanYmblPZ218sfKSeyyerF1NC7GD7BrruoC8L4/cU0zII4y+d6zw==}
@@ -11512,6 +11523,10 @@ snapshots:
   statuses@2.0.2: {}
 
   std-env@4.2.0: {}
+
+  storybook-addon-test-codegen@3.0.4(storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
+    dependencies:
+      storybook: 10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   storybook@10.6.0(@types/react@19.2.17)(prettier@3.9.5)(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
