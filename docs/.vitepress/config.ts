@@ -35,6 +35,8 @@ export default defineConfig({
       { text: "Configuration", link: "/configuration/main-ts", activeMatch: "/configuration/" },
     ],
 
+    outline: [2, 3],
+
     sidebar: [
       {
         text: "Getting Started",
