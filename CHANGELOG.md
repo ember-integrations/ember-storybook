@@ -1,5 +1,24 @@
 # Changelog
 
+## Release (2026-09-25)
+
+* ember-storybook 0.4.2 (patch)
+
+#### :memo: Documentation
+* `ember-storybook`
+  * [#74](https://github.com/ember-integrations/ember-storybook/pull/74) Write readme ([@gossi](https://github.com/gossi))
+* Other
+  * [#71](https://github.com/ember-integrations/ember-storybook/pull/71) Add Documentation Site ([@gossi](https://github.com/gossi))
+
+#### :house: Internal
+* `ember-storybook`
+  * [#75](https://github.com/ember-integrations/ember-storybook/pull/75) Clean Ember peer dependencies ([@gossi](https://github.com/gossi))
+* Other
+  * [#73](https://github.com/ember-integrations/ember-storybook/pull/73) Enable renovate ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-09)
 
 * ember-storybook 0.4.1 (patch)
