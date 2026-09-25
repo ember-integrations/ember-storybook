@@ -2,13 +2,17 @@
   "solution": {
     "ember-storybook": {
       "impact": "patch",
-      "oldVersion": "0.4.0",
-      "newVersion": "0.4.1",
+      "oldVersion": "0.4.1",
+      "newVersion": "0.4.2",
       "tagName": "latest",
       "constraints": [
         {
           "impact": "patch",
-          "reason": "Appears in changelog section :bug: Bug Fix"
+          "reason": "Appears in changelog section :memo: Documentation"
+        },
+        {
+          "impact": "patch",
+          "reason": "Appears in changelog section :house: Internal"
         }
       ],
       "pkgJSONPath": "./ember-storybook/package.json"
@@ -17,5 +21,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-09-09)\n\n* ember-storybook 0.4.1 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#69](https://github.com/ember-integrations/ember-storybook/pull/69) Support Test Codegen plugin ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-09-25)\n\n* ember-storybook 0.4.2 (patch)\n\n#### :memo: Documentation\n* `ember-storybook`\n  * [#74](https://github.com/ember-integrations/ember-storybook/pull/74) Write readme ([@gossi](https://github.com/gossi))\n* Other\n  * [#71](https://github.com/ember-integrations/ember-storybook/pull/71) Add Documentation Site ([@gossi](https://github.com/gossi))\n\n#### :house: Internal\n* `ember-storybook`\n  * [#75](https://github.com/ember-integrations/ember-storybook/pull/75) Clean Ember peer dependencies ([@gossi](https://github.com/gossi))\n* Other\n  * [#73](https://github.com/ember-integrations/ember-storybook/pull/73) Enable renovate ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }
