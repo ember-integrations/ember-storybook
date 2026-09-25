@@ -9,12 +9,12 @@ rendering behavior.
 1. Pass-Through with Higher Order Function
 2. Visually with Template
 
-## 1. Pass-Through with Higher Order Function
+## 1. Pass-Through With Higher Order Function
 
 The simplest pattern. The decorator receives the story and returns it
 unchanged (or with modified args).
 
-```glimmer-ts
+```glimmer-ts [example.stories.gts]
 decorators: [
   (Story, context) => {
     // Modify args before the story renders
@@ -22,7 +22,7 @@ decorators: [
     context.args.theme = 'dark';
 
     // Return the original story — args flow automatically
-    return Story();
+    return Story(context);
   }
 ]
 ```
@@ -33,12 +33,12 @@ decorators: [
 - Logging or telemetry
 - Conditionally replacing the component while keeping args intact
 
-## 2. Visually with Template
+## 2. Visually With Template
 
-To visually wrap any story without, use the `<RenderStory>` component
-provided by `ember-storybook`.
+To visually wrap a story, use the `<RenderStory>` component provided by
+`ember-storybook`.
 
-```glimmer-ts
+```glimmer-ts [example.stories.gts]
 import { RenderStory } from 'ember-storybook';
 
 decorators: [
@@ -53,13 +53,19 @@ decorators: [
 
 You can modify args and still use the visual wrapper:
 
-```glimmer-ts
+```glimmer-ts [example.stories.gts]
+import { RenderStory } from 'ember-storybook';
+
 decorators: [
   (Story, context) => {
-    context.args.theme = 'compact';
+    const args = {
+      ...context.args,
+      theme: 'compact'
+    };
+
     return <template>
       <div class="compact-layout">
-        <RenderStory @story={{Story}} @args={{context.args}} />
+        <RenderStory @story={{Story}} @args={{args}} />
       </div>
     </template>;
   }
@@ -68,7 +74,9 @@ decorators: [
 
 Multiple wrappers compose naturally:
 
-```glimmer-ts
+```glimmer-ts [example.stories.gts]
+import { RenderStory } from 'ember-storybook';
+
 decorators: [
   (Story, context) => <template>
     <div class="card"><RenderStory @story={{Story}} @args={{context.args}} /></div>

@@ -1,26 +1,12 @@
 # Route Stories
 
-A **route template** is a template rendered by Ember's router rather than by a
-component invocation — anything that contains `{{outlet}}` to
-host its child route.
+You can write stories for **route templates**, too.
+The special part is the <code v-pre>{{outlet}}</code> keyword.
+`ember-storybook` handles the keyword and provides you options for customizing the look and feel of <code v-pre>{{outlet}}</code>.
 
-`{{outlet}}` cannot be rendered like a normal component. It is a built-in keyword
-helper that reads its child route from Glimmer's *dynamic scope*, and only a root
-render seeds that scope. Rendering a route template with `renderComponent` — what
-a normal story does — therefore fails instead of showing the template:
+## A Route Template
 
-```
-Cannot destructure property 'tag' of 'undefined'
-```
-
-Setting `parameters.ember.route` tells the renderer to mount the story through
-Ember's own outlet root (the same view `Router` uses), so `{{outlet}}` resolves
-normally.
-
-## A route template
-
-```glimmer-ts
-// app/templates/outer.gts
+```glimmer-ts [app/templates/outer.gts]
 import type { TOC } from '@ember/component/template-only';
 
 interface OuterSignature {
@@ -42,10 +28,9 @@ const Outer: TOC<OuterSignature> = <template>
 export default Outer;
 ```
 
-## The story
+## The Story
 
-```glimmer-ts
-// app/templates/outer.stories.gts
+```glimmer-ts [app/templates/outer.stories.gts]
 import Outer from '#app/templates/outer.gts';
 
 import type { Meta, StoryObj } from 'ember-storybook';
@@ -66,34 +51,31 @@ export default {
 export const Default: StoryObj = {};
 ```
 
-There is no router and no URL behind a route story, so what `{{outlet}}` renders is
-a choice — see the next section. By default it is a **hole**: nothing at all,
-exactly what the template shows in the app when the route has no active child.
-
 > [!TIP] Colocate outside the router's own directories
 >
 > This story sits next to its template. That is fine, but note the demo's
-> `app.ts` registers templates with an *eager* glob
+> `app.ts` registers templates with an _eager_ glob
 > (`import.meta.glob('./templates/**/*')`), so it excludes `*.stories.*` —
 > otherwise a story file would be registered as a bogus route template and pull
 > Storybook's code into the app bundle.
 
-## The Ember toolbar menu
+## The Ember Toolbar Menu
 
-The framework contributes an **Ember** menu to the Storybook toolbar that decides
-how every route story renders `{{outlet}}`:
+`ember-storybook` contributes an **Ember** menu to the Storybook toolbar that decides
+how every route story renders <code v-pre>{{outlet}}</code>:
 
-| Menu item    | `{{outlet}}` renders                                        |
-| ------------ | ----------------------------------------------------------- |
-| `Hole`       | nothing (the default)                                        |
-| `Placeholder` | the framework's `OutletPlaceholder` marker component        |
+| Menu item     | <code v-pre>{{outlet}}</code> renders                                  |
+| ------------- | ---------------------------------------------------------------------- |
+| `Hole`        | nothing (the default)                                                  |
+| `Placeholder` | the `OutletPlaceholder` marker component provided by `ember-storybook` |
 
 It is a plain Storybook global (key `outlet`), so it is shared across stories,
 survives reloads through the URL (`&globals=outlet:placeholder`), and can be
 declared as a story or meta `globals` to pin it:
 
-```glimmer-ts
-// Deterministic regardless of how the toolbar is set.
+```glimmer-ts [route.stories.gts]
+import type { StoryObj } from 'ember-storybook';
+
 export const EmptyOutlet: StoryObj = {
   globals: {
     outlet: 'hole'
@@ -101,31 +83,25 @@ export const EmptyOutlet: StoryObj = {
 };
 ```
 
-Story-level `globals` win over the toolbar (that is how Storybook resolves
-globals), which is what makes the assertions above reliable.
+The default value is `hole`. To change it globally, use the `initialGlobals` preview configuration by storybook.
 
-It ships from the framework's own preview annotation, so projects get the menu
-without configuration. To change the starting value, a project can declare its
-own:
+```typescript [.storybook/preview.ts]
+import type { Preview } from 'ember-storybook';
 
-```typescript
-// .storybook/preview.ts
 export default {
-  initialGlobals: { outlet: 'placeholder' }
+  initialGlobals: { outlet: 'placeholder' },
 } satisfies Preview;
 ```
 
-Toggling the menu on a **non-route** story does not remount it — the renderer
-ignores that global unless the story opted into `ember.route`, so a component's
-tracked state survives.
-
-## `@model` and `@controller` are the only inputs
+## `@model` and `@controller` Are the Only Inputs
 
 A route template receives only `@model` and `@controller`, because that is all
-`{{outlet}}` passes down. Ordinary args do not reach it, so a route story drives
+<code v-pre>{{outlet}}</code> passes down. Ordinary args do not reach it, so a route story drives
 its template through those two args, and Controls work on the model object:
 
-```glimmer-ts
+```glimmer-ts [route.stories.gts]
+import type { StoryObj } from 'ember-storybook';
+
 export const WithModel: StoryObj = {
   args: {
     model: { title: 'Anything the model hook would return' }
@@ -136,14 +112,16 @@ export const WithModel: StoryObj = {
 `parameters.ember.route.model` / `.controller` override the args if a story needs a
 fixed value.
 
-## Labelling the stub
+## Labelling the Stub
 
 The toolbar's `Placeholder` renders an unlabelled marker. When a story needs to say
-*which* child route would render there, give `route.outlet` a template — an
+_which_ child route would render there, give `route.outlet` a template — an
 explicit stub is author intent and **wins over the toolbar in both directions**:
 
-```glimmer-ts
+```glimmer-ts [route.stories.gts]
 import { OutletPlaceholder } from 'ember-storybook';
+
+import type { StoryObj } from 'ember-storybook';
 
 export const MarkedOutlet: StoryObj = {
   parameters: {
@@ -160,8 +138,8 @@ export const MarkedOutlet: StoryObj = {
 };
 ```
 
-The stub is a *route template* too, so it also receives only `@model` /
-`@controller`, and its own `{{outlet}}` is a hole: one level only. Ember has no
+The stub is a _route template_ too, so it also receives only `@model` /
+`@controller`, and its own <code v-pre>{{outlet}}</code> is a hole: one level only. Ember has no
 named outlets, so there is nothing else to stub.
 
 ## Reference
@@ -189,7 +167,7 @@ globals: {
 }
 ```
 
-Precedence for `{{outlet}}`:
+Precedence for <code v-pre>{{outlet}}</code>:
 
 1. `parameters.ember.route.outlet.template` — explicit stub, always wins.
 2. `outlet` global (`'placeholder'` → marker, `'hole'`/unset → nothing).
