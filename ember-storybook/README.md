@@ -1,67 +1,138 @@
 # Storybook for Ember
 
-Storybook for Ember is a UI development environment for your Ember components.
-With it, you can visualize different states of your UI components and develop them interactively.
+Develop, document, and test your UI components in isolation. A workshop for your components.
 
-![Storybook Screenshot](https://github.com/storybookjs/storybook/blob/main/media/storybook-intro.gif)
+`ember-storybook` is a [Storybook](https://storybook.js.org) framework for modern Ember apps.
 
-Storybook runs outside of your app.
-So you can develop UI components in isolation without worrying about app specific dependencies and requirements.
+- **Controls from your signatures.** Controls and Signature are generated from the component itself.
+- **Stories, tests, docs — one source.** The same story feeds the docs page, the play function, and Vitest
+  browser tests.
+- **Route stories included.** Templates with `{{outlet}}` are a first-class story type.
+
+## Requirements
+
+- ember v6.8
+- storybook v10
+
+## Installation
+
+```sh
+pnpm add -D storybook ember-storybook
+```
 
 ## Getting Started
 
-For more information visit: [storybook.js.org](https://storybook.js.org?ref=readme)
+Add the two config files, then write a story next to your component.
 
----
-
-Storybook also comes with a lot of [addons](https://storybook.js.org/addons?ref=readme) and a great API to customize as you wish.
-You can also build a [static version](https://storybook.js.org/docs/sharing/publish-storybook?renderer=ember&ref=readme) of your Storybook and deploy it anywhere you want.
-
-## Docs
-
-- [Basics](https://storybook.js.org/docs/get-started/install?renderer=ember&ref=readme)
-- [Configurations](https://storybook.js.org/docs/configure?renderer=ember&ref=readme)
-- [Addons](https://storybook.js.org/docs/configure/user-interface/storybook-addons?renderer=ember&ref=readme)
-
-## CSF Next
-
-This framework supports the [CSF Next factory syntax](https://storybook.js.org/docs/api/csf/csf-next)
-alongside classic CSF. Wire up `defineMain` and `definePreview`, then build
-stories from `preview.meta()` — story `args` are inferred from the component's
-Ember signature:
+**`.storybook/main.ts`**
 
 ```ts
-// .storybook/main.ts
-import { defineMain } from 'ember-storybook/node';
+import type { StorybookConfig } from 'ember-storybook';
 
-export default defineMain({
-  stories: ['../**/*.stories.g(j|t)s'],
-  addons: ['@storybook/addon-docs']
-});
+const config: StorybookConfig = {
+  stories: ['../app/**/*.stories.g(j|t)s'],
+  framework: 'ember-storybook',
+};
+
+export default config;
 ```
 
-```ts
-// .storybook/preview.ts
-import { definePreview } from 'ember-storybook';
-import addonDocs from '@storybook/addon-docs';
+**`.storybook/preview.ts`**
 
-export default definePreview({
-  addons: [addonDocs()],
+```ts
+import { createApp } from '../app/app';
+
+import type { Preview } from 'ember-storybook';
+
+const preview: Preview = {
   parameters: {
-    ember: { app: createApp }
-  }
-});
+    ember: {
+      app: createApp,
+    },
+  },
+};
+
+export default preview;
 ```
+
+An empty App is booted by default, but you can set it yourself — pass an `Application`, an
+`ApplicationInstance`, or a factory function returning one.
+
+**`app/components/button.stories.gts`**
 
 ```gts
-// button.stories.gts
-import preview from '../.storybook/preview';
-import { Button } from './button.gts';
+import Button from './button.gts';
 
-const meta = preview.meta({ component: Button });
+import type { Meta, StoryObj } from 'ember-storybook';
 
-export const Primary = meta.story({ args: { label: 'Click me' } });
-export const Small = Primary.extend({ args: { size: 'small' } });
+export default {
+  title: 'Example/Button',
+  component: Button,
+} satisfies Meta;
+
+export const Basic: StoryObj = {
+  args: {
+    intent: 'action',
+  },
+};
 ```
 
-Learn more about Storybook at [storybook.js.org](https://storybook.js.org/?ref=readme).
+The component is rendered with every arg passed down as a named argument (`@intent`) — no render function
+needed.
+
+Add the scripts and run it:
+
+```json
+{
+  "scripts": {
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  }
+}
+```
+
+```sh
+pnpm storybook
+```
+
+## Documentation
+
+Full documentation lives at **[ember-integrations.github.io/ember-storybook](https://ember-integrations.github.io/ember-storybook/)**.
+
+Getting Started
+
+- **[Install & First Story](https://ember-integrations.github.io/ember-storybook/getting-started)** — requirements, install, and the two config files
+
+Guide
+
+- **[Writing Stories](https://ember-integrations.github.io/ember-storybook/guide/writing-stories)** — args, controls, and both CSF dialects (CSF v3 and CSF Next)
+- **[Decorators](https://ember-integrations.github.io/ember-storybook/guide/decorators)** — wrap stories with context and layout
+- **[Route Stories](https://ember-integrations.github.io/ember-storybook/guide/route-stories)** — stories for route templates and `{{outlet}}`
+- **[App Context & Globals](https://ember-integrations.github.io/ember-storybook/guide/context-and-globals)** — `app`, `owner`, `configure`, and `updateGlobals`
+- **[Auto-Docs](https://ember-integrations.github.io/ember-storybook/guide/auto-docs)** — docs pages generated from your component signatures
+- **[Testing](https://ember-integrations.github.io/ember-storybook/guide/testing)** — turn stories into Vitest browser tests and play functions
+- **[Sharing & Deploying](https://ember-integrations.github.io/ember-storybook/guide/sharing)** — build a static Storybook and ship it anywhere
+- **[Migrating](https://ember-integrations.github.io/ember-storybook/configuration/migration)** — moving from `@storybook/ember` to `ember-storybook`
+
+Config
+
+- **[`main.ts`](https://ember-integrations.github.io/ember-storybook/configuration/main-ts)** — build configuration and available addons
+- **[Ember Parameters](https://ember-integrations.github.io/ember-storybook/configuration/ember-parameters)** — every option under `parameters.ember`
+
+## References
+
+### Ember
+
+- [Ember Guides](https://guides.emberjs.com/) — the official guides
+- [Ember API](https://api.emberjs.com/) — `Application`, `ApplicationInstance`, and the rest of the API
+- [Glimmer components](https://guides.emberjs.com/release/components/built-in-components/)
+
+### Storybook
+
+- [Storybook](https://storybook.js.org) — homepage
+- [Write stories](https://storybook.js.org/docs/writing-stories) — CSF, args, decorators
+- [Write tests](https://storybook.js.org/docs/writing-tests) — play functions and `@storybook/addon-vitest`
+
+## License
+
+[MIT](https://github.com/ember-integrations/ember-storybook/blob/main/LICENSE)
