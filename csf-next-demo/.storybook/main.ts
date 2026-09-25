@@ -5,10 +5,7 @@ export default defineMain({
 
   addons: ['@storybook/addon-docs', '@storybook/addon-vitest', 'storybook-addon-test-codegen'],
 
-  framework: {
-    name: 'ember-storybook',
-    options: {}
-  },
+  framework: 'ember-storybook',
 
   core: {
     disableWhatsNewNotifications: true
