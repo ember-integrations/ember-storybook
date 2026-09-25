@@ -11,6 +11,7 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   srcExclude: ["adrs/**"],
+  base: "/ember-storybook/",
 
   markdown: {
     config(md) {
