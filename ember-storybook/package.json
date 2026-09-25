@@ -87,9 +87,7 @@
     "typedoc-plugin-ember": "workspace:*"
   },
   "peerDependencies": {
-    "@glimmer/component": "^2.1.1",
-    "ember-source": ">=6.8.0",
-    "storybook": "^10.5.0",
+    "storybook": "^10.0.0",
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
   },
   "devDependencies": {

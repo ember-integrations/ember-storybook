@@ -105,18 +105,19 @@ every fix**. Three test layers:
    (`storybookScript: 'pnpm storybook --no-open'`).
 3. **Packaged-consumer build** — CI job `packaged-consumer` in
    `.github/workflows/ci.yml`: re-installs the workspace with
-   `pnpm install --config.inject-workspace-packages=true` (pnpm injects
-   workspace deps as real installed package copies — `files`-filtered, own
-   `node_modules`, consumer-resolved peers — like a published tarball, not a
-   symlink to source), then runs `pnpm --filter demo build-storybook`. Guard
-   for anything only a _published_ consumer hits (e.g. bare `@ember/*` imports
-   in manager-reachable `dist/` chunks breaking Storybook's esbuild manager
+   `pnpm install --config.inject-workspace-packages=true --config.dedupe-injected-deps=false`
+   (pnpm injects workspace deps as real installed package copies —
+   `files`-filtered, own `node_modules`, consumer-resolved peers — like a
+   published tarball, not a symlink to source), then runs
+   `pnpm --filter demo build-storybook`. Guard for anything only a
+   _published_ consumer hits (e.g. bare `@ember/*` imports in
+   manager-reachable `dist/` chunks breaking Storybook's esbuild manager
    build). Local repro:
 
    ```bash
    pnpm build
-   pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
-   pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+   pnpm install --config.inject-workspace-packages=true --config.dedupe-injected-deps=false --no-frozen-lockfile
+   pnpm --config.inject-workspace-packages=true --config.dedupe-injected-deps=false --filter demo build-storybook
    pnpm install   # back to the symlinked dev layout
    ```
 
@@ -125,6 +126,10 @@ every fix**. Three test layers:
    in the lockfile, and a later `pnpm run` without the flag trips
    `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH` (CI, frozen) or silently re-links the
    dependency back to the workspace source (local), defeating the test.
+   Keep `--config.dedupe-injected-deps=false` as well: by default pnpm
+   dedupes injected copies back into workspace links whenever their
+   dependency graph matches the workspace project — which without this flag
+   turns every injected copy straight back into a symlink.
 
 **Policy:** While exploring a solution, skip lint/type. Run
 `lint:js` + `lint:types` only after the solution is finalized (they are slow).
