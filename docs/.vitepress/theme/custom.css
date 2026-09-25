@@ -1,0 +1,90 @@
+/*
+ * Brand palette: Storybook's official pink #FF4785 (storybookjs/brand "Coral").
+ * brand-3 (buttons, hero) is the raw brand color; brand-1/2 are darkened
+ * derivations so text and links meet WCAG AA on the white light-mode canvas.
+ */
+:root {
+  --vp-c-brand-1: #d6276b;
+  --vp-c-brand-2: #f03c7c;
+  --vp-c-brand-3: #ff4785;
+  --vp-c-brand-soft: rgba(255, 71, 133, 0.14);
+}
+
+.dark {
+  --vp-c-brand-1: #ff8fb2;
+  --vp-c-brand-2: #f0608f;
+  --vp-c-brand-3: #ff4785;
+  --vp-c-brand-soft: rgba(255, 71, 133, 0.18);
+}
+
+/*
+ * `:::csf` groups (docs/.vitepress/csfTabs.ts).
+ *
+ * Structure rendered:
+ *   .csf-tabs
+ *     PluginTabs (variant="code")   -> .plugin-tabs > .plugin-tabs--tab-list + slot
+ *       .csf-file-bar               -> Storybook-style filename header
+ *       PluginTabsTab (panel)       -> .plugin-tabs--content: prose + code cards
+ *
+ * All rules are scoped to .csf-tabs so vitepress-plugin-tabs' own `:::tabs`
+ * rendering stays untouched.
+ */
+
+.csf-tabs {
+  margin: 16px 0;
+}
+
+.csf-tabs .plugin-tabs {
+  margin: 0;
+}
+
+/* filename bar sits flush under the tab strip */
+.csf-tabs .csf-file-bar {
+  margin: 0;
+}
+
+.csf-tabs .csf-file-bar .vp-code-block-title-bar {
+  margin-top: 0;
+}
+
+/* the active panel continues the code card: same surface, full-bleed on mobile */
+.csf-tabs .plugin-tabs--content {
+  background-color: var(--vp-code-block-bg);
+  border-radius: 0 0 8px 8px;
+}
+
+/*
+ * prose inside a panel: the plugin zeroes the panel padding for code content,
+ * so text children carry their own spacing instead
+ */
+.csf-tabs .plugin-tabs--content> :not(div[class*="language-"]):not(.vp-code-block-title) {
+  padding-inline: 24px;
+}
+
+html .csf-tabs .plugin-tabs--content> :first-child:not([class*="language-"]):not(.vp-code-block-title) {
+  padding-top: 20px;
+}
+
+html .csf-tabs .plugin-tabs--content> :last-child:not([class*="language-"]):not(.vp-code-block-title) {
+  margin-bottom: 20px;
+}
+
+.csf-tabs .plugin-tabs--content>*+div[class*="language-"] {
+  border-top: 1px solid var(--vp-code-tab-divider);
+}
+
+.csf-file-bar>.vp-code-block-title-bar {
+  border-radius: 0;
+}
+
+/*
+ * the plugin full-bleeds direct code children with `margin: 0 -24px !important`
+ * on mobile; here the panel itself carries the bleed, so the code sits flush
+ * inside it at every width
+ */
+@media (min-width: 640px) {
+  .csf-tabs .plugin-tabs--content>div[class*="language-"] {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+  }
+}

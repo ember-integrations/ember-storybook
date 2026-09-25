@@ -10,10 +10,7 @@ const config: StorybookConfig = {
     'storybook-addon-test-codegen'
   ],
 
-  framework: {
-    name: 'ember-storybook',
-    options: {}
-  },
+  framework: 'ember-storybook',
 
   features: {},
 

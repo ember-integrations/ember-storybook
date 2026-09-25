@@ -2,13 +2,21 @@
   "private": true,
   "repository": "https://github.com/ember-integrations/ember-storybook",
   "author": "gossi",
+  "type": "module",
   "scripts": {
-    "build": "pnpm run -r build"
+    "build": "pnpm run -r build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "@playwright/mcp": "^0.0.79",
+    "markdown-it-container": "^4.0.0",
     "playwright": "^1.62.1",
-    "release-plan": "^0.18.0"
+    "release-plan": "^0.18.0",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-group-icons": "^1.7.6",
+    "vitepress-plugin-tabs": "^0.9.1"
   },
   "packageManager": "pnpm@11.6.0",
   "engines": {
