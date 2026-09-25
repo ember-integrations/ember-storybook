@@ -5,13 +5,13 @@ monorepo that ships a Storybook framework for Ember components.
 
 ## Workspace layout
 
-| Path | Purpose |
-| --- | --- |
-| `ember-storybook/` | The addon / Storybook framework (the thing being developed) |
-| `demo/` | Ember app + Storybook + tests used to exercise the addon (classic CSF) |
-| `csf-next-demo/` | Minimal two-component demo using the CSF Next factory syntax |
-| `packages/ember-docgen/` | TypeDoc-based docs extraction addon |
-| `packages/typedoc-plugin-ember/` | TypeDoc plugin for Ember |
+| Path                             | Purpose                                                                |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| `ember-storybook/`               | The addon / Storybook framework (the thing being developed)            |
+| `demo/`                          | Ember app + Storybook + tests used to exercise the addon (classic CSF) |
+| `csf-next-demo/`                 | Minimal two-component demo using the CSF Next factory syntax           |
+| `packages/ember-docgen/`         | TypeDoc-based docs extraction addon                                    |
+| `packages/typedoc-plugin-ember/` | TypeDoc plugin for Ember                                               |
 
 ### Critical: how the demo loads the addon
 
@@ -20,8 +20,7 @@ monorepo that ships a Storybook framework for Ember components.
 `package.json` `exports` map points at **built** files: `./dist/*.mjs` and
 `./declarations/*.d.ts`. It never imports `src/` directly.
 
-**⇒ Editing `ember-storybook/src/**` has no effect on the demo until the addon
-is rebuilt (`dist/` regenerated).** Always rebuild before expecting the demo to
+**⇒ Editing `ember-storybook/src/**` has no effect on the demo until the addon is rebuilt (`dist/` regenerated).\*\* Always rebuild before expecting the demo to
 reflect a change.
 
 ## Command toolset
@@ -85,10 +84,10 @@ classic CSF. The two demos share the same addon build; keep both green.
    `build` once.
 3. Reload / restart depending on which addon tier changed:
 
-| Addon tier | Files | How to see the change |
-| --- | --- | --- |
-| **Client** | `src/client/**` (notably `render.ts`) | Rebuild, then reload the browser / navigate fresh in MCP (Vite may not HMR linked-package `dist/` reliably) |
-| **Node** | `src/preset.ts`, `src/node/**`, indexer, vite plugins | Loaded at Storybook startup → **restart the Storybook dev server** |
+| Addon tier | Files                                                 | How to see the change                                                                                       |
+| ---------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Client** | `src/client/**` (notably `render.ts`)                 | Rebuild, then reload the browser / navigate fresh in MCP (Vite may not HMR linked-package `dist/` reliably) |
+| **Node**   | `src/preset.ts`, `src/node/**`, indexer, vite plugins | Loaded at Storybook startup → **restart the Storybook dev server**                                          |
 
 ## Testing & regression prevention
 
@@ -110,7 +109,7 @@ every fix**. Three test layers:
    workspace deps as real installed package copies — `files`-filtered, own
    `node_modules`, consumer-resolved peers — like a published tarball, not a
    symlink to source), then runs `pnpm --filter demo build-storybook`. Guard
-   for anything only a *published* consumer hits (e.g. bare `@ember/*` imports
+   for anything only a _published_ consumer hits (e.g. bare `@ember/*` imports
    in manager-reachable `dist/` chunks breaking Storybook's esbuild manager
    build). Local repro:
 
@@ -129,6 +128,13 @@ every fix**. Three test layers:
 
 **Policy:** While exploring a solution, skip lint/type. Run
 `lint:js` + `lint:types` only after the solution is finalized (they are slow).
+
+## Docs site (VitePress, `docs/`)
+
+```bash
+pnpm docs:dev      # dev server (add --port; default 5173)
+pnpm docs:build    # static build -> docs/.vitepress/dist
+```
 
 ## GitHub / issues workflow
 
