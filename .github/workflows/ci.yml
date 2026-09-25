@@ -63,15 +63,18 @@ jobs:
       # Reproduces e.g. the #58 manager leak: bare `@ember/*` imports in
       # manager-reachable chunks fail Storybook's esbuild manager build.
       - name: Re-install with injected workspace dependencies
-        run: pnpm install --config.inject-workspace-packages=true --no-frozen-lockfile
-      # The flag must stay on every later pnpm call: the recorded lockfile
+        run: pnpm install --config.inject-workspace-packages=true --config.dedupe-injected-deps=false --no-frozen-lockfile
+      # Both flags must stay on every later pnpm call: the recorded lockfile
       # setting would otherwise fail (or silently undo) the pre-run dep check.
+      # `dedupe-injected-deps` must stay false: it rewrites injected copies
+      # back into workspace links whenever their dependency graph matches the
+      # workspace project, which would silently defeat the assertion below.
       - name: Build Storybook as a consumer would
-        run: pnpm --config.inject-workspace-packages=true --filter demo build-storybook
+        run: pnpm --config.inject-workspace-packages=true --config.dedupe-injected-deps=false --filter demo build-storybook
       # The CSF Next factory syntax must survive a published-package install too
       # (its preview annotations bypass the preset, so resolution differs).
       - name: Build the CSF Next Storybook as a consumer would
-        run: pnpm --config.inject-workspace-packages=true --filter csf-next-demo build-storybook
+        run: pnpm --config.inject-workspace-packages=true --config.dedupe-injected-deps=false --filter csf-next-demo build-storybook
       - name: Assert the build used the injected copy, not a workspace symlink
         run: |
           test "$(readlink -f demo/node_modules/ember-storybook)" != "$PWD/ember-storybook"
