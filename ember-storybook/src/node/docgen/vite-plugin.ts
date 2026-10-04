@@ -131,6 +131,7 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
     name: 'ember-storybook:signatures',
 
     async buildStart() {
+      await api.storyFilesReady();
       discoverAll();
 
       const allPaths = [...new Set(Array.from(state.storyToRef.values(), (r) => r.componentPath))];
