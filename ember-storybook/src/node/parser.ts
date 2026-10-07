@@ -8,7 +8,14 @@ import { loadCsf, type StaticMeta, type StaticStory } from 'storybook/internal/c
 
 import { Default, type ExportedName, normalizeFilePath } from './shared';
 
-import type { ExportSpecifier, Program, VariableDeclarator } from 'oxc-parser';
+import type {
+  AssignmentTargetProperty,
+  BindingProperty,
+  ExportSpecifier,
+  ObjectProperty,
+  Program,
+  VariableDeclarator
+} from 'oxc-parser';
 
 /**
  * A map with contents of a component file:
@@ -234,6 +241,11 @@ function resolveLocalComponentFile(storyPath: string, source: string): string | 
   return existsSync(resolved) ? normalizeFilePath(resolved) : undefined;
 }
 
+/** Whether an object property is a `render` (`render: …` or `render() { … }`). */
+function isRenderKey(node: ObjectProperty | AssignmentTargetProperty | BindingProperty): boolean {
+  return !node.computed && node.key.type === 'Identifier' && node.key.name === 'render';
+}
+
 /**
  * Parse a story file and return metadata about the component it references,
  * including template sources for each named story export.
@@ -244,6 +256,11 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   // ── 1. CSF parsing — gives meta, story IDs, local names ──
   let meta: StaticMeta | undefined = {};
   let stories: (StaticStory & { inlineTemplate?: string })[] = [];
+  // The meta's variable (`const meta = preview.meta({ … })`), whether the meta
+  // has a `render`, and the annotations each story export sets itself.
+  let metaVariableName: string | undefined;
+  let metaHasRender = false;
+  let storyAnnotations: Record<string, Record<string, unknown> | undefined> = {};
 
   try {
     const csf = loadCsf(processedCode, {
@@ -254,6 +271,9 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
     meta = parsed.meta;
     stories = parsed.stories;
+    metaVariableName = csf._metaVariableName;
+    metaHasRender = Object.hasOwn(csf._metaAnnotations, 'render');
+    storyAnnotations = csf._storyAnnotations;
   } catch {
     // CSF parsing failed — return partial result
   }
@@ -262,6 +282,19 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   const program = parseProcessedCode(processedCode, storyPath);
   const importMap = new Map<string, { source: string; importedName: string | undefined }>();
   const exportStack: ((StaticStory & { inlineTemplate?: string }) | undefined)[] = [];
+  const storiesByExport = new Map<string, StaticStory & { inlineTemplate?: string }>();
+  // `export const RTL = LTR.extend({ … })` → RTL → LTR
+  const extendedStories = new Map<string, string>();
+  // Inside the meta's declaration (`export default { … }` or the meta variable),
+  // and inside its `render`
+  let metaDepth = 0;
+  let metaRenderDepth = 0;
+  let metaTemplate: string | undefined;
+
+  const isMetaDeclarator = (node: VariableDeclarator) =>
+    metaVariableName !== undefined &&
+    node.id.type === 'Identifier' &&
+    node.id.name === metaVariableName;
 
   const visitor = new Visitor({
     ImportDeclaration(node) {
@@ -293,6 +326,21 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       const suffix = `--${sanitize(storyNameFromExport(name))}`;
       const story = stories.find((s) => (s.localName ?? s.name) === name || s.id.endsWith(suffix));
 
+      if (story) storiesByExport.set(name, story);
+
+      const init = first.init;
+
+      if (
+        init?.type === 'CallExpression' &&
+        init.callee.type === 'MemberExpression' &&
+        !init.callee.computed &&
+        init.callee.object.type === 'Identifier' &&
+        init.callee.property.type === 'Identifier' &&
+        init.callee.property.name === 'extend'
+      ) {
+        extendedStories.set(name, init.callee.object.name);
+      }
+
       exportStack.push(story);
     },
 
@@ -300,10 +348,31 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       exportStack.pop();
     },
 
-    CallExpression(node) {
-      const currentStory = exportStack.at(-1);
+    ExportDefaultDeclaration() {
+      metaDepth++;
+    },
 
-      if (!currentStory || currentStory.inlineTemplate) return;
+    'ExportDefaultDeclaration:exit'() {
+      metaDepth--;
+    },
+
+    VariableDeclarator(node) {
+      if (isMetaDeclarator(node)) metaDepth++;
+    },
+
+    'VariableDeclarator:exit'(node) {
+      if (isMetaDeclarator(node)) metaDepth--;
+    },
+
+    Property(node) {
+      if (metaDepth > 0 && isRenderKey(node)) metaRenderDepth++;
+    },
+
+    'Property:exit'(node) {
+      if (metaDepth > 0 && isRenderKey(node)) metaRenderDepth--;
+    },
+
+    CallExpression(node) {
       if (node.callee.type !== 'Identifier') return;
       if (!node.callee.name.startsWith('template_')) return;
       if (node.arguments.length === 0) return;
@@ -314,11 +383,45 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
       const raw = firstArg.quasis[0]?.value?.raw;
 
-      if (raw) currentStory.inlineTemplate = raw;
+      if (!raw) return;
+
+      if (metaDepth > 0) {
+        if (metaRenderDepth > 0) metaTemplate ??= raw;
+
+        return;
+      }
+
+      const currentStory = exportStack.at(-1);
+
+      if (currentStory && !currentStory.inlineTemplate) currentStory.inlineTemplate = raw;
     }
   });
 
   visitor.visit(program);
+
+  // A story without its own `render` renders the one it inherits: from the
+  // story it `extend()`s, or else from the meta. Show that template too.
+  const inheritedTemplate = (name: string, seen: Set<string>): string | undefined => {
+    const story = storiesByExport.get(name);
+
+    if (story?.inlineTemplate) return story.inlineTemplate;
+    // Its own render has no template (e.g. it returns a component): nothing to show.
+    if (storyAnnotations[name]?.render) return undefined;
+
+    const base = extendedStories.get(name);
+
+    if (base && !seen.has(base)) {
+      seen.add(base);
+
+      return inheritedTemplate(base, seen);
+    }
+
+    return metaHasRender ? metaTemplate : undefined;
+  };
+
+  for (const [name, story] of storiesByExport) {
+    story.inlineTemplate ??= inheritedTemplate(name, new Set([name]));
+  }
 
   // ── 3. Resolve component ──
   const localComponentName = meta.component;
