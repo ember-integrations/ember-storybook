@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { componentSource, resolveTemplateArgs } from '../client/docs/source-code';
 import { resolveTsconfigBase, runTypeDoc } from './docgen/docgen';
 import { parseStoryFile, type StoryFile } from './parser';
+import { Default } from './shared';
 
 import type { BlockInfo, BlockParam, ComponentSignature } from 'ember-docgen';
 import type { ComponentManifest, ComponentsManifest, IndexEntry } from 'storybook/internal/types';
@@ -165,12 +167,20 @@ export async function buildComponentsManifest(entries: IndexEntry[]): Promise<Co
     const signatureName = parsed?.component.signatureName;
     const signature =
       componentFile && signatureName ? signatures.get(componentFile)?.[signatureName] : undefined;
-    const name = parsed?.component.name ?? first.title.split('/').at(-1) ?? id;
+    // Only a default export's real name needs the component file; any other
+    // export is invoked by its signature name.
+    const name =
+      parsed?.component.name ??
+      (signatureName && signatureName !== Default ? signatureName : undefined) ??
+      parsed?.meta.component ??
+      first.title.split('/').at(-1) ??
+      id;
 
     components[id] = {
       id,
       name,
       path: file,
+      description: parsed?.docs.description,
       import: componentFile ? importStatement(componentFile, name) : undefined,
       apiDescription: signature ? apiDescription(signature) : undefined,
       jsDocTags: {},
@@ -178,8 +188,13 @@ export async function buildComponentsManifest(entries: IndexEntry[]): Promise<Co
         .filter((entry) => entry.type === 'story')
         .map((entry) => {
           const story = parsed?.stories.find((candidate) => candidate.id === entry.id);
+          const docs = parsed?.docs.stories[entry.id];
+          const args = { ...parsed?.docs.args, ...docs?.args };
+          const snippet = story?.inlineTemplate
+            ? resolveTemplateArgs(story.inlineTemplate, args)
+            : componentSource(name, signature, args, {});
 
-          return { id: entry.id, name: entry.name, snippet: story?.inlineTemplate };
+          return { id: entry.id, name: entry.name, description: docs?.description, snippet };
         })
     };
   }
