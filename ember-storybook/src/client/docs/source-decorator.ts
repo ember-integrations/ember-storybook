@@ -107,9 +107,11 @@ export function generateBlockSourceCode(
   return blocks.join('\n');
 }
 
-let byStoryId: Record<string, StorySource> | undefined;
+type StoryLookup = StorySource & { componentFile?: string };
 
-function getByStoryId(): Record<string, StorySource> {
+let byStoryId: Record<string, StoryLookup> | undefined;
+
+function getByStoryId(): Record<string, StoryLookup> {
   if (byStoryId) return byStoryId;
 
   byStoryId = {};
@@ -119,7 +121,8 @@ function getByStoryId(): Record<string, StorySource> {
       byStoryId[storyId] = {
         componentName: source.componentName,
         signatureName: source.signatureName,
-        inlineTemplate: source.inlineTemplate
+        inlineTemplate: source.inlineTemplate,
+        componentFile: entry.component?.file
       };
     }
   }
@@ -127,18 +130,19 @@ function getByStoryId(): Record<string, StorySource> {
   return byStoryId;
 }
 
-function signatureForComponent(name: string): ComponentSignature | undefined {
-  for (const entry of Object.values(data)) {
-    const comp = entry.component;
+/**
+ * The signature of the component a story renders, from that component's own
+ * file: every default export has the same `__DEFAULT__` signature name.
+ */
+function signatureForStory(
+  story: StoryLookup | undefined,
+  name: string
+): ComponentSignature | undefined {
+  const file = story?.componentFile;
 
-    if (comp?.signatureName !== name) continue;
+  if (!file || !Object.hasOwn(data, file)) return undefined;
 
-    const compEntry = comp.file ? data[comp.file] : undefined;
-
-    return compEntry?.signatures?.[comp.signatureName];
-  }
-
-  return undefined;
+  return data[file].signatures?.[story.signatureName ?? name];
 }
 
 export function resolveTemplateArgs(template: string, args: Args): string {
@@ -176,10 +180,7 @@ export function generateSource(
     return undefined;
   }
 
-  // Default-exported components are keyed by the `__DEFAULT__` sentinel in the
-  // signatures map, while `name` is the real component name. Look the signature
-  // up by the sentinel so blocks/args still resolve.
-  const sig = signatureForComponent(meta?.signatureName ?? name);
+  const sig = signatureForStory(meta, name);
 
   const propsArray = Object.entries(args)
     .filter(([k]) => !sig || !Object.hasOwn(sig.blocks, k))
