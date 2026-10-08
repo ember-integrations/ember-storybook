@@ -185,7 +185,8 @@ export async function buildComponentsManifest(entries: IndexEntry[]): Promise<Co
       apiDescription: signature ? apiDescription(signature) : undefined,
       jsDocTags: {},
       stories: group
-        .filter((entry) => entry.type === 'story')
+        // `Story.test(...)` entries are tests of their parent story, not examples.
+        .filter((entry) => entry.type === 'story' && entry.subtype !== 'test')
         .map((entry) => {
           const story = parsed?.stories.find((candidate) => candidate.id === entry.id);
           const docs = parsed?.docs.stories[entry.id];
