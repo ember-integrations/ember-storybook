@@ -77,21 +77,27 @@ export function generateBlockSourceCode(
   return blocks.join('\n');
 }
 
+/**
+ * Fill a story template's `{{args.name}}` with the story's values: as an
+ * attribute or argument value (`@name="Ada"`) or as text (`Hello, Ada`).
+ */
 export function resolveTemplateArgs(template: string, args: Args): string {
-  return template.replaceAll(/\{\{args\.(\w+)\}\}/g, (_match, key) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const value = (args as Record<string, unknown>)[key];
+  return template.replaceAll(
+    /(=)?\{\{args\.(\w+)\}\}/g,
+    (_match, assign: string | undefined, key: string) => {
+      const value = (args as Record<string, unknown>)[key];
 
-    if (typeof value === 'string') {
-      return JSON.stringify(value);
+      if (typeof value === 'string') {
+        return assign ? `=${JSON.stringify(value)}` : value;
+      }
+
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        return assign ? `={{${String(value)}}}` : String(value);
+      }
+
+      return `${assign ?? ''}{{@${key}}}`;
     }
-
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return `{{${String(value)}}}`;
-    }
-
-    return `{{@${key}}}`;
-  });
+  );
 }
 
 /** An invocation of the component with the given args, for a story without its own template. */
