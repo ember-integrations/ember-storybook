@@ -50,6 +50,41 @@ vi.mock('virtual:ember-storybook', () => {
         component: { signatureName: 'Button' },
         source: { 'test--actions': { componentName: 'Button' } }
       },
+      // Two default exports: each must get its own signature, not the first
+      // `__DEFAULT__` one.
+      '/test/with-block.stories.gts': {
+        component: { file: '/test/with-block.gts', signatureName: '__DEFAULT__' },
+        source: { 'test--with-block': { componentName: 'List', signatureName: '__DEFAULT__' } }
+      },
+      '/test/with-block.gts': {
+        signatures: {
+          __DEFAULT__: {
+            args: {},
+            blocks: {
+              default: {
+                params: [{ name: 'item', type: 'string', description: '' }],
+                description: ''
+              }
+            },
+            element: undefined,
+            style: { customProperties: {}, parts: {} }
+          }
+        }
+      },
+      '/test/no-block.stories.gts': {
+        component: { file: '/test/no-block.gts', signatureName: '__DEFAULT__' },
+        source: { 'test--no-block': { componentName: 'Breadcrumb', signatureName: '__DEFAULT__' } }
+      },
+      '/test/no-block.gts': {
+        signatures: {
+          __DEFAULT__: {
+            args: {},
+            blocks: { default: { params: [], description: '' } },
+            element: undefined,
+            style: { customProperties: {}, parts: {} }
+          }
+        }
+      },
       '/test/default.stories.gts': {
         component: { signatureName: '__DEFAULT__' },
         source: {
@@ -215,6 +250,15 @@ describe('generateSource', () => {
     );
 
     expect(result).toBe('<Button @label="Hello" />');
+  });
+});
+
+describe('generateSource with several default-exported components', () => {
+  test("uses the story's own component signature", () => {
+    expect(generateSource({}, { label: 'Home' }, { label: {} }, 'test--no-block')).toBe(
+      '<Breadcrumb @label="Home" />'
+    );
+    expect(generateSource({}, {}, {}, 'test--with-block')).toContain('<:default as |item|>');
   });
 });
 
