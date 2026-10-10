@@ -3,12 +3,19 @@ import path from 'node:path';
 
 import { Preprocessor } from 'content-tag';
 import { parseSync, Visitor } from 'oxc-parser';
-import { sanitize } from 'storybook/internal/csf';
+import { sanitize, storyNameFromExport } from 'storybook/internal/csf';
 import { loadCsf, type StaticMeta, type StaticStory } from 'storybook/internal/csf-tools';
 
 import { Default, type ExportedName, normalizeFilePath } from './shared';
 
-import type { ExportSpecifier, Program, VariableDeclarator } from 'oxc-parser';
+import type {
+  AssignmentTargetProperty,
+  BindingProperty,
+  ExportSpecifier,
+  ObjectProperty,
+  Program,
+  VariableDeclarator
+} from 'oxc-parser';
 
 /**
  * A map with contents of a component file:
@@ -234,6 +241,43 @@ function resolveLocalComponentFile(storyPath: string, source: string): string | 
   return existsSync(resolved) ? normalizeFilePath(resolved) : undefined;
 }
 
+/** Whether an object property is a `render` (`render: …` or `render() { … }`). */
+function isRenderKey(node: ObjectProperty | AssignmentTargetProperty | BindingProperty): boolean {
+  return !node.computed && node.key.type === 'Identifier' && node.key.name === 'render';
+}
+
+/**
+ * The local function a `render` refers to: `render: renderX` → `renderX`,
+ * `render: makeRender(…)` → `makeRender`.
+ */
+function referencedFunctionName(node: unknown): string | undefined {
+  let current = node;
+
+  // Unwrap calls, curried ones included: `makeRender(a)(b)` → `makeRender`
+  while (
+    typeof current === 'object' &&
+    current !== null &&
+    'type' in current &&
+    current.type === 'CallExpression' &&
+    'callee' in current
+  ) {
+    current = current.callee;
+  }
+
+  if (
+    typeof current === 'object' &&
+    current !== null &&
+    'type' in current &&
+    current.type === 'Identifier' &&
+    'name' in current &&
+    typeof current.name === 'string'
+  ) {
+    return current.name;
+  }
+
+  return undefined;
+}
+
 /**
  * Parse a story file and return metadata about the component it references,
  * including template sources for each named story export.
@@ -244,6 +288,11 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   // ── 1. CSF parsing — gives meta, story IDs, local names ──
   let meta: StaticMeta | undefined = {};
   let stories: (StaticStory & { inlineTemplate?: string })[] = [];
+  // The meta's variable (`const meta = preview.meta({ … })`), its `render`, and
+  // the annotations each story export sets itself.
+  let metaVariableName: string | undefined;
+  let metaRender: unknown;
+  let storyAnnotations: Record<string, Record<string, unknown> | undefined> = {};
 
   try {
     const csf = loadCsf(processedCode, {
@@ -254,6 +303,9 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
     meta = parsed.meta;
     stories = parsed.stories;
+    metaVariableName = csf._metaVariableName;
+    metaRender = csf._metaAnnotations.render;
+    storyAnnotations = csf._storyAnnotations;
   } catch {
     // CSF parsing failed — return partial result
   }
@@ -262,6 +314,37 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   const program = parseProcessedCode(processedCode, storyPath);
   const importMap = new Map<string, { source: string; importedName: string | undefined }>();
   const exportStack: ((StaticStory & { inlineTemplate?: string }) | undefined)[] = [];
+  const storiesByExport = new Map<string, StaticStory & { inlineTemplate?: string }>();
+  // `export const RTL = LTR.extend({ … })` → RTL → LTR
+  const extendedStories = new Map<string, string>();
+  // Inside the meta's declaration (`export default { … }` or the meta variable),
+  // and inside its `render`
+  let metaDepth = 0;
+  let metaRenderDepth = 0;
+  let metaTemplate: string | undefined;
+
+  // Top-level declarations a `render` can refer to (`function renderX(args) { … }`,
+  // `const makeRender = (…) => (args) => …`, a non-exported story), with the
+  // first template each contains.
+  const helpers: { name: string; start: number; end: number }[] = [];
+  const helperTemplates = new Map<string, string>();
+
+  for (const statement of program.body) {
+    if (statement.type === 'FunctionDeclaration' && statement.id) {
+      helpers.push({ name: statement.id.name, start: statement.start, end: statement.end });
+    } else if (statement.type === 'VariableDeclaration') {
+      for (const declarator of statement.declarations) {
+        if (declarator.id.type === 'Identifier') {
+          helpers.push({ name: declarator.id.name, start: declarator.start, end: declarator.end });
+        }
+      }
+    }
+  }
+
+  const isMetaDeclarator = (node: VariableDeclarator) =>
+    metaVariableName !== undefined &&
+    node.id.type === 'Identifier' &&
+    node.id.name === metaVariableName;
 
   const visitor = new Visitor({
     ImportDeclaration(node) {
@@ -288,8 +371,25 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       if (first.id.type !== 'Identifier') return;
 
       const name = (first.id as { name: string }).name;
-      const suffix = `--${sanitize(name)}`;
+      // Storybook builds the story id from the export name split into words
+      // (`WithLongName` -> `with-long-name`), not from the raw export name.
+      const suffix = `--${sanitize(storyNameFromExport(name))}`;
       const story = stories.find((s) => (s.localName ?? s.name) === name || s.id.endsWith(suffix));
+
+      if (story) storiesByExport.set(name, story);
+
+      const init = first.init;
+
+      if (
+        init?.type === 'CallExpression' &&
+        init.callee.type === 'MemberExpression' &&
+        !init.callee.computed &&
+        init.callee.object.type === 'Identifier' &&
+        init.callee.property.type === 'Identifier' &&
+        init.callee.property.name === 'extend'
+      ) {
+        extendedStories.set(name, init.callee.object.name);
+      }
 
       exportStack.push(story);
     },
@@ -298,10 +398,31 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       exportStack.pop();
     },
 
-    CallExpression(node) {
-      const currentStory = exportStack.at(-1);
+    ExportDefaultDeclaration() {
+      metaDepth++;
+    },
 
-      if (!currentStory || currentStory.inlineTemplate) return;
+    'ExportDefaultDeclaration:exit'() {
+      metaDepth--;
+    },
+
+    VariableDeclarator(node) {
+      if (isMetaDeclarator(node)) metaDepth++;
+    },
+
+    'VariableDeclarator:exit'(node) {
+      if (isMetaDeclarator(node)) metaDepth--;
+    },
+
+    Property(node) {
+      if (metaDepth > 0 && isRenderKey(node)) metaRenderDepth++;
+    },
+
+    'Property:exit'(node) {
+      if (metaDepth > 0 && isRenderKey(node)) metaRenderDepth--;
+    },
+
+    CallExpression(node) {
       if (node.callee.type !== 'Identifier') return;
       if (!node.callee.name.startsWith('template_')) return;
       if (node.arguments.length === 0) return;
@@ -312,11 +433,64 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
       const raw = firstArg.quasis[0]?.value?.raw;
 
-      if (raw) currentStory.inlineTemplate = raw;
+      if (!raw) return;
+
+      if (metaDepth > 0) {
+        if (metaRenderDepth > 0) metaTemplate ??= raw;
+
+        return;
+      }
+
+      const currentStory = exportStack.at(-1);
+
+      if (currentStory) {
+        currentStory.inlineTemplate ??= raw;
+
+        return;
+      }
+
+      const helper = helpers.find((h) => node.start >= h.start && node.end <= h.end);
+
+      if (helper && !helperTemplates.has(helper.name)) helperTemplates.set(helper.name, raw);
     }
   });
 
   visitor.visit(program);
+
+  // A `render` that refers to a helper (`render: renderX`, `render: makeRender(…)`)
+  const helperTemplate = (render: unknown) => {
+    const name = referencedFunctionName(render);
+
+    return name === undefined ? undefined : helperTemplates.get(name);
+  };
+
+  // A story renders its own `render`, or else the one it inherits: from the
+  // story it `extend()`s, or else from the meta. Show that template.
+  const inheritedTemplate = (name: string, seen: Set<string>): string | undefined => {
+    const story = storiesByExport.get(name);
+
+    if (story?.inlineTemplate) return story.inlineTemplate;
+    // A story declared without an export, extended by an exported one
+    if (!story && helperTemplates.has(name)) return helperTemplates.get(name);
+
+    const render = storyAnnotations[name]?.render;
+
+    if (render) return helperTemplate(render);
+
+    const base = extendedStories.get(name);
+
+    if (base && !seen.has(base)) {
+      seen.add(base);
+
+      return inheritedTemplate(base, seen);
+    }
+
+    return metaRender ? (metaTemplate ?? helperTemplate(metaRender)) : undefined;
+  };
+
+  for (const [name, story] of storiesByExport) {
+    story.inlineTemplate ??= inheritedTemplate(name, new Set([name]));
+  }
 
   // ── 3. Resolve component ──
   const localComponentName = meta.component;

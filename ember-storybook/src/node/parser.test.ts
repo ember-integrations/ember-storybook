@@ -226,6 +226,24 @@ export const LTR: StoryObj = {
     expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
   });
 
+  test('extracts inline template for a story with a multi-word export name', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import { Greeting } from './greeting.gts';
+export default { component: Greeting, title: 'Greetings' } satisfies Meta;
+export const WithLongName: StoryObj = {
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+};
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    // Storybook splits the export name into words for the id: `with-long-name`
+    const story = result.stories.find((s) => s.id === 'greetings--with-long-name');
+
+    expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
+  });
+
   test('handles stories without inline template', () => {
     using fix = tempFixture({
       'test.stories.gts': `
@@ -250,6 +268,30 @@ export const Plain: StoryObj = {
     const plain = findStory(result.stories, 'Plain');
 
     expect(plain?.inlineTemplate).toBeUndefined();
+  });
+
+  test("gives stories without a render the default export's render template", () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import { Greeting } from './greeting.gts';
+export default {
+  component: Greeting,
+  title: 'Greetings',
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+} satisfies Meta;
+export const Default: StoryObj = {};
+export const WithLongName: StoryObj = { args: { name: 'Zoey' } };
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(result.stories.find((s) => s.id === 'greetings--default')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} />'
+    );
+    expect(result.stories.find((s) => s.id === 'greetings--with-long-name')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} />'
+    );
   });
 
   test('handles multiple inline templates', () => {
@@ -393,7 +435,7 @@ export const RTL = meta.story({
     expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} dir="rtl" />');
   });
 
-  test('parses .extend() child stories with their own inline template', () => {
+  test('gives .extend() child stories the template of the story they extend', () => {
     using fix = tempFixture({
       'test.stories.gts': `
 import preview from '../.storybook/preview';
@@ -405,16 +447,121 @@ export const LTR = meta.story({
 export const RTL = LTR.extend({
   args: { dir: 'rtl' }
 });
+export const Shouting = RTL.extend({
+  args: { name: 'WORLD' }
+});
+export const Own = LTR.extend({
+  render: (args) => <template><Greeting @name={{args.name}} dir="ltr" /></template>
+});
 `.trim()
     });
 
     const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
 
-    expect(result.stories.map((s) => s.id)).toEqual(['greetings--ltr', 'greetings--rtl']);
+    expect(result.stories.map((s) => s.id)).toEqual([
+      'greetings--ltr',
+      'greetings--rtl',
+      'greetings--shouting',
+      'greetings--own'
+    ]);
+    expect(findStory(result.stories, 'RTL')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} />'
+    );
+    // through a chain of extends
+    expect(findStory(result.stories, 'Shouting')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} />'
+    );
+    expect(findStory(result.stories, 'Own')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} dir="ltr" />'
+    );
+  });
 
-    const rtl = findStory(result.stories, 'RTL');
+  test("gives stories without a render the meta's render template", () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({
+  component: Greeting,
+  title: 'Greetings',
+  decorators: [(Story) => <template><div class="frame"><Story /></div></template>],
+  render: (args) => {
+    const greeting = 'Hello';
+    return <template><Greeting @name={{args.name}} @greeting={{greeting}} /></template>;
+  }
+});
+export const Default = meta.story();
+export const WithName = meta.story({ args: { name: 'Zoey' } });
+export const Own = meta.story({
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+});
+`.trim()
+    });
 
-    expect(rtl?.inlineTemplate).toBeUndefined();
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    // the render's template, not the decorator's
+    const metaTemplate = '<Greeting @name={{args.name}} @greeting={{greeting}} />';
+
+    expect(findStory(result.stories, 'Default')?.inlineTemplate).toBe(metaTemplate);
+    expect(result.stories.find((s) => s.id === 'greetings--with-name')?.inlineTemplate).toBe(
+      metaTemplate
+    );
+    expect(findStory(result.stories, 'Own')?.inlineTemplate).toBe(
+      '<Greeting @name={{args.name}} />'
+    );
+  });
+
+  test('follows a render that refers to a helper in the same file', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+function renderGreeting(args) {
+  return <template><Greeting @name={{args.name}} /></template>;
+}
+const renderWithDir = (dir) => (args) =>
+  <template><Greeting @name={{args.name}} @dir={{dir}} /></template>;
+const Base = meta.story({
+  render: (args) => <template><Greeting @name={{args.name}} @base={{true}} /></template>
+});
+const meta = preview.meta({ component: Greeting, title: 'Greetings', render: renderGreeting });
+export const Default = meta.story();
+export const Named = meta.story({ render: renderGreeting });
+export const RightToLeft = meta.story({ render: renderWithDir('rtl') });
+export const FromBase = Base.extend({ args: { name: 'Zoey' } });
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    const template = (id: string) => result.stories.find((s) => s.id === id)?.inlineTemplate;
+
+    // the meta's render is a helper too
+    expect(template('greetings--default')).toBe('<Greeting @name={{args.name}} />');
+    expect(template('greetings--named')).toBe('<Greeting @name={{args.name}} />');
+    expect(template('greetings--right-to-left')).toBe(
+      '<Greeting @name={{args.name}} @dir={{dir}} />'
+    );
+    // extends a story that isn't exported
+    expect(template('greetings--from-base')).toBe(
+      '<Greeting @name={{args.name}} @base={{true}} />'
+    );
+  });
+
+  test('leaves stories without a template when neither they nor the meta render one', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+const meta = preview.meta({ component: Greeting, title: 'Greetings' });
+export const Default = meta.story({ args: { name: 'Zoey' } });
+export const Extended = Default.extend({ args: { name: 'Tomster' } });
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(findStory(result.stories, 'Default')?.inlineTemplate).toBeUndefined();
+    expect(findStory(result.stories, 'Extended')?.inlineTemplate).toBeUndefined();
   });
 });
 
