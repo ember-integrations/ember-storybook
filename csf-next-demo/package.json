@@ -20,7 +20,7 @@
   "dependencies": {
     "@glimmer/component": "catalog:frontend",
     "ember-modifier": "catalog:frontend",
-    "ember-source": "7.1.0",
+    "ember-source": "7.3.0",
     "ember-storybook": "workspace:*",
     "ember-strict-application-resolver": "catalog:frontend"
   },
