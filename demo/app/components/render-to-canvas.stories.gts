@@ -1,4 +1,4 @@
-import { OutletPlaceholder, renderToCanvas } from 'ember-storybook';
+import { renderToCanvas } from 'ember-storybook';
 import { expect } from 'storybook/test';
 
 import OuterRoute from '#app/templates/outer.gts';
@@ -219,11 +219,12 @@ export const GlobalsUpdate: StoryObj = {
   }
 };
 
-// `{{outlet}}` reads its child route from Glimmer's dynamic scope, which
-// `renderComponent` never populates: rendering a route template as a plain
-// component threw with "Cannot destructure property 'tag' of undefined".
-// `parameters.ember.route` renders through Ember's outlet root instead, and the
-// `outlet` global (the toolbar's Ember menu) decides hole vs. placeholder.
+// `{{outlet}}` needs a child route a story does not have: on classic builds
+// `parameters.ember.route` renders through Ember's outlet root (rendering the
+// template as a plain component threw "Cannot destructure property 'tag' of
+// undefined"), and on RFC 1099 route rendering (ember-source >= 7.5.0-alpha.2)
+// through the `@outlet` argument. The `outlet` global (the toolbar's Ember
+// menu) decides hole vs. placeholder; `route.outlet` overrides it.
 export const StubbedOutlet: StoryObj = {
   play: async (context) => {
     const parameters = {
@@ -235,10 +236,7 @@ export const StubbedOutlet: StoryObj = {
 
     const mount = (
       model: Record<string, unknown>,
-      {
-        outletMode = 'hole',
-        outlet
-      }: { outletMode?: 'hole' | 'placeholder'; outlet?: Record<string, unknown> } = {}
+      { outletMode = 'hole', outlet }: { outletMode?: 'hole' | 'placeholder'; outlet?: string } = {}
     ) =>
       renderTo(
         canvas,
@@ -253,14 +251,13 @@ export const StubbedOutlet: StoryObj = {
       // The hole is really empty: no nested route markup.
       expect(canvas.querySelector(':scope [data-test-nested-route]')).toBeNull();
 
-      // An arg change updates the outlet state in place: the route re-renders but
-      // the single outlet root is reused, so there is exactly one route element.
+      // An arg change re-renders the route while the story keeps exactly one
+      // mounted route element.
       unmount = await mount({ title: 'second' });
       expect(canvas.textContent).toContain('second');
       expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
 
-      // The toolbar menu swaps the hole for the placeholder without re-appending
-      // the outlet root.
+      // The toolbar menu swaps the hole for the placeholder.
       unmount = await mount({ title: 'second' }, { outletMode: 'placeholder' });
       expect(canvas.querySelector(':scope [data-storybook-outlet]')?.textContent.trim()).toBe(
         'outlet'
@@ -273,10 +270,7 @@ export const StubbedOutlet: StoryObj = {
       expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
 
       // An explicit stub is author intent: it renders regardless of the menu.
-      unmount = await mount(
-        { title: 'stubbed' },
-        { outletMode: 'hole', outlet: { template: OutletPlaceholder, model: 'child' } }
-      );
+      unmount = await mount({ title: 'stubbed' }, { outletMode: 'hole', outlet: 'child' });
       expect(canvas.querySelector(':scope [data-storybook-outlet]')?.textContent.trim()).toBe(
         'child'
       );

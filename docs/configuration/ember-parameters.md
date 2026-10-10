@@ -117,25 +117,26 @@ export default {
 ## `route`
 
 Presence of this key marks the story a [route story](/guide/route-stories): the template
-mounts through Ember's outlet root, so <code v-pre>{{outlet}}</code> resolves. A template that uses
-<code v-pre>{{outlet}}</code> renders that way even with an empty `route: {}`.
+renders with a working <code v-pre>{{outlet}}</code> — through Ember's outlet root on classic
+builds, or as a component receiving `@outlet` on RFC 1099 route rendering
+(ember-source >= 7.5.0-alpha.2). A template that uses <code v-pre>{{outlet}}</code> renders
+that way even with an empty `route: {}`.
 
 ```ts
 route?: {
   name?: string;         // debug/render-tree name; defaults to the story name
   model?: unknown;       // @model; defaults to args.model
   controller?: unknown;  // @controller; defaults to args.controller
-  outlet?: {             // explicit {{outlet}} stub
-    name?: string;
-    template?: object;
-    model?: unknown;
-    controller?: unknown;
-  };
+  outlet?: string | ComponentLike; // explicit {{outlet}} content:
+                                   // a string labels the placeholder, a component
+                                   // (class, TOC, or inline `<template>`) renders
+                                   // in the outlet position
 };
 ```
 
-Route templates receive only `@model` and `@controller` — that's all <code v-pre>{{outlet}}</code> passes —
-and an explicit `outlet` stub wins over the toolbar global in both directions. The full
+Route templates receive `@model` and `@controller` (plus `@outlet` on
+Ember >= 7.5) — what Ember's own route rendering hands them — and an explicit
+`outlet` wins over the toolbar global in both directions. The full
 model (including limitations) lives on the [Route Stories](/guide/route-stories) page.
 
 ## The `outlet` Global

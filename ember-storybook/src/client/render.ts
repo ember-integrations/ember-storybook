@@ -8,6 +8,7 @@ import { OUTLET_GLOBAL_KEY } from '../outlet-key';
 import {
   buildRouteOutletState,
   mountOutletView,
+  outletRootSupported,
   resolveOutletStub,
   templateUsesOutlet,
   updateOutletView
@@ -19,11 +20,11 @@ import type {
   AppParamater,
   EmberGlobals,
   EmberRenderer,
-  OutletStub,
   RouteParameters,
   StoryContext
 } from './types';
 import type { RenderResult } from '@ember/-internals/glimmer/lib/renderer';
+import type { ComponentLike } from '@glint/template';
 import type { ArgsStoryFn, RenderContext } from 'storybook/internal/types';
 
 type Args = Record<string, unknown>;
@@ -122,22 +123,22 @@ function teardownMount(context: RenderContextCache) {
 }
 
 /**
- * The stub rendered when the toolbar asks for a visible placeholder.
+ * The component rendered when the toolbar asks for a visible placeholder.
  *
  * Loaded on demand rather than imported: folding the compiled template into the
  * boot chunk makes the bundler emit a `node:module` `createRequire` shim into it,
  * which throws in the browser and takes `renderToCanvas` — and with it every
  * story — down with it.
+ *
+ * With no `@model` curried in, the marker renders its own "outlet" label.
  */
-async function loadPlaceholderStub(): Promise<OutletStub> {
+async function loadPlaceholder(): Promise<ComponentLike> {
   // Typed explicitly: the `.gts` module has no declaration reachable from here.
   const { OutletPlaceholder } = (await import('./outlet-placeholder.gts')) as {
-    OutletPlaceholder: object;
+    OutletPlaceholder: ComponentLike;
   };
 
-  // A route template receives only @model/@controller, so the marker renders its
-  // own "outlet" label when the author did not supply one.
-  return { name: 'outlet', template: OutletPlaceholder };
+  return OutletPlaceholder;
 }
 
 async function routeOutletState({
@@ -161,7 +162,7 @@ async function routeOutletState({
     outlet: await resolveOutletStub({
       route,
       mode: globals[OUTLET_GLOBAL_KEY],
-      placeholder: loadPlaceholderStub
+      placeholder: loadPlaceholder
     }),
     args,
     storyName,
@@ -192,19 +193,54 @@ async function mountStory({
     };
   }
 
-  // `{{outlet}}` reads its child from Glimmer's dynamic scope, which
-  // `renderComponent` never populates — so a route template rendered as a plain
-  // component throws instead of rendering. Route stories (annotated, or detected
-  // by their template's `{{outlet}}`, see `renderToCanvas`) go through Ember's
-  // own outlet root; the toolbar global decides whether `{{outlet}}` is a hole
-  // or a placeholder (an explicit `route.outlet` overrides it).
-  const outletView = await mountOutletView(
-    application,
-    await routeOutletState({ component, args, route, globals, storyName, application }),
-    mount
-  );
+  const outlet = await resolveOutletStub({
+    route,
+    mode: globals[OUTLET_GLOBAL_KEY],
+    placeholder: loadPlaceholder
+  });
 
-  return { outletView };
+  // Route stories render through one of two backends, decided by what the
+  // Ember build provides (the app's ember-source picks both the template
+  // compilation and the runtime, so they always agree):
+  //
+  // - classic (`view:-outlet` present): `{{outlet}}` is the `-outlet` keyword
+  //   reading Glimmer's dynamic scope, which `renderComponent` never populates
+  //   — so the template goes through Ember's own outlet root instead, with the
+  //   story as `outlets.main` (the toolbar decides hole vs placeholder, an
+  //   explicit `route.outlet` overrides it).
+  // - RFC 1099 (ember-source >= 7.5.0-alpha.2): `{{outlet}}` compiles to
+  //   `<@outlet />`; a route template is a component receiving
+  //   `@model`/`@controller`/`@outlet`, so this is a plain component render.
+  if (outletRootSupported(application)) {
+    const outletView = await mountOutletView(
+      application,
+      buildRouteOutletState({
+        template: component,
+        route,
+        outlet,
+        args,
+        storyName,
+        owner: application
+      }),
+      mount
+    );
+
+    return { outletView };
+  }
+
+  return {
+    renderer: renderComponent(component, {
+      args: {
+        model: route.model ?? args.model,
+        controller: route.controller ?? args.controller,
+        // `resolveOutletStub` already hands back the curried component or the
+        // wire-format `null` hole — exactly what `<@outlet />` consumes.
+        outlet
+      },
+      into: mount,
+      owner: application
+    })
+  };
 }
 
 const resolveAppOption = createAppResolver({
@@ -295,8 +331,9 @@ export async function renderToCanvas(
   // Stories that define their own `render` never report a route back, so the
   // parameter is the fallback. A story whose template contains `{{outlet}}` but
   // that was never annotated is a route story too: rendering it as a plain
-  // component crashes on the outlet keyword (#62), so it is mounted through the
-  // outlet root with empty route parameters — hole/placeholder per the toolbar.
+  // component would either crash on the outlet keyword (#62, classic builds) or
+  // leave `@outlet` undefined (RFC 1099 builds), so it mounts with empty route
+  // parameters — hole/placeholder per the toolbar.
   const route =
     routeFromStory ??
     storyContext.parameters.ember?.route ??
@@ -377,10 +414,15 @@ export async function renderToCanvas(
     // fresh mount: reusing the same mount makes Ember's render cache serve a stale
     // entry, which destroyed renders with obscure node errors (#27, #33).
     //
-    // A route story and a component story cannot share an app: the outlet root can
-    // only be dropped by destroying the app, so switching modes remounts.
+    // Only the classic outlet root forces a reboot on mode switches: it can only
+    // be dropped by destroying the app, so an outlet-root mount and a component
+    // mount never share one. Route stories on the `@outlet` backend are component
+    // mounts and reuse the app exactly like plain component stories do.
     const canReuseApp =
-      existing !== undefined && !forceRemount && Boolean(existing.outletView) === Boolean(route);
+      existing !== undefined &&
+      !forceRemount &&
+      Boolean(existing.outletView) ===
+        (route !== undefined && outletRootSupported(existing.application));
 
     if (isEmberBelow(6, 12)) {
       // Exception: ember-source < 6.12 has no per-owner renderer cache, so every

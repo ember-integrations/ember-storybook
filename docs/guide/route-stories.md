@@ -93,11 +93,13 @@ export default {
 } satisfies Preview;
 ```
 
-## `@model` and `@controller` Are the Only Inputs
+## `@model` and `@controller` Are the Inputs
 
-A route template receives only `@model` and `@controller`, because that is all
-<code v-pre>{{outlet}}</code> passes down. Ordinary args do not reach it, so a route story drives
-its template through those two args, and Controls work on the model object:
+A route template receives `@model` and `@controller` — exactly what Ember's
+outlet hands a child route (`@outlet` as well on Ember ≥ 7.5, see
+[How the outlet renders](#how-the-outlet-renders)). Ordinary args do not reach
+it, so a route story drives its template through those two args, and Controls
+work on the model object:
 
 ```glimmer-ts [route.stories.gts]
 import type { StoryObj } from 'ember-storybook';
@@ -112,11 +114,19 @@ export const WithModel: StoryObj = {
 `parameters.ember.route.model` / `.controller` override the args if a story needs a
 fixed value.
 
-## Labelling the Stub
+## How the outlet renders
 
-The toolbar's `Placeholder` renders an unlabelled marker. When a story needs to say
-_which_ child route would render there, give `route.outlet` a template — an
-explicit stub is author intent and **wins over the toolbar in both directions**:
+What <code v-pre>{{outlet}}</code> shows is either the toolbar's choice or the story's:
+
+| `route.outlet`          | <code v-pre>{{outlet}}</code> renders                                      |
+| ----------------------- | -------------------------------------------------------------------------- |
+| omitted                 | the **Ember** menu: `hole` (default) or `placeholder` (the marker)         |
+| a string (`'settings'`) | the `OutletPlaceholder` marker, labeled with the string                    |
+| a component             | that component — an imported one, or an inline `<template>`                |
+
+An explicit `route.outlet` is author intent and **wins over the toolbar in both
+directions** — a story pinned this way renders identically no matter what a
+visitor has selected in the menu:
 
 ```glimmer-ts [route.stories.gts]
 import { OutletPlaceholder } from 'ember-storybook';
@@ -127,20 +137,27 @@ export const MarkedOutlet: StoryObj = {
   parameters: {
     ember: {
       route: {
-        outlet: {
-          name: 'nested',
-          template: OutletPlaceholder,
-          model: 'nested'
-        }
+        outlet: 'nested' // labeled marker; `outlet: OutletPlaceholder` renders it bare
       }
     }
   }
 };
 ```
 
-The stub is a _route template_ too, so it also receives only `@model` /
-`@controller`, and its own <code v-pre>{{outlet}}</code> is a hole: one level only. Ember has no
-named outlets, so there is nothing else to stub.
+The stub is one level only: a <code v-pre>{{outlet}}</code> *inside* the stub renders a
+hole, just like a child route with no child of its own. Ember has no named
+outlets, so there is nothing else to stub.
+
+> [!NOTE] How this works under the hood
+>
+> Ember changed the machinery behind `{{outlet}}` with its RFC 1099 route
+> rendering: until 7.4 <code v-pre>{{outlet}}</code> is a keyword that reads its child
+> route from Glimmer's dynamic scope, and `ember-storybook` seeds that scope
+> through Ember's own outlet root (the view `Router._setOutlets()` uses). Since
+> 7.5.0-alpha.2 `{{outlet}}` compiles to `<@outlet />` — the route template's
+> own argument, holding a component — and the addon renders route stories as
+> plain components, passing `@outlet` exactly like Ember's router does. The
+> backend is picked by probing the running build; stories work the same on both.
 
 ## Reference
 
@@ -151,12 +168,7 @@ parameters: {
       name?: string;        // debug/render-tree name, defaults to the story name
       model?: unknown;      // @model, defaults to args.model
       controller?: unknown; // @controller, defaults to args.controller
-      outlet?: {            // explicit stub; wins over the toolbar `outlet` global
-        name?: string;
-        template?: object;
-        model?: unknown;
-        controller?: unknown;
-      };
+      outlet?: string | ComponentLike; // explicit stub; wins over the toolbar `outlet` global
     };
   };
 }
@@ -169,15 +181,14 @@ globals: {
 
 Precedence for <code v-pre>{{outlet}}</code>:
 
-1. `parameters.ember.route.outlet.template` — explicit stub, always wins.
+1. `parameters.ember.route.outlet` — explicit stub (string label or component), always wins.
 2. `outlet` global (`'placeholder'` → marker, `'hole'`/unset → nothing).
 
 > [!NOTE] Limitations
 >
 > - Route stories render in the canvas only. `<RenderStory>` (portable stories)
->   throws for them, because a second outlet root cannot be nested inside a render
->   that is already running.
-> - Route stories cannot share a booted app with a component story; switching modes
->   remounts the application.
+>   throws for them, because that path has no outlet mode or route parameters.
+> - On Ember builds with the classic outlet root, route stories cannot share a
+>   booted app with a component story; switching modes remounts the application.
 > - Real routing behavior — model hooks, transitions, `LinkTo` active states — is
 >   not simulated. Use the demo app's own routes for that.

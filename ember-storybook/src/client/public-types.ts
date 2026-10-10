@@ -44,6 +44,5 @@ export {
   type EmberParameters,
   type EmberRenderer,
   type OutletMode,
-  type OutletStub,
   type RouteParameters
 } from './types';
