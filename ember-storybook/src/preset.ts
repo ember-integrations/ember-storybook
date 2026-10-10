@@ -3,10 +3,11 @@ import { fileURLToPath } from 'node:url';
 import { type StorybookConfigVite, withoutVitePlugins } from '@storybook/builder-vite';
 
 import { emberIndexer } from './node/indexer';
+import { buildComponentsManifest } from './node/manifest';
 import { emberStorybookPlugin } from './node/vite-plugin';
 
 import type { StorybookConfig } from './types';
-import type { PresetProperty } from 'storybook/internal/types';
+import type { IndexEntry, Manifests, PresetProperty } from 'storybook/internal/types';
 import type { Plugin, UserConfig } from 'vite';
 
 // The generated preview imports the addon-docs preview by its absolute path.
@@ -98,6 +99,17 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
 export const experimental_indexers: StorybookConfig['experimental_indexers'] = (indexers) => {
   return [emberIndexer, ...(indexers ?? [])];
 };
+
+// Storybook calls this with the index entries tagged `manifest` when the
+// `componentsManifest` feature is on (e.g. by @storybook/addon-mcp). It also
+// probes with no entries to learn whether the framework provides a manifest.
+export const experimental_manifests = async (
+  existing: Manifests | undefined,
+  options: { manifestEntries?: IndexEntry[] }
+): Promise<Manifests> => ({
+  ...existing,
+  components: await buildComponentsManifest(options.manifestEntries ?? [])
+});
 
 export const core: PresetProperty<'core'> = async (config, options) => {
   const framework = await options.presets.apply('framework');

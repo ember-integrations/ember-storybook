@@ -7,6 +7,7 @@ import { sanitize } from 'storybook/internal/csf';
 import { loadCsf, type StaticMeta, type StaticStory } from 'storybook/internal/csf-tools';
 
 import { Default, type ExportedName, normalizeFilePath } from './shared';
+import { docsDescription, staticProperties } from './static-value';
 
 import type { ExportSpecifier, Program, VariableDeclarator } from 'oxc-parser';
 
@@ -73,6 +74,21 @@ export interface StoryFile {
   };
 
   stories: (StaticStory & { inlineTemplate?: string })[];
+
+  /**
+   * What the source states literally: the meta's and each story's static
+   * `args`, and their `parameters.docs.description`. Stories are keyed by id.
+   */
+  docs: StoryFileDocs;
+}
+
+export interface StaticDocs {
+  args: Record<string, unknown>;
+  description?: string;
+}
+
+export interface StoryFileDocs extends StaticDocs {
+  stories: Record<string, StaticDocs>;
 }
 
 // ── Private helpers ────────────────────────────────────────────
@@ -244,6 +260,7 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   // ── 1. CSF parsing — gives meta, story IDs, local names ──
   let meta: StaticMeta | undefined = {};
   let stories: (StaticStory & { inlineTemplate?: string })[] = [];
+  let docs: StoryFileDocs = { args: {}, stories: {} };
 
   try {
     const csf = loadCsf(processedCode, {
@@ -254,6 +271,24 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
     meta = parsed.meta;
     stories = parsed.stories;
+    docs = {
+      args: staticProperties(csf._metaAnnotations.args),
+      description: docsDescription(csf._metaAnnotations.parameters, 'component'),
+      stories: Object.fromEntries(
+        stories.map((story) => {
+          const exportName = story.localName ?? story.name;
+          const annotations = exportName ? (csf._storyAnnotations[exportName] ?? {}) : {};
+
+          return [
+            story.id,
+            {
+              args: staticProperties(annotations.args),
+              description: docsDescription(annotations.parameters, 'story')
+            }
+          ];
+        })
+      )
+    };
   } catch {
     // CSF parsing failed — return partial result
   }
@@ -322,7 +357,7 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   const localComponentName = meta.component;
 
   if (!localComponentName) {
-    return { meta: meta, component: {}, stories };
+    return { meta: meta, component: {}, stories, docs };
   }
 
   const importInfo = importMap.get(localComponentName);
@@ -331,7 +366,8 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
     return {
       meta,
       component: { signatureName: localComponentName },
-      stories
+      stories,
+      docs
     };
   }
 
@@ -343,7 +379,8 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
     return {
       meta,
       component: { signatureName: localComponentName },
-      stories
+      stories,
+      docs
     };
   }
 
@@ -357,6 +394,7 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
       signatureName: signatureName ?? localComponentName,
       name: signatureName === Default ? (compMeta?.[Default] ?? localComponentName) : undefined
     },
-    stories
+    stories,
+    docs
   };
 }
