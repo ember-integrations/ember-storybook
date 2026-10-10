@@ -200,6 +200,27 @@ export const WithTitle: StoryObj<CardSignature['Args']> = {
 
 CSF Next does this inference for you via `preview.meta()`.
 
+Two cases need the args spelled out with `preview.type<{ args }>()`:
+
+- **Story-only args**, which the story's `render` uses but the component doesn't
+  declare (e.g. the text a story puts in a block).
+- **Generic components** (e.g. `Select<T>`), whose args can't be inferred.
+
+The type you pass becomes the story's args type: it replaces the inferred args rather
+than adding to them. Include the component's own args alongside the extra ones:
+
+```gts [tag.stories.gts]
+import preview from '#storybook/preview';
+import Tag, { type TagSignature } from './tag.gts';
+
+type StoryArgs = TagSignature['Args'] & { label: string };
+
+const meta = preview.type<{ args: StoryArgs }>().meta({
+  component: Tag,
+  render: (args) => <template><Tag @type={{args.type}}>{{args.label}}</Tag></template>
+});
+```
+
 ## What's Next
 
 - Make stories reusable and wrappable: [Decorators](/guide/decorators)

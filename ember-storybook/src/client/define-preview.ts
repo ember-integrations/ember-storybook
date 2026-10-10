@@ -95,13 +95,15 @@ export interface EmberPreview<TRenderer extends EmberRenderer> extends Omit<
   'meta' | 'type'
 > {
   /**
-   * Narrows or extends the inferred annotation types, e.g. to add args that
-   * the component signature cannot provide:
+   * Sets the annotation types explicitly, e.g. for args the component
+   * signature cannot provide, or for a generic component whose args can't be
+   * inferred. The given args replace the inferred ones, so include the
+   * component's own args:
    *
    * ```ts
-   * const meta = preview.type<{ args: { theme: 'light' | 'dark' } }>().meta({
-   *   component: Button,
-   * });
+   * const meta = preview
+   *   .type<{ args: ButtonSignature['Args'] & { theme: 'light' | 'dark' } }>()
+   *   .meta({ component: Button });
    * ```
    */
   type<R>(): EmberPreview<TRenderer & R>;
