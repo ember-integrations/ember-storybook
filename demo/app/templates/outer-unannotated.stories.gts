@@ -4,15 +4,15 @@ import Outer from '#app/templates/outer.gts';
 
 import type { Meta, StoryObj } from 'ember-storybook';
 
-// Regression guard for #62: a route template (its `{{outlet}}` crashes
-// `renderComponent`) used as a story component *without* the
+// Regression guard for #62: a route template (its `{{outlet}}` cannot render
+// from a plain component story) used as a story component *without* the
 // `parameters.ember.route` annotation. Sportipedia hit this with page stories
-// whose template renders `{{outlet}}`; the outlet keyword then threw
-// "Cannot destructure property 'tag' of 'ref' as it is undefined."
+// whose template renders `{{outlet}}`; on classic builds the outlet keyword
+// then threw "Cannot destructure property 'tag' of 'ref' as it is undefined."
 //
-// The renderer must detect the `{{outlet}}` in the template and mount it
-// through Ember's outlet root anyway, exactly like `Routes/Outer` does — with
-// `{{outlet}}` following the Ember toolbar global (hole by default).
+// The renderer must detect the `{{outlet}}` in the template and use the route
+// backend anyway, exactly like `Routes/Outer` does — with `{{outlet}}`
+// following the Ember toolbar global (hole by default).
 export default {
   title: 'Routes/Outer Unannotated',
   component: Outer

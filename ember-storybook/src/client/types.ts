@@ -1,6 +1,13 @@
 import type Application from '@ember/application';
 import type ApplicationInstance from '@ember/application/instance';
 import type Owner from '@ember/owner';
+// The invokable type for `parameters.ember.route.outlet` is Glint's official
+// `ComponentLike` — the type `<template>` expressions get in a Glint app, and
+// what Ember's `@outlet` argument holds. Not re-exported by this package:
+// consumers use the official type. (Re-point this import at `@ember/template`
+// once ember-source exposes `ComponentLike` from there — that module currently
+// ships only the SafeString helpers.)
+import type { ComponentLike } from '@glint/template';
 import type { StoryContext as DefaultStoryContext, WebRenderer } from 'storybook/internal/types';
 
 export type { RenderContext } from 'storybook/internal/types';
@@ -16,22 +23,6 @@ export type AppParamater =
   | ((options?: Record<string, unknown>) => typeof Application | ApplicationInstance);
 
 /**
- * A single-level stub rendered in place of `{{outlet}}`. Ember has no named
- * outlets anymore, so a route template has exactly one child, and a story stubs
- * precisely that one child — deeper nesting is not modelled.
- */
-export interface OutletStub {
-  /** Route name surfaced in the placeholder label and the debug render tree. */
-  name?: string;
-  /** Template/component rendered as the child route. Omitted => empty hole. */
-  template?: object;
-  /** Value passed to the child as `@model`. */
-  model?: unknown;
-  /** Value passed to the child as `@controller`. */
-  controller?: unknown;
-}
-
-/**
  * Route options for a story that renders a *route* template rather than a
  * component.
  *
@@ -39,8 +30,16 @@ export interface OutletStub {
  * the story's template references `{{outlet}}` (#62) — the latter implicitly,
  * with empty route parameters.
  *
- * Route templates receive only `@model` and `@controller` (that is all Ember's
- * outlet hands them), and their `{{outlet}}` is stubbed via {@link OutletStub}.
+ * Route templates receive only `@model`, `@controller` and `@outlet` — exactly
+ * what Ember's own route rendering hands them. Their `{{outlet}}` renders
+ * whatever `outlet` says, mirroring the `@outlet` argument:
+ *
+ * - `string` — the framework placeholder, labeled with the string.
+ * - `ComponentLike` — that component renders in the outlet position (one leaf
+ *   level: a `{{outlet}}` inside it renders a hole). Ember has no named outlets
+ *   anymore, so there is exactly one outlet to stub.
+ * - omitted — the "Ember" toolbar menu decides: `hole` (nothing) or
+ *   `placeholder` (the unlabeled marker).
  */
 export interface RouteParameters {
   /** Route name for the debug render tree; falls back to the story name. */
@@ -49,8 +48,8 @@ export interface RouteParameters {
   model?: unknown;
   /** `@controller` for the route template; falls back to `args.controller`. */
   controller?: unknown;
-  /** What `{{outlet}}` renders. Omitted => empty hole. */
-  outlet?: OutletStub;
+  /** What `{{outlet}}` renders; see {@link RouteParameters}. */
+  outlet?: string | ComponentLike;
 }
 
 export interface EmberParameters {
@@ -61,7 +60,9 @@ export interface EmberParameters {
     owner?: Record<`${string}:${string}`, object>;
     updateGlobals?: (globals: Record<string, unknown>, owner: Owner) => void;
     /**
-     * Present => render through Ember's outlet root so `{{outlet}}` works.
+     * Present => render so that `{{outlet}}` works: through Ember's outlet root
+     * on builds that have it, as a component receiving `@outlet` on RFC 1099
+     * route rendering (ember-source >= 7.5.0-alpha.2).
      * A template that uses `{{outlet}}` is rendered that way even without
      * this parameter — then with empty route parameters (#62).
      */

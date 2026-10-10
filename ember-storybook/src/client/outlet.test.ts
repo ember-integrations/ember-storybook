@@ -1,9 +1,15 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { OUTLET_GLOBAL_KEY } from '../outlet-key';
-import { buildRouteOutletState, resolveOutletStub, templateUsesOutlet } from './outlet';
+import {
+  buildRouteOutletState,
+  outletRootSupported,
+  resolveOutletStub,
+  templateUsesOutlet
+} from './outlet';
 
-import type { OutletStub, RouteParameters } from './types';
+import type { RouteParameters } from './types';
+import type { ComponentLike } from '@glint/template';
 
 // `outlet.ts` also hosts the Ember-side outlet mounting, whose top-level
 // `@ember/*` imports do not resolve under node. The functions tested here are
@@ -11,6 +17,15 @@ import type { OutletStub, RouteParameters } from './types';
 // above the imports.)
 vi.mock('@ember/renderer', () => ({ renderSettled: () => Promise.resolve() }));
 vi.mock('@ember/runloop', () => ({ run: (callback: () => void) => callback() }));
+
+// `resolveOutletStub` curries the outlet content with the public `template()`
+// API; back it with a spy that hands out an identity object per call and
+// records the (source, options) pair.
+const { templateSpy } = vi.hoisted(() => ({
+  templateSpy: vi.fn((source: string, _options: unknown) => ({ tag: 'invoker', source }))
+}));
+
+vi.mock('@ember/template-compiler', () => ({ template: templateSpy }));
 
 // `templateUsesOutlet` reaches the story component's template through
 // `getComponentTemplate`; back it with a registry the tests fill per component.
@@ -22,25 +37,38 @@ vi.mock('@ember/component', () => ({
   getComponentTemplate: (component: object) => templateRegistry.get(component)
 }));
 
-const template = { tag: 'template' };
-const owner = { factory: 'owner' };
+// Glint's `ComponentLike` is an invokable (call/construct) shape; runtime-only
+// test fixtures carry their identity in a `tag` property.
+function fakeComponent(tag: string): ComponentLike {
+  return Object.assign(() => tag, { tag }) as unknown as ComponentLike;
+}
 
-const placeholderStub: OutletStub = {
-  name: 'outer/index',
-  template: { tag: 'placeholder' },
-  model: { id: 1 },
-  controller: { name: 'ctrl' }
-};
+const routeTemplate = { tag: 'route-template' };
+const owner = { factory: 'owner' };
+const placeholder = fakeComponent('placeholder');
 
 function input(overrides: Partial<Parameters<typeof buildRouteOutletState>[0]> = {}) {
   return {
-    template,
+    template: routeTemplate,
     route: {} as RouteParameters,
     args: {},
     storyName: 'My Story',
     owner,
     ...overrides
   };
+}
+
+/** The scope object of the last `template()` call, for invoker assertions. */
+function lastInvokerScope(): Record<string, unknown> {
+  const call = templateSpy.mock.calls.at(-1);
+
+  if (!call) {
+    throw new Error('expected `template()` to have been called');
+  }
+
+  const [, options] = call;
+
+  return (options as { scope(): Record<string, unknown> }).scope();
 }
 
 describe('OUTLET_GLOBAL_KEY', () => {
@@ -50,68 +78,104 @@ describe('OUTLET_GLOBAL_KEY', () => {
 });
 
 describe('resolveOutletStub', () => {
-  test('an explicit route.outlet stub always wins over the global', async () => {
-    const route: RouteParameters = { outlet: { template: { tag: 'explicit' } } };
-
-    expect(await resolveOutletStub({ route, mode: 'hole', placeholder: vi.fn() })).toBe(
-      route.outlet
-    );
+  beforeEach(() => {
+    templateSpy.mockClear();
   });
 
-  test('a route.outlet without a template is not an intent to render, and falls through to the mode', async () => {
-    const placeholder = vi.fn(() => Promise.resolve(placeholderStub));
+  test('a string labels the placeholder', async () => {
+    const load = vi.fn(() => Promise.resolve(placeholder));
+
+    expect(
+      await resolveOutletStub({ route: { outlet: 'settings' }, mode: 'hole', placeholder: load })
+    ).toBe(templateSpy.mock.results[0].value);
+    expect(load).toHaveBeenCalledOnce();
+    // eslint-disable-next-line unicorn/no-null -- the wire-format hole, curried into the invoker
+    expect(lastInvokerScope()).toEqual({ Stub: placeholder, model: 'settings', hole: null });
+  });
+
+  test('a ComponentLike is the outlet content as given', async () => {
+    const stubComponent = fakeComponent('explicit');
+    const load = vi.fn();
 
     expect(
       await resolveOutletStub({
-        route: { outlet: { name: 'x' } },
+        route: { outlet: stubComponent },
         mode: 'placeholder',
-        placeholder
+        placeholder: load
       })
-    ).toBe(placeholderStub);
-    expect(placeholder).toHaveBeenCalledOnce();
+    ).toBe(templateSpy.mock.results[0].value);
+    // An explicit outlet wins over the global without touching the placeholder.
+    expect(load).not.toHaveBeenCalled();
+    // eslint-disable-next-line unicorn/no-null -- the wire-format hole, curried into the invoker
+    expect(lastInvokerScope()).toEqual({ Stub: stubComponent, model: undefined, hole: null });
   });
 
-  test('mode "placeholder" resolves the stub lazily produced by the callback', async () => {
-    const placeholder = vi.fn(() => Promise.resolve(placeholderStub));
+  test('template-only components are objects, not functions — still a component', async () => {
+    // ember's `templateOnly()` (and what app builds compile inline `<template>`
+    // expressions to) is a plain object carrying only debug metadata.
+    const toc = { moduleName: 'app/templates/child', name: '(unknown template-only component)' };
 
-    expect(await resolveOutletStub({ route: {}, mode: 'placeholder', placeholder })).toBe(
-      placeholderStub
+    expect(
+      await resolveOutletStub({ route: { outlet: toc as never }, placeholder: () => placeholder })
+    ).toBe(templateSpy.mock.results[0].value);
+    expect(lastInvokerScope().Stub).toBe(toc);
+  });
+
+  test('the invoker template never spells the bare outlet/mount keyword paths', async () => {
+    await resolveOutletStub({ route: { outlet: 'm' }, placeholder: () => placeholder });
+
+    const [source] = templateSpy.mock.calls[0];
+
+    // `{{outlet}}`/`{{mount}}` are rewritten by ember's template transforms on
+    // every build; the free-variable names must dodge both keyword spellings.
+    expect(source).not.toMatch(/\{\{\s*(outlet|mount)\s*\}\}/);
+    expect(source).toContain('<Stub');
+  });
+
+  test('mode "placeholder" resolves the placeholder lazily, unlabeled', async () => {
+    const load = vi.fn(() => placeholder);
+
+    expect(await resolveOutletStub({ route: {}, mode: 'placeholder', placeholder: load })).toBe(
+      templateSpy.mock.results[0].value
     );
-    expect(placeholder).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
+    // eslint-disable-next-line unicorn/no-null -- the wire-format hole, curried into the invoker
+    expect(lastInvokerScope()).toEqual({ Stub: placeholder, model: undefined, hole: null });
   });
 
-  test('mode "hole" leaves a hole without touching the placeholder', async () => {
-    const placeholder = vi.fn();
+  test('mode "hole" is a hole without touching the placeholder', async () => {
+    const load = vi.fn();
 
-    expect(await resolveOutletStub({ route: {}, mode: 'hole', placeholder })).toBeUndefined();
-    expect(placeholder).not.toHaveBeenCalled();
+    expect(await resolveOutletStub({ route: {}, mode: 'hole', placeholder: load })).toBeNull();
+    expect(load).not.toHaveBeenCalled();
+    expect(templateSpy).not.toHaveBeenCalled();
   });
 
   test('an unset global (undefined mode) defaults to a hole', async () => {
-    const placeholder = vi.fn();
-
-    expect(await resolveOutletStub({ route: {}, placeholder })).toBeUndefined();
-    expect(placeholder).not.toHaveBeenCalled();
+    expect(await resolveOutletStub({ route: {}, placeholder: () => placeholder })).toBeNull();
   });
 
-  test('any other value is treated as a hole', async () => {
+  test('any other global value is treated as a hole', async () => {
     expect(
-      await resolveOutletStub({
-        route: {},
-        mode: 'bogus' as never,
-        placeholder: () => placeholderStub
-      })
-    ).toBeUndefined();
+      await resolveOutletStub({ route: {}, mode: 'bogus' as never, placeholder: () => placeholder })
+    ).toBeNull();
   });
 
-  test('accepts a synchronous placeholder producer', async () => {
-    expect(
-      await resolveOutletStub({
-        route: {},
-        mode: 'placeholder',
-        placeholder: () => placeholderStub
+  test('the retired stub-bag shape fails with an actionable message', async () => {
+    await expect(
+      resolveOutletStub({
+        // The `{ name, template, model }` bag of ember-storybook < 0.5.
+        route: { outlet: { template: placeholder, model: 'x' } as never },
+        placeholder: () => placeholder
       })
-    ).toBe(placeholderStub);
+    ).rejects.toThrow(/must be a string \(the placeholder label\) or a component/);
+  });
+
+  test('null is not a component and fails like the retired bag', async () => {
+    await expect(
+      // eslint-disable-next-line unicorn/no-null -- asserting the guard rejects null
+      resolveOutletStub({ route: { outlet: null as never }, placeholder: () => placeholder })
+    ).rejects.toThrow(/must be a string/);
   });
 });
 
@@ -122,11 +186,11 @@ describe('buildRouteOutletState', () => {
     expect(state.render).toEqual({
       owner,
       name: 'My Story',
-      template,
+      template: routeTemplate,
       model: 'a',
       controller: 'b'
     });
-    // No outlet stub => `{{outlet}}` is a hole.
+    // No outlet content => `{{outlet}}` is a hole.
     expect(state.outlets.main).toBeUndefined();
   });
 
@@ -152,28 +216,45 @@ describe('buildRouteOutletState', () => {
     expect(state.render.model).toBe('arg-model');
   });
 
-  test('a stubbed outlet renders as the main child with the stub template', () => {
-    const state = buildRouteOutletState(input({ outlet: placeholderStub }));
+  test('a resolved outlet renders as the main child; its label is curried in', () => {
+    const curried = fakeComponent('curried');
+    const state = buildRouteOutletState(input({ outlet: curried }));
 
     expect(state.outlets.main?.render).toEqual({
       owner,
-      name: placeholderStub.name,
-      template: placeholderStub.template,
-      model: placeholderStub.model,
-      controller: placeholderStub.controller
+      name: 'outlet',
+      template: curried,
+      // The `@model` lives in the curried component, not the state chain.
+      model: undefined,
+      controller: undefined
     });
   });
 
-  test('a stub without a name surfaces as "outlet"', () => {
-    const state = buildRouteOutletState(input({ outlet: { template: placeholderStub.template } }));
+  test('a null outlet (the hole) yields no child state', () => {
+    // eslint-disable-next-line unicorn/no-null -- null is the resolved hole value
+    const state = buildRouteOutletState(input({ outlet: null }));
 
-    expect(state.outlets.main?.render.name).toBe('outlet');
+    expect(state.outlets.main).toBeUndefined();
   });
 
   test('stubbing is one level deep: the child gets no outlet of its own', () => {
-    const state = buildRouteOutletState(input({ outlet: placeholderStub }));
+    const state = buildRouteOutletState(input({ outlet: fakeComponent('curried') }));
 
     expect(state.outlets.main?.outlets.main).toBeUndefined();
+  });
+});
+
+describe('outletRootSupported', () => {
+  test('true when the container still has a view:-outlet factory', () => {
+    const classic = { factoryFor: (name: string) => (name === 'view:-outlet' ? {} : undefined) };
+
+    expect(outletRootSupported(classic)).toBe(true);
+  });
+
+  test('false when the build dropped it (ember-source >= 7.5.0-alpha.2)', () => {
+    const rfc1099 = { factoryFor: vi.fn() };
+
+    expect(outletRootSupported(rfc1099)).toBe(false);
   });
 });
 
@@ -184,28 +265,44 @@ function compiledFactory(block: unknown) {
   return vi.fn((_owner?: unknown) => ({ parsedLayout: { block } }));
 }
 
-const outletBlock = [
+// Classic compiler: `{{outlet}}` became `{{component (-outlet)}}`, so the
+// keyword is a free name in `upvars`.
+const classicOutletBlock = [
   [[10, 'div'], [46, [28, [31, 2], undefined, undefined], undefined, undefined, undefined], [13]],
   ['@model'],
   ['if', 'component', '-outlet']
 ];
 
+// RFC 1099 compiler (ember-source >= 7.5.0-alpha.2): `{{outlet}}` became
+// `<@outlet />` — verbatim the block of ember-source's own top-level
+// `OutletTemplate`, with `@outlet` among the template's argument slots.
+// eslint-disable-next-line unicorn/no-null -- verbatim wire fixture: empty slots are null
+const rfc1099OutletBlock = [[[8, [30, 1], null, null, null]], ['@outlet'], []];
+
 describe('templateUsesOutlet', () => {
-  test('detects the -outlet keyword in the template upvars', () => {
-    const routeTemplate = {};
+  test('detects the -outlet keyword in the template upvars (classic)', () => {
+    const component = {};
 
-    templateRegistry.set(routeTemplate, compiledFactory(outletBlock));
+    templateRegistry.set(component, compiledFactory(classicOutletBlock));
 
-    expect(templateUsesOutlet(routeTemplate)).toBe(true);
+    expect(templateUsesOutlet(component)).toBe(true);
+  });
+
+  test('detects the @outlet argument in the template locals (RFC 1099)', () => {
+    const component = {};
+
+    templateRegistry.set(component, compiledFactory(rfc1099OutletBlock));
+
+    expect(templateUsesOutlet(component)).toBe(true);
   });
 
   test('asks the factory for the ownerless template', () => {
-    const routeTemplate = {};
-    const factory = compiledFactory(outletBlock);
+    const component = {};
+    const factory = compiledFactory(classicOutletBlock);
 
-    templateRegistry.set(routeTemplate, factory);
+    templateRegistry.set(component, factory);
 
-    templateUsesOutlet(routeTemplate);
+    templateUsesOutlet(component);
 
     expect(factory.mock.calls[0][0]).toBeUndefined();
   });
@@ -219,7 +316,7 @@ describe('templateUsesOutlet', () => {
     expect(templateUsesOutlet(plainComponent)).toBe(false);
   });
 
-  test('a "-outlet" string literal in the statements is not an outlet', () => {
+  test('an "-outlet" string literal in the statements is not an outlet', () => {
     const literalComponent = {};
     const literalBlock = [[[1, '-outlet']], [], ['concat']];
 
@@ -228,8 +325,17 @@ describe('templateUsesOutlet', () => {
     expect(templateUsesOutlet(literalComponent)).toBe(false);
   });
 
+  test('an "@outlet" string literal in the statements is not an outlet', () => {
+    const literalComponent = {};
+    const literalBlock = [[[1, '@outlet']], [], []];
+
+    templateRegistry.set(literalComponent, compiledFactory(literalBlock));
+
+    expect(templateUsesOutlet(literalComponent)).toBe(false);
+  });
+
   test('a raw template factory used as the component is recognized', () => {
-    const factory = Object.assign(compiledFactory(outletBlock), {
+    const factory = Object.assign(compiledFactory(classicOutletBlock), {
       __meta: { moduleName: 'app/templates/some-route' }
     });
 
@@ -249,6 +355,8 @@ describe('templateUsesOutlet', () => {
       () => ({ result: 'error' }),
       // no parsed layout
       () => ({}),
+      // block without an args or upvars slot
+      () => ({ parsedLayout: { block: [[]] } }),
       // block without an upvars slot
       () => ({ parsedLayout: { block: [[], ['@model']] } }),
       // block that was never parsed from its JSON string

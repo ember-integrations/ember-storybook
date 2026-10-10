@@ -247,3 +247,62 @@ Two changes make the contract explicit:
 
 Covered by `parseStoryFile > does not resolve an aliased import into a component
 file path` in `src/node/parser.test.ts`.
+
+## Follow-up decision (2026-10-09): the `@outlet` backend for RFC 1099 route rendering
+
+The predicted removal in **Bad** above came true: ember-source 7.5.0-alpha.2
+(released 2026-09-29) landed the route-rendering series
+(`68fc807` → `c0522c5` → `4b0f767` → `5b43208` → `294088e`). `{{outlet}}` no
+longer compiles to the `(-outlet)` keyword helper reading Glimmer's dynamic
+scope — it compiles to `<@outlet />`, the route template's own named argument,
+and `view:-outlet` / `template:-outlet` are gone from the build (verified in
+the published 7.5.0-alpha.3 dist, where classic route templates are invoked as
+`<@Component @model={{@context}} @controller={{@bucket.controller}}
+@outlet={{@outlet}}/>`). Route stories failed loudly on the `ember-alpha` CI
+job; the story API itself was already shaped for this world.
+
+Chosen: **keep both backends behind one API, selected by a container probe.**
+
+- The backend is decided at mount time by `outletRootSupported()`
+  (`factoryFor('view:-outlet')`), not by `VERSION`: `ember-beta` (7.4) still
+  ships the view while `ember-alpha` (7.5) does not, so no version comparison
+  can separate them; the app's ember-source always agrees between its template
+  compiler and its runtime.
+- Classic backend (≤ 7.4): untouched — Option 1 as decided above.
+- RFC 1099 backend (≥ 7.5-alpha.2): route stories are plain
+  `renderComponent(component, { args: { model, controller, outlet } })`
+  renders — the same contract Ember's own route wrapper curries. A hole is
+  `outlet: null` (the value `outletFor()` uses for a childless route); a stub
+  is a curried invoker built with the public `template()` API
+  (`@ember/template-compiler`, the same mechanism the addon's compiled `.gts`
+  output uses), which also passes `@outlet={{hole}}` so a `{{outlet}}` inside
+  the stub stays a hole — one level, leaf semantics, identical to the classic
+  backend. `templateUsesOutlet()` detects the new wire shape (`@outlet` in the
+  template's argument slot) next to the classic one (`-outlet` in `upvars`).
+- App-reuse decisions key off the mount *kind* (`outletView` vs `renderer`)
+  instead of `route`, so RFC 1099 route stories reuse the booted app exactly
+  like component stories; the outlet-root constraint (root only droppable by
+  destroying the app) applies only where it still exists.
+
+API consequence (breaking, pre-1.0): `parameters.ember.route.outlet` becomes
+`string | ComponentLike` — a label for the placeholder, or the component to
+render. The `OutletStub` bag (`{ name, template, model, controller }`) is
+deleted; `route.outlet` now mirrors Ember's `@outlet` argument 1:1. The
+discriminator treats functions and non-bag objects as components (template-only
+components are objects, not functions).
+
+Progression path:
+
+1. **Now:** two backends, one API; classic path frozen.
+2. **Docs:** `outlet: <Component>` is the recommended form — it *is* the Ember
+   idiom on 7.5+.
+3. **When the minimum supported ember-source ≥ 7.5:** delete the outlet-root
+   backend (`OutletState`, `buildRouteOutletState`, `mountOutletView`, the
+   probe) — a route story reduces to "a component with three args", which also
+   lifts the `<RenderStory>` restriction (the deferred investigation above)
+   for free.
+
+Regression guards: unit tests for both wire shapes, both stub forms and the
+`null` hole; demo stories `MarkedOutlet` (string), `ComponentOutlet`
+(component), `NestedStubOutlet` (inline template whose own `{{outlet}}` must
+stay a hole) run in every `@embroider/try` scenario, covering both backends.
