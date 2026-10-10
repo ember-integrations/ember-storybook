@@ -17,16 +17,31 @@ export interface ComponentMeta {
 function computeDataForStory(file: string): {
   meta: Record<string, StaticMeta>;
   component: Record<string, ComponentMeta>;
+  subcomponents: Record<string, Record<string, ComponentMeta>>;
   componentMap: Record<string, ComponentMap>;
 } {
   const storyResult = parseStoryFile(file);
 
   if (!storyResult?.meta.component) {
-    return { meta: {}, component: {}, componentMap: {} };
+    return { meta: {}, component: {}, subcomponents: {}, componentMap: {} };
   }
 
-  const compPath = storyResult.component.file;
-  const compMeta = compPath ? parseComponentFile(path.resolve(PROJECT_ROOT, compPath)) : undefined;
+  // The declaration maps of the referenced component files (the component and
+  // its subcomponents). Contributed under the `meta` name so each merges into
+  // its component file's entry, alongside `signatures`.
+  const componentMap: Record<string, ComponentMap> = {};
+
+  for (const ref of [storyResult.component, ...Object.values(storyResult.subcomponents)]) {
+    const compMeta = ref.file
+      ? parseComponentFile(path.resolve(PROJECT_ROOT, ref.file))
+      : undefined;
+
+    if (ref.file && compMeta) {
+      componentMap[ref.file] = compMeta;
+    }
+  }
+
+  const hasSubcomponents = Object.keys(storyResult.subcomponents).length > 0;
 
   return {
     meta: { [file]: storyResult.meta },
@@ -37,16 +52,15 @@ function computeDataForStory(file: string): {
         name: storyResult.component.name
       }
     },
-    // The declaration map of the referenced component file. Contributed
-    // under the `meta` name so it merges into the component file's entry,
-    // alongside `signatures`.
-    componentMap: compPath && compMeta ? { [compPath]: compMeta } : {}
+    subcomponents: hasSubcomponents ? { [file]: storyResult.subcomponents } : {},
+    componentMap
   };
 }
 
 export function metaContributor(api: ContributorAPI): Plugin {
   let fileMeta: Record<string, StaticMeta> = {};
   let fileComponent: Record<string, ComponentMeta> = {};
+  let fileSubcomponents: Record<string, Record<string, ComponentMeta>> = {};
   let fileComponentMaps: Record<string, ComponentMap> = {};
 
   function recontribute() {
@@ -54,11 +68,13 @@ export function metaContributor(api: ContributorAPI): Plugin {
     // contribution (their keys never collide).
     api.contribute('meta', { ...fileMeta, ...fileComponentMaps });
     api.contribute('component', { ...fileComponent });
+    api.contribute('subcomponents', { ...fileSubcomponents });
   }
 
   function syncAll() {
     let meta: Record<string, StaticMeta> = {};
     let component: Record<string, ComponentMeta> = {};
+    let subcomponents: Record<string, Record<string, ComponentMeta>> = {};
     let componentMaps: Record<string, ComponentMap> = {};
 
     for (const file of getStoryFiles()) {
@@ -66,19 +82,26 @@ export function metaContributor(api: ContributorAPI): Plugin {
 
       meta = { ...meta, ...data.meta };
       component = { ...component, ...data.component };
+      subcomponents = { ...subcomponents, ...data.subcomponents };
       componentMaps = { ...componentMaps, ...data.componentMap };
     }
 
     fileMeta = meta;
     fileComponent = component;
+    fileSubcomponents = subcomponents;
     fileComponentMaps = componentMaps;
     recontribute();
   }
 
   function storiesForComponent(compPath: string): string[] {
-    return Object.entries(fileComponent)
-      .filter(([, v]) => v.file === compPath)
-      .map(([k]) => k);
+    const references = (storyPath: string) => [
+      fileComponent[storyPath],
+      ...Object.values(fileSubcomponents[storyPath] ?? {})
+    ];
+
+    return Object.keys(fileComponent).filter((storyPath) =>
+      references(storyPath).some((ref) => ref.file === compPath)
+    );
   }
 
   function syncStory(storyPath: string) {
@@ -87,6 +110,12 @@ export function metaContributor(api: ContributorAPI): Plugin {
     fileMeta = { ...fileMeta, ...data.meta };
     fileComponent = { ...fileComponent, ...data.component };
     fileComponentMaps = { ...fileComponentMaps, ...data.componentMap };
+
+    // Replaced rather than merged, so a story file can drop its subcomponents.
+    fileSubcomponents = {
+      ...Object.fromEntries(Object.entries(fileSubcomponents).filter(([key]) => key !== storyPath)),
+      ...data.subcomponents
+    };
   }
 
   return {
@@ -127,6 +156,8 @@ export function metaContributor(api: ContributorAPI): Plugin {
         delete fileMeta[changedPath];
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
         delete fileComponent[changedPath];
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete fileSubcomponents[changedPath];
         recontribute();
       });
     }

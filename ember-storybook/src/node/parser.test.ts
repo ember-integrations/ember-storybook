@@ -312,6 +312,51 @@ export const LTR = {
     expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
   });
 
+  test('resolves the meta subcomponents like the component', () => {
+    using fix = tempFixture({
+      'list.gts': `export const List = <template><ul>{{yield}}</ul></template>;`,
+      'item.gts': `export default class ListItem {}`,
+      'header.gts': `export const Header = <template><li>{{yield}}</li></template>;`,
+      'test.stories.gts': `
+import { List } from './list.gts';
+import ListItem from './item.gts';
+import { Header as ListHeader } from './header.gts';
+import { Other } from 'some-addon';
+const meta = {
+  component: List,
+  subcomponents: { ListItem, Heading: ListHeader, 'Third party': Other }
+} satisfies Meta;
+export default meta;
+export const Default: StoryObj = {};
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(Object.keys(result.subcomponents)).toEqual(['ListItem', 'Heading', 'Third party']);
+    expect(result.subcomponents.ListItem.file).toMatch(/item\.gts$/);
+    expect(result.subcomponents.ListItem.signatureName).toBe(Default);
+    expect(result.subcomponents.ListItem.name).toBe('ListItem');
+    expect(result.subcomponents.Heading.file).toMatch(/header\.gts$/);
+    expect(result.subcomponents.Heading.signatureName).toBe('Header');
+    // Not a local file: no signature can be extracted, the local name is reported.
+    expect(result.subcomponents['Third party']).toEqual({ signatureName: 'Other' });
+  });
+
+  test('reports no subcomponents when the meta has none', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import { Greeting } from './greeting.gts';
+export default { component: Greeting } satisfies Meta;
+export const Default: StoryObj = {};
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(result.subcomponents).toEqual({});
+  });
+
   test('falls back to import identifier when component file is missing', () => {
     using fix = tempFixture({
       'test.stories.gts': `
@@ -351,6 +396,25 @@ export const LTR = meta.story({
     expect(result.meta.title).toBe('Greetings');
     expect(result.component.file).toMatch(/greeting\.gts$/);
     expect(result.component.signatureName).toBe('Greeting');
+  });
+
+  test('resolves subcomponents from preview.meta()', () => {
+    using fix = tempFixture({
+      'greeting.gts': `export const Greeting = <template><div>Hello</div></template>;`,
+      'farewell.gts': `export const Farewell = <template><div>Bye</div></template>;`,
+      'test.stories.gts': `
+import preview from '../.storybook/preview';
+import { Greeting } from './greeting.gts';
+import { Farewell } from './farewell.gts';
+const meta = preview.meta({ component: Greeting, subcomponents: { Farewell } });
+export const Default = meta.story();
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+
+    expect(result.subcomponents.Farewell.file).toMatch(/farewell\.gts$/);
+    expect(result.subcomponents.Farewell.signatureName).toBe('Farewell');
   });
 
   test('extracts inline template from meta.story()', () => {

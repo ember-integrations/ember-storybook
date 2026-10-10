@@ -42,35 +42,47 @@ export function parseProcessedCode(processedCode: string, filePath: string): Pro
 }
 
 /**
+ * Where a component referenced by a story file (its `component`, or one of its
+ * `subcomponents`) lives, and how its signature is looked up.
+ */
+export interface ComponentReference {
+  /**
+   * Project-relative path to the component file.
+   * Set only when the component is imported from a local module.
+   */
+  file?: string;
+
+  /**
+   * The key to look up the component's signature in the component
+   * file's signatures record. Matches TypeDoc's deriveComponentName.
+   *
+   * - `"Greeting"` for `export const Greeting = ...`
+   * - `"Card"` for `export { Card as CardExport }`
+   * - `"Button"` for `export default class Button ...`
+   */
+  signatureName?: string;
+
+  /**
+   * The name used to invoke the component in generated source.
+   * Differs from `signatureName` for default exports, where the
+   * signature is keyed by the `__DEFAULT__` sentinel but the real
+   * component name (e.g. `"Button"`) is known from the component file.
+   */
+  name?: string;
+}
+
+/**
  * Result of parsing a story file, covering all subsystem needs.
  */
 export interface StoryFile {
   meta: StaticMeta;
-  component: {
-    /**
-     * Project-relative path to the component file.
-     * Set only when the component is imported from a local module.
-     */
-    file?: string;
+  component: ComponentReference;
 
-    /**
-     * The key to look up the component's signature in the component
-     * file's signatures record. Matches TypeDoc's deriveComponentName.
-     *
-     * - `"Greeting"` for `export const Greeting = ...`
-     * - `"Card"` for `export { Card as CardExport }`
-     * - `"Button"` for `export default class Button ...`
-     */
-    signatureName?: string;
-
-    /**
-     * The name used to invoke the component in generated source.
-     * Differs from `signatureName` for default exports, where the
-     * signature is keyed by the `__DEFAULT__` sentinel but the real
-     * component name (e.g. `"Button"`) is known from the component file.
-     */
-    name?: string;
-  };
+  /**
+   * The meta's CSF `subcomponents`, keyed like the meta's own object
+   * (`subcomponents: { Item }` → `Item`).
+   */
+  subcomponents: Record<string, ComponentReference>;
 
   stories: (StaticStory & { inlineTemplate?: string })[];
 }
@@ -235,6 +247,77 @@ function resolveLocalComponentFile(storyPath: string, source: string): string | 
 }
 
 /**
+ * Resolve a component's local name in a story file (as used in the meta's
+ * `component` or `subcomponents`) to its file and signature.
+ */
+function resolveComponentReference(
+  storyPath: string,
+  importMap: Map<string, { source: string; importedName: string | undefined }>,
+  localName: string
+): ComponentReference {
+  const importInfo = importMap.get(localName);
+
+  if (!importInfo) {
+    return { signatureName: localName };
+  }
+
+  const compPath = resolveLocalComponentFile(storyPath, importInfo.source);
+
+  if (!compPath) {
+    // Not a local relative import (alias or bare specifier), or the file does not
+    // exist. No signature can be extracted from it, so report the local name.
+    return { signatureName: localName };
+  }
+
+  const compMeta = parseComponentFile(compPath);
+  const signatureName = findSignatureName(compMeta, importInfo.importedName);
+
+  return {
+    file: compPath,
+    signatureName: signatureName ?? localName,
+    name: signatureName === Default ? (compMeta?.[Default] ?? localName) : undefined
+  };
+}
+
+/**
+ * Read the meta's `subcomponents` object (`{ Item, Other: OtherItem }`) into a
+ * map from each key to the local name it references. Entries that are not a
+ * plain identifier are skipped.
+ */
+interface ObjectExpressionNode {
+  type: string;
+  properties: {
+    type: string;
+    key: { type: string; name?: string; value?: unknown };
+    value: { type: string; name?: string };
+  }[];
+}
+
+function readSubcomponentNames(node: unknown): Record<string, string> {
+  const names: Record<string, string> = {};
+  const object = node as ObjectExpressionNode | undefined;
+
+  if (object?.type !== 'ObjectExpression') return names;
+
+  for (const property of object.properties) {
+    if (property.type !== 'ObjectProperty' || property.value.type !== 'Identifier') continue;
+
+    const key =
+      property.key.type === 'Identifier'
+        ? property.key.name
+        : property.key.type === 'StringLiteral'
+          ? String(property.key.value)
+          : undefined;
+
+    if (key && property.value.name) {
+      names[key] = property.value.name;
+    }
+  }
+
+  return names;
+}
+
+/**
  * Parse a story file and return metadata about the component it references,
  * including template sources for each named story export.
  */
@@ -244,6 +327,7 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
   // ── 1. CSF parsing — gives meta, story IDs, local names ──
   let meta: StaticMeta | undefined = {};
   let stories: (StaticStory & { inlineTemplate?: string })[] = [];
+  let subcomponentNames: Record<string, string> = {};
 
   try {
     const csf = loadCsf(processedCode, {
@@ -254,6 +338,7 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
     meta = parsed.meta;
     stories = parsed.stories;
+    subcomponentNames = readSubcomponentNames(csf._metaAnnotations.subcomponents);
   } catch {
     // CSF parsing failed — return partial result
   }
@@ -318,45 +403,15 @@ export function parseStoryFile(storyPath: string): StoryFile | undefined {
 
   visitor.visit(program);
 
-  // ── 3. Resolve component ──
-  const localComponentName = meta.component;
-
-  if (!localComponentName) {
-    return { meta: meta, component: {}, stories };
-  }
-
-  const importInfo = importMap.get(localComponentName);
-
-  if (!importInfo) {
-    return {
-      meta,
-      component: { signatureName: localComponentName },
-      stories
-    };
-  }
-
-  const compPath = resolveLocalComponentFile(storyPath, importInfo.source);
-
-  if (!compPath) {
-    // Not a local relative import (alias or bare specifier), or the file does not
-    // exist. No signature can be extracted from it, so report the local name.
-    return {
-      meta,
-      component: { signatureName: localComponentName },
-      stories
-    };
-  }
-
-  const compMeta = parseComponentFile(compPath);
-  const signatureName = findSignatureName(compMeta, importInfo.importedName);
+  // ── 3. Resolve component and subcomponents ──
+  const resolve = (localName: string) => resolveComponentReference(storyPath, importMap, localName);
 
   return {
     meta,
-    component: {
-      file: compPath,
-      signatureName: signatureName ?? localComponentName,
-      name: signatureName === Default ? (compMeta?.[Default] ?? localComponentName) : undefined
-    },
+    component: meta.component ? resolve(meta.component) : {},
+    subcomponents: Object.fromEntries(
+      Object.entries(subcomponentNames).map(([key, localName]) => [key, resolve(localName)])
+    ),
     stories
   };
 }
