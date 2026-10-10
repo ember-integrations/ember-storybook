@@ -16,7 +16,7 @@ catalogs:
     "@babel/plugin-transform-runtime": 7.29.7
     "@babel/plugin-transform-typescript": "^7.29.7"
     "@babel/runtime": 7.29.7
-    "@ember/app-tsconfig": 2.0.0
+    "@ember/app-tsconfig": 2.1.0
     "@embroider/addon-dev": ^8.3.1
     "@embroider/core": 4.6.2
     "@embroider/vite": ^1.7.8
