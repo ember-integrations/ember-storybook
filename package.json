@@ -10,9 +10,9 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "@playwright/mcp": "^0.0.79",
+    "@playwright/mcp": "^0.0.83",
     "markdown-it-container": "^4.0.0",
-    "playwright": "^1.62.1",
+    "playwright": "^1.63.0",
     "release-plan": "^0.18.0",
     "vitepress": "^1.6.4",
     "vitepress-plugin-group-icons": "^1.7.6",
