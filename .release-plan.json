@@ -1,18 +1,14 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "patch",
-      "oldVersion": "0.4.1",
-      "newVersion": "0.4.2",
+      "impact": "minor",
+      "oldVersion": "0.4.2",
+      "newVersion": "0.5.0",
       "tagName": "latest",
       "constraints": [
         {
-          "impact": "patch",
-          "reason": "Appears in changelog section :memo: Documentation"
-        },
-        {
-          "impact": "patch",
-          "reason": "Appears in changelog section :house: Internal"
+          "impact": "minor",
+          "reason": "Appears in changelog section :rocket: Enhancement"
         }
       ],
       "pkgJSONPath": "./ember-storybook/package.json"
@@ -21,5 +17,5 @@
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-09-25)\n\n* ember-storybook 0.4.2 (patch)\n\n#### :memo: Documentation\n* `ember-storybook`\n  * [#74](https://github.com/ember-integrations/ember-storybook/pull/74) Write readme ([@gossi](https://github.com/gossi))\n* Other\n  * [#71](https://github.com/ember-integrations/ember-storybook/pull/71) Add Documentation Site ([@gossi](https://github.com/gossi))\n\n#### :house: Internal\n* `ember-storybook`\n  * [#75](https://github.com/ember-integrations/ember-storybook/pull/75) Clean Ember peer dependencies ([@gossi](https://github.com/gossi))\n* Other\n  * [#73](https://github.com/ember-integrations/ember-storybook/pull/73) Enable renovate ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "## Release (2026-10-10)\n\n* ember-storybook 0.5.0 (minor)\n\n#### :rocket: Enhancement\n* `ember-storybook`\n  * [#90](https://github.com/ember-integrations/ember-storybook/pull/90) Support transition from `{{outlet}}` to `@outlet` ([@gossi](https://github.com/gossi))\n\n#### Committers: 1\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
 }

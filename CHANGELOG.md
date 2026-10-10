@@ -1,5 +1,16 @@
 # Changelog
 
+## Release (2026-10-10)
+
+* ember-storybook 0.5.0 (minor)
+
+#### :rocket: Enhancement
+* `ember-storybook`
+  * [#90](https://github.com/ember-integrations/ember-storybook/pull/90) Support transition from `{{outlet}}` to `@outlet` ([@gossi](https://github.com/gossi))
+
+#### Committers: 1
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-25)
 
 * ember-storybook 0.4.2 (patch)
