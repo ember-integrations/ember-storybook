@@ -76,6 +76,7 @@
     "prepack": "tsdown"
   },
   "dependencies": {
+    "@mdx-js/react": "catalog:lib",
     "@storybook/builder-vite": "catalog:lib",
     "@storybook/global": "catalog:lib",
     "content-tag": "catalog:build",
@@ -104,7 +105,6 @@
     "@rollup/plugin-babel": "catalog:build",
     "@storybook/addon-docs": "catalog:lib",
     "@storybook/react-dom-shim": "catalog:lib",
-    "@mdx-js/react": "catalog:lib",
     "@types/node": "catalog:types",
     "@types/react": "catalog:types",
     "ember-source": "^6.8.0",
