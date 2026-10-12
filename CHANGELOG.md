@@ -1,5 +1,21 @@
 # Changelog
 
+## Release (2026-10-12)
+
+* ember-storybook 0.5.0 (minor)
+
+#### :rocket: Enhancement
+* `ember-storybook`
+  * [#90](https://github.com/ember-integrations/ember-storybook/pull/90) Support transition from `{{outlet}}` to `@outlet` ([@gossi](https://github.com/gossi))
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#78](https://github.com/ember-integrations/ember-storybook/pull/78) Fix inline template lookup for multi-word story export names ([@marina-semeia](https://github.com/marina-semeia))
+
+#### Committers: 2
+- Marina Avataneo ([@marina-semeia](https://github.com/marina-semeia))
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-09-25)
 
 * ember-storybook 0.4.2 (patch)
