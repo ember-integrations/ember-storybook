@@ -226,6 +226,24 @@ export const LTR: StoryObj = {
     expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
   });
 
+  test('extracts inline template for a story with a multi-word export name', () => {
+    using fix = tempFixture({
+      'test.stories.gts': `
+import { Greeting } from './greeting.gts';
+export default { component: Greeting, title: 'Greetings' } satisfies Meta;
+export const WithLongName: StoryObj = {
+  render: (args) => <template><Greeting @name={{args.name}} /></template>
+};
+`.trim()
+    });
+
+    const result = parseStoryFile(path.join(fix.base, 'test.stories.gts')) as StoryFile;
+    // Storybook splits the export name into words for the id: `with-long-name`
+    const story = result.stories.find((s) => s.id === 'greetings--with-long-name');
+
+    expect(story?.inlineTemplate).toBe('<Greeting @name={{args.name}} />');
+  });
+
   test('handles stories without inline template', () => {
     using fix = tempFixture({
       'test.stories.gts': `
