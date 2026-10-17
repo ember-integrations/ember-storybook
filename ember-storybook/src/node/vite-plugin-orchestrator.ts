@@ -9,6 +9,11 @@ export interface ContributorAPI {
   contribute(name: string, data: Record<string, unknown>): void;
   getContributions(): Map<string, Record<string, unknown>>;
   invalidate?: () => void;
+  /**
+   * Resolves once the story files are registered, i.e. once Storybook has
+   * indexed them. Contributors await it before reading `getStoryFiles()`.
+   */
+  storyFilesReady(): Promise<void>;
 }
 
 export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
