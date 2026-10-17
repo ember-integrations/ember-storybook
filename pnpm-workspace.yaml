@@ -24,7 +24,7 @@ catalogs:
     "@glint/template": 1.9.0
     "@glint/tsserver-plugin": 2.7.9
     "@rollup/plugin-babel": ^7.1.0
-    babel-plugin-ember-template-compilation: 4.0.0
+    babel-plugin-ember-template-compilation: 4.0.1
     content-tag: ^4.0.0
     decorator-transforms: 2.4.0
     oxc-parser: ^0.153.0
