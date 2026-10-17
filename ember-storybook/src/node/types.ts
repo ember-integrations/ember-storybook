@@ -8,13 +8,17 @@ export type StorySource = {
   signatureName?: string;
 };
 
+export type ComponentReference = {
+  file?: string;
+  signatureName?: string;
+  name?: string;
+};
+
 export type StoryFile = {
   meta: StaticMeta;
-  component: {
-    file?: string;
-    signatureName?: string;
-    name?: string;
-  };
+  component: ComponentReference;
+  /** The meta's CSF `subcomponents`, keyed like the meta's own object. */
+  subcomponents?: Record<string, ComponentReference>;
   source?: Record<string, StorySource>;
 };
 

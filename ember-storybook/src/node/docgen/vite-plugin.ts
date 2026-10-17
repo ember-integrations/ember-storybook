@@ -10,7 +10,8 @@ import type { Plugin } from 'vite';
 
 interface ComponentRef {
   componentName: string;
-  componentPath: string;
+  /** The component's file, followed by its subcomponents' files. */
+  componentPaths: string[];
 }
 
 interface SignaturesState {
@@ -22,7 +23,7 @@ function isReferenced(state: SignaturesState, componentFile: string): boolean {
   const abs = path.resolve(componentFile);
 
   for (const r of state.storyToRef.values()) {
-    if (r.componentPath === abs) return true;
+    if (r.componentPaths.includes(abs)) return true;
   }
 
   return false;
@@ -33,9 +34,14 @@ function resolveComponentRef(storyFilePath: string): ComponentRef | undefined {
 
   if (!result?.component.file) return undefined;
 
-  const componentPath = path.resolve(result.component.file);
+  const subcomponentFiles = Object.values(result.subcomponents).flatMap((ref) =>
+    ref.file ? [ref.file] : []
+  );
+  const componentPaths = [result.component.file, ...subcomponentFiles].map((file) =>
+    path.resolve(file)
+  );
 
-  return { componentName: result.meta.component ?? '', componentPath };
+  return { componentName: result.meta.component ?? '', componentPaths };
 }
 
 async function addSignatures(
@@ -90,17 +96,20 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
     if (!ref) return;
 
     state.storyToRef.set(storyFile, ref);
-    state = await addSignatures(state, [ref.componentPath]);
+    state = await addSignatures(state, ref.componentPaths);
     contributeState();
   }
 
-  function processStoryChange(storyFile: string) {
+  async function processStoryChange(storyFile: string) {
     state.storyToRef.delete(storyFile);
 
     const ref = resolveComponentRef(storyFile);
 
     if (ref) {
       state.storyToRef.set(storyFile, ref);
+      // The edit may reference components (e.g. new subcomponents) whose
+      // signatures were never extracted.
+      state = await addSignatures(state, ref.componentPaths);
     }
 
     contributeState();
@@ -133,7 +142,9 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
     async buildStart() {
       discoverAll();
 
-      const allPaths = [...new Set(Array.from(state.storyToRef.values(), (r) => r.componentPath))];
+      const allPaths = [
+        ...new Set(Array.from(state.storyToRef.values(), (r) => r.componentPaths).flat())
+      ];
 
       state = await addSignatures(state, allPaths);
       contributeState();
@@ -150,7 +161,7 @@ export function signaturesContributor(api: ContributorAPI): Plugin {
 
       server.watcher.on('change', (changedFile) => {
         if (isStoryFile(changedFile)) {
-          processStoryChange(changedFile);
+          void processStoryChange(changedFile);
         } else if (isComponentFile(changedFile)) {
           void processComponentChange(changedFile);
         }

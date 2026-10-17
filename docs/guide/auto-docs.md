@@ -99,6 +99,19 @@ Component signatures are turned into auto documentation and render these parts (
 - `Part` - to add custom styles to subelements
 - `Subcomponents` - components yielded by block params (same structure as the main component)
 
+Components that aren't yielded can be listed in the meta's CSF
+[`subcomponents`](https://storybook.js.org/docs/writing-docs/autodocs#subcomponents) instead.
+They get their own tab in the Args table, with the args from their signature:
+
+```gts
+const meta = preview.meta({
+  component: List,
+  subcomponents: { ListItem }
+});
+```
+
+Each subcomponent must be imported from a relative path for its signature to be extracted.
+
 ## The Source Panel
 
 The code shown under each example isn't stringified args — a source decorator reconstructs
