@@ -471,7 +471,7 @@ importers:
         version: 2.1.1(supports-color@7.2.0)
       '@glint/ember-tsc':
         specifier: catalog:build
-        version: 1.11.6(ember-source@6.12.0(@glimmer/component@2.1.1(supports-color@7.2.0))(rsvp@4.8.5)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
+        version: 1.11.6(ember-source@7.3.0(@glimmer/component@2.1.1(supports-color@7.2.0))(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
       '@glint/template':
         specifier: catalog:build
         version: 1.9.0
@@ -503,8 +503,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/ember-docgen
       ember-source:
-        specifier: ^6.12.0
-        version: 6.12.0(@glimmer/component@2.1.1(supports-color@7.2.0))(rsvp@4.8.5)(supports-color@7.2.0)
+        specifier: ^7.3.0
+        version: 7.3.0(@glimmer/component@2.1.1(supports-color@7.2.0))(supports-color@7.2.0)
       eslint:
         specifier: catalog:lint
         version: 10.6.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1318,9 +1318,6 @@ packages:
 
   '@ember/app-tsconfig@2.1.0':
     resolution: {integrity: sha512-s44smHIQVM2Ews1+bIAwqibVF6OHsw3/G14xV0DA0/GchVolqTG/Kfzqn/jZnU4zlXPEndJdTpn+PFEsuFs7mg==}
-
-  '@ember/edition-utils@1.2.0':
-    resolution: {integrity: sha512-VmVq/8saCaPdesQmftPqbFtxJWrzxNGSQ+e8x8LLe3Hjm36pJ04Q8LeORGZkAeOhldoUX9seLGmSaHeXkIqoog==}
 
   '@ember/test-waiters@4.1.2':
     resolution: {integrity: sha512-zJwFaHLHjJn6mKoXYVM1SEyMT+U1JpaaSKg3JBmxHJwiIoJRI5djJ/CE33Z7N09mk5JfXd2xdhbd9LBWdlvAzg==}
@@ -3626,10 +3623,6 @@ packages:
     resolution: {integrity: sha512-ng4eIhPYiXqMw6SyGoxPHR3YAwEd2lr9FgBI1CyTbspl4txZovOsmzFkMkGAlu88xyvYXJqHiM2crfLa65T1BQ==}
     engines: {node: 10.* || >= 12.*}
 
-  broccoli-merge-trees@4.2.0:
-    resolution: {integrity: sha512-nTrQe5AQtCrW4enLRvbD/vTLHqyW2tz+vsLXQe4IEaUhepuMGVKJJr+I8n34Vu6fPjmPLwTjzNC8izMIDMtHPw==}
-    engines: {node: 10.* || >= 12.*}
-
   broccoli-node-api@1.7.0:
     resolution: {integrity: sha512-QIqLSVJWJUVOhclmkmypJJH9u9s/aWH4+FH6Q6Ju5l+Io4dtwqdPUNmDfw40o6sxhbZHhqGujDJuHTML1wG8Yw==}
 
@@ -3703,10 +3696,6 @@ packages:
     resolution: {integrity: sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==}
     engines: {node: '>= 0.4'}
 
-  can-symlink@1.0.0:
-    resolution: {integrity: sha512-RbsNrFyhwkx+6psk/0fK/Q9orOUr9VMxohGd8vTa4djf4TGLfblBgUfqZChrZuW0Q+mz2eBPFLusw9Jfukzmhg==}
-    hasBin: true
-
   caniuse-lite@1.0.30001799:
     resolution: {integrity: sha512-hG1bReV+OUU+MOqK4t/ZWI0tZOyz3rqS9XuhOUz1cIcbwBKjOyJEJuw9ER5JuNyqxNk8u/JUVbGibBOL1yrjFw==}
 
@@ -3757,9 +3746,6 @@ packages:
   clean-stack@2.2.0:
     resolution: {integrity: sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A==}
     engines: {node: '>=6'}
-
-  clean-up-path@1.0.0:
-    resolution: {integrity: sha512-PHGlEF0Z6976qQyN6gM7kKH6EH0RdfZcc8V+QhFe36eRxV0SMH5OUBZG7Bxa9YcreNzyNbK63cGiZxdSZgosRw==}
 
   cli-highlight@2.1.11:
     resolution: {integrity: sha512-9KDcoEVwyUXrjcJNvHD0NFc/hiwe/WPVYIleQh2O1N2Zro5gWJZ/K+3DGn8w8P/F6FxOgzyC5bxDyHIgCSPhGg==}
@@ -4005,9 +3991,6 @@ packages:
   ember-cli-get-component-path-option@1.0.0:
     resolution: {integrity: sha512-k47TDwcJ2zPideBCZE8sCiShSxQSpebY2BHcX2DdipMmBox5gsfyVrbKJWIHeSTTKyEUgmBIvQkqTOozEziCZA==}
 
-  ember-cli-is-package-missing@1.0.0:
-    resolution: {integrity: sha512-9hEoZj6Au5onlSDdcoBqYEPT8ehlYntZPxH8pBKV0GO7LNel88otSAQsCfXvbi2eKE+MaSeLG/gNaCI5UdWm9g==}
-
   ember-cli-normalize-entity-name@1.0.0:
     resolution: {integrity: sha512-rF4P1rW2P1gVX1ynZYPmuIf7TnAFDiJmIUFI1Xz16VYykUAyiOCme0Y22LeZq8rTzwBMiwBwoE3RO4GYWehXZA==}
 
@@ -4064,12 +4047,6 @@ packages:
   ember-router-generator@2.0.0:
     resolution: {integrity: sha512-89oVHVJwmLDvGvAUWgS87KpBoRhy3aZ6U0Ql6HOmU4TrPkyaa8pM0W81wj9cIwjYprcQtN9EwzZMHnq46+oUyw==}
     engines: {node: 8.* || 10.* || >= 12}
-
-  ember-source@6.12.0:
-    resolution: {integrity: sha512-cApfEKxltl2VWt0o24XISsdkpyqqtT8wG0/EWokjeyqBPRCOIej2PMzRkLAu3A5AWpuWoJ//yq04mDix7axA7w==}
-    engines: {node: '>= 20.19'}
-    peerDependencies:
-      '@glimmer/component': '>= 1.1.2'
 
   ember-source@7.3.0:
     resolution: {integrity: sha512-N6KJ02uztRAzMWo5ZjSNW7qDRVRaw5+rBMUtcwYaGOExQmIp1X82243Mk8RC3RfZuugqjnRZ5u2QQeSHXMJSrg==}
@@ -4505,10 +4482,6 @@ packages:
   fs-tree-diff@2.0.1:
     resolution: {integrity: sha512-x+CfAZ/lJHQqwlD64pYM5QxWjzWhSjroaVsr8PW831zOApL55qPibed0c+xebaLWVr2BnHFoHdrwOv8pzt8R5A==}
     engines: {node: 6.* || 8.* || >= 10.*}
-
-  fs-updater@1.0.4:
-    resolution: {integrity: sha512-0pJX4mJF/qLsNEwTct8CdnnRdagfb+LmjRPJ8sO+nCnAZLW0cTmz4rTgU25n+RvTuWSITiLKrGVJceJPBIPlKg==}
-    engines: {node: '>=6.0.0'}
 
   fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
@@ -5182,9 +5155,6 @@ packages:
   merge-stream@2.0.0:
     resolution: {integrity: sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==}
 
-  merge-trees@2.0.0:
-    resolution: {integrity: sha512-5xBbmqYBalWqmhYm51XlohhkmVOua3VAUrrWh8t9iOkaLpS6ifqm/UVuUjQCeDVJ9Vx3g2l6ihfkbLSTeKsHbw==}
-
   merge2@1.4.1:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
@@ -5416,10 +5386,6 @@ packages:
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
-
-  os-tmpdir@1.0.2:
-    resolution: {integrity: sha512-D2FR03Vir7FIu45XBY20mTb+/ZSWB00sjU9jdQXt83gDrI4Ztz5Fs7/yy74g2N5SVQY4xY1qDr4rNddwYRVX0g==}
-    engines: {node: '>=0.10.0'}
 
   oxc-parser@0.153.0:
     resolution: {integrity: sha512-cEnpyyV1OJRXv++SFNw0z8i+2o/cr88rVLaOYJafELDoHM5yHvCAbwGRLvxuany6SNLcbblSMUyZaGzH+quSYg==}
@@ -5891,13 +5857,6 @@ packages:
   route-recognizer@0.3.4:
     resolution: {integrity: sha512-2+MhsfPhvauN1O8KaXpXAOfR/fwe8dnUXVM+xw7yt40lJRfPVQxV6yryZm0cgRvAj5fMF/mdRZbL2ptwbs5i2g==}
 
-  router_js@8.0.6:
-    resolution: {integrity: sha512-AjGxRDIpTGoAG8admFmvP/cxn1AlwwuosCclMU4R5oGHGt7ER0XtB3l9O04ToBDdPe4ivM/YcLopgBEpJssJ/Q==}
-    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-    peerDependencies:
-      route-recognizer: ^0.3.4
-      rsvp: ^4.8.5
-
   rrweb-cssom@0.7.1:
     resolution: {integrity: sha512-TrEMa7JGdVm0UThDJSx7ddw5nVm3UJS9o9CCIZ72B1vSyEZoziDqBYP3XIoi/12lKrJR8rE3jeFHMok2F/Mnsg==}
 
@@ -6238,10 +6197,6 @@ packages:
   tldts@6.1.86:
     resolution: {integrity: sha512-WMi/OQ2axVTf/ykqCQgXiIct+mSQDFdH2fkwhPwgEwvJ1kSzZRiinb0zF2Xb8u4+OqPChmyI6MEu4EezNJz+FQ==}
     hasBin: true
-
-  tmp@0.0.28:
-    resolution: {integrity: sha512-c2mmfiBmND6SOVxzogm1oda0OJ1HZVIk/5n26N59dDTh80MUeavpiCls4PGAdkX1PFkKokLpcf7prSjCeXLsJg==}
-    engines: {node: '>=0.4.0'}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -7791,8 +7746,6 @@ snapshots:
 
   '@ember/app-tsconfig@2.1.0': {}
 
-  '@ember/edition-utils@1.2.0': {}
-
   '@ember/test-waiters@4.1.2(supports-color@7.2.0)':
     dependencies:
       '@embroider/addon-shim': 1.10.3(supports-color@7.2.0)
@@ -8250,31 +8203,6 @@ snapshots:
   '@glimmer/wire-format@0.94.8':
     dependencies:
       '@glimmer/interfaces': 0.94.6
-
-  '@glint/ember-tsc@1.11.6(ember-source@6.12.0(@glimmer/component@2.1.1(supports-color@7.2.0))(rsvp@4.8.5)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)':
-    dependencies:
-      '@glimmer/syntax': 0.95.0
-      '@glint/template': 1.9.0
-      '@volar/kit': 2.4.28(typescript@6.0.3)
-      '@volar/language-core': 2.4.28
-      '@volar/language-server': 2.4.28(typescript@6.0.3)
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
-      '@volar/source-map': 2.4.28
-      '@volar/test-utils': 2.4.28(typescript@6.0.3)
-      '@volar/typescript': 2.4.28(typescript@6.0.3)
-      content-tag: 4.2.0
-      ember-estree: 0.8.1
-      silent-error: 1.1.1(supports-color@7.2.0)
-      typescript: 6.0.3
-      volar-service-html: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
-      volar-service-typescript: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(typescript@6.0.3)
-      vscode-languageserver-protocol: 3.18.2
-      vscode-languageserver-textdocument: 1.0.12
-      vscode-uri: 3.1.0
-    optionalDependencies:
-      ember-source: 6.12.0(@glimmer/component@2.1.1(supports-color@7.2.0))(rsvp@4.8.5)(supports-color@7.2.0)
-    transitivePeerDependencies:
-      - supports-color
 
   '@glint/ember-tsc@1.11.6(ember-source@7.3.0(@glimmer/component@2.1.1(supports-color@7.2.0))(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)':
     dependencies:
@@ -10097,13 +10025,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  broccoli-merge-trees@4.2.0(supports-color@7.2.0):
-    dependencies:
-      broccoli-plugin: 4.0.7(supports-color@7.2.0)
-      merge-trees: 2.0.0(supports-color@7.2.0)
-    transitivePeerDependencies:
-      - supports-color
-
   broccoli-node-api@1.7.0: {}
 
   broccoli-node-info@2.2.0: {}
@@ -10212,10 +10133,6 @@ snapshots:
       call-bind-apply-helpers: 1.0.2
       get-intrinsic: 1.3.0
 
-  can-symlink@1.0.0:
-    dependencies:
-      tmp: 0.0.28
-
   caniuse-lite@1.0.30001799: {}
 
   ccount@2.0.1: {}
@@ -10256,8 +10173,6 @@ snapshots:
   ci-info@4.4.0: {}
 
   clean-stack@2.2.0: {}
-
-  clean-up-path@1.0.0: {}
 
   cli-highlight@2.1.11:
     dependencies:
@@ -10507,8 +10422,6 @@ snapshots:
 
   ember-cli-get-component-path-option@1.0.0: {}
 
-  ember-cli-is-package-missing@1.0.0: {}
-
   ember-cli-normalize-entity-name@1.0.0(supports-color@7.2.0):
     dependencies:
       silent-error: 1.1.1(supports-color@7.2.0)
@@ -10595,37 +10508,6 @@ snapshots:
       '@babel/traverse': 7.29.7(supports-color@7.2.0)
       recast: 0.18.10
     transitivePeerDependencies:
-      - supports-color
-
-  ember-source@6.12.0(@glimmer/component@2.1.1(supports-color@7.2.0))(rsvp@4.8.5)(supports-color@7.2.0):
-    dependencies:
-      '@babel/core': 7.29.7(supports-color@7.2.0)
-      '@ember/edition-utils': 1.2.0
-      '@embroider/addon-shim': 1.10.3(supports-color@7.2.0)
-      '@glimmer/component': 2.1.1(supports-color@7.2.0)
-      '@simple-dom/interface': 1.4.0
-      backburner.js: 2.8.0
-      broccoli-file-creator: 2.1.1
-      broccoli-funnel: 3.0.8(supports-color@7.2.0)
-      broccoli-merge-trees: 4.2.0(supports-color@7.2.0)
-      chalk: 4.1.2
-      ember-cli-babel: 8.3.1(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0)
-      ember-cli-get-component-path-option: 1.0.0
-      ember-cli-is-package-missing: 1.0.0
-      ember-cli-normalize-entity-name: 1.0.0(supports-color@7.2.0)
-      ember-cli-path-utils: 1.0.0
-      ember-cli-string-utils: 1.1.0
-      ember-cli-typescript-blueprint-polyfill: 0.1.0(supports-color@7.2.0)
-      ember-cli-version-checker: 5.1.2(supports-color@7.2.0)
-      ember-router-generator: 2.0.0(supports-color@7.2.0)
-      inflection: 2.0.1
-      route-recognizer: 0.3.4
-      router_js: 8.0.6(route-recognizer@0.3.4)(rsvp@4.8.5)
-      semver: 7.8.5
-      silent-error: 1.1.1(supports-color@7.2.0)
-      simple-html-tokenizer: 0.5.11
-    transitivePeerDependencies:
-      - rsvp
       - supports-color
 
   ember-source@7.3.0(@glimmer/component@2.1.1(supports-color@7.2.0))(supports-color@7.2.0):
@@ -11209,16 +11091,6 @@ snapshots:
       object-assign: 4.1.1
       path-posix: 1.0.0
       symlink-or-copy: 1.3.1
-    transitivePeerDependencies:
-      - supports-color
-
-  fs-updater@1.0.4(supports-color@7.2.0):
-    dependencies:
-      can-symlink: 1.0.0
-      clean-up-path: 1.0.0
-      heimdalljs: 0.2.6
-      heimdalljs-logger: 0.1.10(supports-color@7.2.0)
-      rimraf: 2.7.1
     transitivePeerDependencies:
       - supports-color
 
@@ -11902,13 +11774,6 @@ snapshots:
 
   merge-stream@2.0.0: {}
 
-  merge-trees@2.0.0(supports-color@7.2.0):
-    dependencies:
-      fs-updater: 1.0.4(supports-color@7.2.0)
-      heimdalljs: 0.2.6
-    transitivePeerDependencies:
-      - supports-color
-
   merge2@1.4.1: {}
 
   micromark-util-character@2.1.1:
@@ -12124,8 +11989,6 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
       word-wrap: 1.2.5
-
-  os-tmpdir@1.0.2: {}
 
   oxc-parser@0.153.0:
     dependencies:
@@ -12658,12 +12521,6 @@ snapshots:
 
   route-recognizer@0.3.4: {}
 
-  router_js@8.0.6(route-recognizer@0.3.4)(rsvp@4.8.5):
-    dependencies:
-      '@glimmer/env': 0.1.7
-      route-recognizer: 0.3.4
-      rsvp: 4.8.5
-
   rrweb-cssom@0.7.1: {}
 
   rrweb-cssom@0.8.0: {}
@@ -13008,10 +12865,6 @@ snapshots:
   tldts@6.1.86:
     dependencies:
       tldts-core: 6.1.86
-
-  tmp@0.0.28:
-    dependencies:
-      os-tmpdir: 1.0.2
 
   to-regex-range@5.0.1:
     dependencies:
