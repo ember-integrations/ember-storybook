@@ -11,6 +11,30 @@ export interface ContributorAPI {
   invalidate?: () => void;
 }
 
+type ComponentReference = Record<string, string | undefined>;
+
+function normalizeReference(ref: ComponentReference): ComponentReference {
+  return ref.file ? { ...ref, file: normalizeFilePath(ref.file) } : ref;
+}
+
+/** Makes the component file paths in a `component` or `subcomponents` contribution project-relative. */
+function normalizeContribution(name: string, value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) return value;
+
+  if (name === 'component') return normalizeReference(value as ComponentReference);
+
+  if (name === 'subcomponents') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, ComponentReference>).map(([key, ref]) => [
+        key,
+        normalizeReference(ref)
+      ])
+    );
+  }
+
+  return value;
+}
+
 export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
   let server: ViteDevServer | undefined;
 
@@ -45,18 +69,7 @@ export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
 
       for (const [name, data] of contributions) {
         for (const [filePath, value] of Object.entries(data)) {
-          const relPath = normalizeFilePath(filePath);
-          let normalizedValue = value;
-
-          if (name === 'component' && typeof value === 'object' && value !== null) {
-            const compValue = value as Record<string, string | undefined>;
-
-            if (compValue.file) {
-              normalizedValue = { ...compValue, file: normalizeFilePath(compValue.file) };
-            }
-          }
-
-          (merged[relPath] ??= {})[name] = normalizedValue;
+          (merged[normalizeFilePath(filePath)] ??= {})[name] = normalizeContribution(name, value);
         }
       }
 
