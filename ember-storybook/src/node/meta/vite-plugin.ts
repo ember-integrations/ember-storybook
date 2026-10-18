@@ -92,7 +92,8 @@ export function metaContributor(api: ContributorAPI): Plugin {
   return {
     name: 'ember-storybook:meta',
 
-    buildStart() {
+    async buildStart() {
+      await api.storyFilesReady();
       syncAll();
     },
 
