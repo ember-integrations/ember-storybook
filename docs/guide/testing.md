@@ -77,6 +77,49 @@ export default {
 
 Run them like any Vitest suite.
 
+### Large Story Suites
+
+Vite pre-bundles a dependency the first time it sees it. In a large suite it can find one
+partway through the run, reload the page, and the run fails. Scan the preview and every story
+up front, and pre-bundle modules that are only ever imported lazily (such as `axe-core`, which
+`@storybook/addon-a11y` loads on demand). On a cold cache that pre-bundling can take longer
+than Vitest's default 60 s browser connect timeout, so raise it too:
+
+```ts [vite.config.js]
+{
+  extends: true,
+  plugins: [storybookTest({ /* ... */ })],
+  optimizeDeps: {
+    entries: ['.storybook/preview.ts', 'app/**/*.stories.{gjs,gts}'],
+    include: ['@storybook/addon-a11y > axe-core'],
+  },
+  test: {
+    name: 'storybook',
+    browser: {
+      connectTimeout: 180_000,
+      // ...
+    },
+  },
+}
+```
+
+### Decorators in `.ts` Files
+
+`@embroider/vite` compiles TypeScript with Babel and turns Vite's own TypeScript transform
+(oxc) off, but only when nothing has configured it yet. Vitest configures it first, so under
+Vitest decorators in plain `.ts` files (e.g. `@tracked` in a service) are compiled by oxc and
+stop working. Turn oxc off in the Storybook project (on Vite 7 and earlier, set `esbuild: false`
+instead):
+
+```ts [vite.config.js]
+{
+  extends: true,
+  plugins: [storybookTest({ /* ... */ })],
+  oxc: false,
+  // ...
+}
+```
+
 ## Interaction Tests
 
 The `play` function is where a story describes behavior: query the canvas, fire events,
