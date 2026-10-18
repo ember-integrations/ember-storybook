@@ -34,7 +34,10 @@ export default defineConfig({
       /^@storybook\/addon-docs/,
       /^@storybook\/react-dom-shim/,
       /^react(\/|$)/,
-      /^react-dom/
+      /^react-dom/,
+      // The docs renderer's MDXProvider and the compiled MDX pages must share
+      // one @mdx-js/react context; a bundled copy would get its own.
+      /^@mdx-js\/react/
     ]
   },
   plugins: [
