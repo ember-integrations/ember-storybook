@@ -52,6 +52,7 @@ export default defineConfig({
           { text: "App Context & Globals", link: "/guide/context-and-globals" },
           { text: "Auto-Docs", link: "/guide/auto-docs" },
           { text: "Testing", link: "/guide/testing" },
+          { text: "AI Agents (MCP)", link: "/guide/ai-agents" },
         ],
       },
       {
