@@ -29,7 +29,7 @@ catalogs:
     decorator-transforms: 2.4.0
     oxc-parser: ^0.153.0
     tsdown: "^0.23.0"
-    typescript: "^6.0.3"
+    typescript: "^7.0.0"
     vite: ^8.1.3
   lint:
     "@gossi/config-eslint": ^1.3.4
