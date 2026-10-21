@@ -107,7 +107,7 @@
     "@mdx-js/react": "catalog:lib",
     "@types/node": "catalog:types",
     "@types/react": "catalog:types",
-    "ember-source": "^7.3.0",
+    "ember-source": "^7.3.1",
     "eslint": "catalog:lint",
     "prettier": "catalog:lint",
     "react": "catalog:frontend",
