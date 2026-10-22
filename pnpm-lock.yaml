@@ -77,8 +77,8 @@ catalogs:
       specifier: ^2.1.1
       version: 2.1.1
     ember-intl:
-      specifier: ^8.2.9
-      version: 8.2.9
+      specifier: ^9.0.0
+      version: 9.3.2
     ember-modifier:
       specifier: 4.3.0
       version: 4.3.0
@@ -386,7 +386,7 @@ importers:
         version: 0.8.8(supports-color@7.2.0)
       ember-intl:
         specifier: catalog:frontend
-        version: 8.2.9(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0)
+        version: 9.3.2(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0)
       eslint:
         specifier: catalog:lint
         version: 10.6.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1254,8 +1254,8 @@ packages:
   '@blazediff/core@1.9.1':
     resolution: {integrity: sha512-ehg3jIkYKulZh+8om/O25vkvSsXXwC+skXmyA87FFx6A/45eqOkZsBltMw/TVteb0mloiGT8oGRTcjRAz66zaA==}
 
-  '@codemod-utils/files@4.0.1':
-    resolution: {integrity: sha512-zIj3UC3kY0JAyPkkQXwuAiX7bz7+HU/PK9XqytWeaN262JSK858nfFyja0wGqou4rO3O3a3yw1HY7TTEuJZivQ==}
+  '@codemod-utils/files@4.1.2':
+    resolution: {integrity: sha512-bxqz69m3Txfs6f07pPVj1wIMWDCyCW6Qgyuq1un9aFVAunRMob8GYdNoh7wrIKjZO5S1Wk0nUDoAa7Qg+nDc1Q==}
     engines: {node: 22.* || >= 24}
 
   '@csstools/color-helpers@5.1.0':
@@ -1311,6 +1311,10 @@ packages:
 
   '@ember-data/rfc395-data@0.0.4':
     resolution: {integrity: sha512-tGRdvgC9/QMQSuSuJV45xoyhI0Pzjm7A9o/MVVA3HakXIImJbbzx/k/6dO9CUEQXIyS2y0fW6C1XaYOG7rY0FQ==}
+
+  '@ember-intl/utils@0.5.1':
+    resolution: {integrity: sha512-ZqVW1Zhz/A/7tasjMWdghVFFk+MflYT+ceYTf3NHhzJZ1BGy/jUCkJWhkQ2P6CH8zs3N2nd6aU7HNBaAq9qjPQ==}
+    engines: {node: 22.* || >= 24}
 
   '@ember-intl/vite@1.1.1':
     resolution: {integrity: sha512-I15NkaiSoUBXLTDz6IQb2O5rYxZ4xgq2O5syApLOeyVYMzdFNexBIfYGjUNqdcFtUEErRKX+12DQUDyxR3T0Ww==}
@@ -1741,17 +1745,17 @@ packages:
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@formatjs/fast-memoize@3.1.6':
-    resolution: {integrity: sha512-H5aexk1Le7T9TPmscacZ+1pR6CTa2n1wq+HDVGXhH8TzUlQQpeXzZs91dRtmFHrbeNbjPFPfQujUqm7MHgVoXQ==}
+  '@formatjs/fast-memoize@3.1.7':
+    resolution: {integrity: sha512-zXfhLpvA6T7+efdt9JLbBwZ00tT7NsBMDVnDu8rpHeNNv8KfRZAMo2gkG0k9lK/Nzc//3kJ9pImsfuJxk3KhUA==}
 
-  '@formatjs/icu-messageformat-parser@3.5.12':
-    resolution: {integrity: sha512-YyzzxVgYJ8DELmmkhn0Yr0rUj0dTJFf9Jp628K3S0ysInBWxLVDOS8i3RP91cCp4DMK4WYb4cVMhWA9i4knSJg==}
+  '@formatjs/icu-messageformat-parser@3.5.22':
+    resolution: {integrity: sha512-YuwN+dDKgssfuYwtOyGQD0CSn7K46g9cv1Fp0VgKpjZDDFvv8b8crzP990IcJhRPWHhKzCGsbUSJVIguyyFA5A==}
 
-  '@formatjs/icu-skeleton-parser@2.1.10':
-    resolution: {integrity: sha512-XuSva+8ZGawk8VnD5VD6UeH8KarQ/Z022zgjHDoHmlNiAewstXuuzXc0Hk5pGFSdG+nNw5bfJKXqj1ZXHn9yUA==}
+  '@formatjs/icu-skeleton-parser@2.1.12':
+    resolution: {integrity: sha512-ca7tZMLpfHX3sUD7hP6gE/qr6Iq89EDd3ZLeRhbsB7r0UD55DGJq+tmFLzrGrnx5StahUevQmQQVtbDRHsfDHA==}
 
-  '@formatjs/intl@4.1.14':
-    resolution: {integrity: sha512-hl8dgvbV2Te/KPnCud+nuBc+z8qW8fGreiun7ul5LopIHkbP0izylvnhIFDL2dQMeMPdrKCAXhJkYDeoxVuDRw==}
+  '@formatjs/intl@6.1.4':
+    resolution: {integrity: sha512-udBTb6Heg/sleurLkUdPq+T9B7FvhiZ+8EyauSpqkqKPF+S5TUplO/tZmok7JC86Zk+OKhP8rIGi8bYRF9WJaA==}
 
   '@gar/promise-retry@1.0.3':
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
@@ -3456,6 +3460,9 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  argparse@3.0.3:
+    resolution: {integrity: sha512-Sn98ftV3KfsO8xfLPHG6oT8y+b0yvbrLgZjgPDXsharNY15tTAjqIsIju4S32nl6/iEUNNE4v+yL2Zhm8ooP3w==}
+
   aria-query@5.3.0:
     resolution: {integrity: sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A==}
 
@@ -4029,11 +4036,11 @@ packages:
   ember-estree@0.8.1:
     resolution: {integrity: sha512-8gOi6SvtEGJ7njzSfVbzTOB46ryIYNQi9a56QBr0ZvXW676eJslnIet5n3oS6zAiaae0TkxbYForfDekzDUd2A==}
 
-  ember-intl@8.2.9:
-    resolution: {integrity: sha512-WfLBJHbR/EnOdeV6u4BKof3fVOGdDt/OzqXlwhjOie6WEV9xyxpEq6KOVvBw26A14M0DISO9BeSxRrVLgg1b5Q==}
-    engines: {node: 20.* || >= 22}
+  ember-intl@9.3.2:
+    resolution: {integrity: sha512-zejwhThWhi+05TOebz87nOdhvfR1ZPXs1SYeXlrIVChLs9/ejxh+wQr6npHiB3nV4GjQDdhX/kjHfA7B8SBX9g==}
+    engines: {node: 22.* || >= 24}
     peerDependencies:
-      '@ember/test-helpers': ^4.0.0 || ^5.0.0
+      '@ember/test-helpers': ^5.0.0
     peerDependenciesMeta:
       '@ember/test-helpers':
         optional: true
@@ -4736,8 +4743,8 @@ packages:
     resolution: {integrity: sha512-ifK0CgjALofS5bkrcTy4RaQ9Vx2Knf/eLeIO+NaswQEpH1UblrtTSCIvN71qQDMq0PeQ/SSPojvEJp9vvvfr+w==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
-  intl-messageformat@11.2.9:
-    resolution: {integrity: sha512-cGzymZerpDhVXRKjKLgXKda9gI29TU2o88L7gwNMHp3WZVxA/0c5tX52udXbW9JklDApolvMXZG6Dhhdz5eirA==}
+  intl-messageformat@12.1.4:
+    resolution: {integrity: sha512-JUkmv3cAEyijN3oiRiV3ctel7yVMuUCgfh7Pu8pj1/z6L1DSEPRyhuMaLjVw3pGmGJ5RDH54WVFxfMHZWTwyHw==}
 
   ip-address@10.2.0:
     resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
@@ -4872,8 +4879,8 @@ packages:
     resolution: {integrity: sha512-1td788aAnnZ5qs7V2QIRl1owjtYpbKt749Y3xauqQgwIIGF/xXWz1wMTEBx5O3LK3lXLVuqXPdPxj2BoFHaW9Q==}
     hasBin: true
 
-  js-yaml@5.2.1:
-    resolution: {integrity: sha512-zfLtNfQqxVqq3uaTqSkh4x4hZw3KHobGUA0fJUj4wawW8bsQLTVqpHdXSIzidh7o+4lEW36tANuAGdaFx6Zgnw==}
+  js-yaml@5.5.0:
+    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
     hasBin: true
 
   jscodeshift@0.15.2:
@@ -7688,7 +7695,7 @@ snapshots:
 
   '@blazediff/core@1.9.1': {}
 
-  '@codemod-utils/files@4.0.1':
+  '@codemod-utils/files@4.1.2':
     dependencies:
       glob: 13.0.6
 
@@ -7739,10 +7746,15 @@ snapshots:
 
   '@ember-data/rfc395-data@0.0.4': {}
 
+  '@ember-intl/utils@0.5.1':
+    dependencies:
+      '@codemod-utils/files': 4.1.2
+      js-yaml: 5.5.0
+
   '@ember-intl/vite@1.1.1':
     dependencies:
-      '@codemod-utils/files': 4.0.1
-      js-yaml: 5.2.1
+      '@codemod-utils/files': 4.1.2
+      js-yaml: 5.5.0
 
   '@ember/app-tsconfig@2.1.0': {}
 
@@ -8150,19 +8162,19 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@formatjs/fast-memoize@3.1.6': {}
+  '@formatjs/fast-memoize@3.1.7': {}
 
-  '@formatjs/icu-messageformat-parser@3.5.12':
+  '@formatjs/icu-messageformat-parser@3.5.22':
     dependencies:
-      '@formatjs/icu-skeleton-parser': 2.1.10
+      '@formatjs/icu-skeleton-parser': 2.1.12
 
-  '@formatjs/icu-skeleton-parser@2.1.10': {}
+  '@formatjs/icu-skeleton-parser@2.1.12': {}
 
-  '@formatjs/intl@4.1.14':
+  '@formatjs/intl@6.1.4':
     dependencies:
-      '@formatjs/fast-memoize': 3.1.6
-      '@formatjs/icu-messageformat-parser': 3.5.12
-      intl-messageformat: 11.2.9
+      '@formatjs/fast-memoize': 3.1.7
+      '@formatjs/icu-messageformat-parser': 3.5.22
+      intl-messageformat: 12.1.4
 
   '@gar/promise-retry@1.0.3': {}
 
@@ -9822,6 +9834,8 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  argparse@3.0.3: {}
+
   aria-query@5.3.0:
     dependencies:
       dequal: 2.0.3
@@ -10483,10 +10497,11 @@ snapshots:
       content-tag: 4.2.0
       oxc-parser: 0.153.0
 
-  ember-intl@8.2.9(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0):
+  ember-intl@9.3.2(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
+      '@ember-intl/utils': 0.5.1
       '@embroider/addon-shim': 1.10.3(supports-color@7.2.0)
-      '@formatjs/intl': 4.1.14
+      '@formatjs/intl': 6.1.4
       decorator-transforms: 2.4.0(@babel/core@7.29.7(supports-color@7.2.0))
     transitivePeerDependencies:
       - '@babel/core'
@@ -11361,10 +11376,10 @@ snapshots:
 
   ini@7.0.0: {}
 
-  intl-messageformat@11.2.9:
+  intl-messageformat@12.1.4:
     dependencies:
-      '@formatjs/fast-memoize': 3.1.6
-      '@formatjs/icu-messageformat-parser': 3.5.12
+      '@formatjs/fast-memoize': 3.1.7
+      '@formatjs/icu-messageformat-parser': 3.5.22
 
   ip-address@10.2.0: {}
 
@@ -11469,9 +11484,9 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  js-yaml@5.2.1:
+  js-yaml@5.5.0:
     dependencies:
-      argparse: 2.0.1
+      argparse: 3.0.3
 
   jscodeshift@0.15.2(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@7.2.0))(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
