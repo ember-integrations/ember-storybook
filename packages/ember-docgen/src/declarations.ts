@@ -15,6 +15,7 @@ import {
   TEMPLATE_ONLY_MODULE
 } from './modules';
 
+import { isBlockParam } from './block-params';
 import { resolveTsconfigFile } from './config';
 import { Default } from './signature';
 
@@ -944,7 +945,11 @@ function parseBlockParams(typeNode: AstNode, ctx: EvalContext): BlockInfo['param
   const params: BlockInfo['params'] = [];
 
   if (typeNode.type === 'TSTupleType') {
-    for (const element of (typeNode.elementTypes ?? []) as AstNode[]) {
+    for (const entry of (typeNode.elementTypes ?? []) as AstNode[]) {
+      // A labelled rest element (`...rest: string[]`) wraps its label
+      const rest = entry.type === 'TSRestType' ? (entry.typeAnnotation as AstNode) : undefined;
+      const element = rest?.type === 'TSNamedTupleMember' ? rest : entry;
+
       if (element.type === 'TSNamedTupleMember') {
         const label = (element.label ?? element.name) as AstNode | undefined;
         const elementName = String(label?.name ?? '');
@@ -953,7 +958,7 @@ function parseBlockParams(typeNode: AstNode, ctx: EvalContext): BlockInfo['param
 
         params.push({
           ...blockParamFromTypeNode(elementName, element.elementType as AstNode, ctx),
-          description: descriptionFor(ctx.bundle, element)
+          description: descriptionFor(ctx.bundle, entry)
         });
       } else if (element.type === 'TSTypeLiteral') {
         // Yield hash: one entry per named member
@@ -999,9 +1004,112 @@ function parseBlockParams(typeNode: AstNode, ctx: EvalContext): BlockInfo['param
         description: descriptionFor(ctx.bundle, member)
       });
     }
+
+    return params;
   }
 
-  return params;
+  // A block typed by reference (`OtherSignature['Blocks']['default']`, an
+  // alias): read the declaration it names, with the type arguments the
+  // reference gives
+  const referenced = referencedTypeNode(typeNode, ctx);
+
+  if (!referenced) return params;
+
+  const fill = fillTypeArguments(typeNode, ctx);
+
+  return parseBlockParams(referenced.node, referenced.ctx).map((param) =>
+    isBlockParam(param)
+      ? fill(param)
+      : Object.fromEntries(Object.entries(param).map(([key, entry]) => [key, fill(entry)]))
+  );
+}
+
+/**
+ * Puts the type arguments a reference gives (`ListSignature<string>[…]`,
+ * `Pair<number>`) in place of their declaration's type parameters in a
+ * param's type.
+ */
+function fillTypeArguments(
+  reference: AstNode,
+  ctx: EvalContext
+): (param: BlockParam) => BlockParam {
+  let generic: AstNode | undefined = reference;
+
+  while (generic?.type === 'TSIndexedAccessType') generic = generic.objectType as AstNode;
+
+  const args = ((generic?.typeArguments as { params?: AstNode[] } | undefined)?.params ??
+    []) as AstNode[];
+  const resolved =
+    generic?.type === 'TSTypeReference' && args.length > 0
+      ? resolveName(ctx.scope, ctx.bundle, referenceName(generic))
+      : undefined;
+  const texts = new Map(
+    [...(resolved ? bindTypeParameters(resolved.node, args) : [])].map(([name, arg]) => [
+      name,
+      sliceText(ctx.bundle, arg)
+    ])
+  );
+
+  if (texts.size === 0) return (param) => param;
+
+  // Whole identifiers, which can contain `$`
+  const names = [...texts.keys()].map((name) => name.replaceAll('$', String.raw`\$`));
+  const pattern = new RegExp(String.raw`(?<![\w$])(${names.join('|')})(?![\w$])`, 'g');
+
+  return (param) => ({
+    ...param,
+    type: param.type.replaceAll(pattern, (name) => texts.get(name) ?? name)
+  });
+}
+
+/**
+ * The declared type node a reference names, with the context it was
+ * declared in: the property's for an indexed access
+ * (`OtherSignature['Blocks']['default']`), the right-hand side for a type
+ * alias. Its syntax keeps tuple labels and docs.
+ */
+function referencedTypeNode(
+  typeNode: AstNode,
+  ctx: EvalContext
+): { node: AstNode; ctx: EvalContext } | undefined {
+  if (ctx.depth > 8) return undefined;
+
+  if (typeNode.type === 'TSIndexedAccessType') {
+    const objectType = typeNode.objectType as AstNode;
+    // `A['B']['C']`: look `C` up in what `A['B']` declares
+    const container =
+      objectType.type === 'TSIndexedAccessType'
+        ? referencedTypeNode(objectType, step(ctx))
+        : { node: objectType, ctx: step(ctx) };
+
+    if (!container) return undefined;
+
+    const index = (typeNode.indexType as AstNode | undefined)?.literal as AstNode | undefined;
+    const member = evalContainer(container.node, container.ctx).find(
+      (candidate) => candidate.name === String(index?.value ?? '')
+    );
+    const declared =
+      member?.anchor?.type === 'TSPropertySignature'
+        ? typeAnnotationOf(member.anchor)
+        : member?.typeNode;
+
+    return member && declared
+      ? { node: declared, ctx: { ...step(ctx), bundle: member.sourceBundle } }
+      : undefined;
+  }
+
+  if (typeNode.type === 'TSTypeReference') {
+    const resolved = resolveName(ctx.scope, ctx.bundle, referenceName(typeNode));
+
+    return resolved?.node.type === 'TSTypeAliasDeclaration' && resolved.node.typeAnnotation
+      ? {
+          node: resolved.node.typeAnnotation as AstNode,
+          ctx: { ...step(ctx), bundle: resolved.bundle }
+        }
+      : undefined;
+  }
+
+  return undefined;
 }
 
 // ── Signature parsing ──────────────────────────────────────────
@@ -1039,7 +1147,10 @@ function parseSignature(
         ? typeAnnotationOf(blocksMember.anchor)
         : undefined;
 
-    result.blocks = parseBlocks(declared ?? blocksMember.typeNode, ctx);
+    result.blocks = parseBlocks(declared ?? blocksMember.typeNode, {
+      ...ctx,
+      bundle: blocksMember.sourceBundle
+    });
   }
 
   const elementMember = byName.get('Element');
@@ -1092,7 +1203,7 @@ function parseBlocks(
         : member.typeNode;
 
     blocks[member.name] = {
-      params: declared ? parseBlockParams(declared, ctx) : [],
+      params: declared ? parseBlockParams(declared, { ...ctx, bundle: member.sourceBundle }) : [],
       description: descriptionFor(member.sourceBundle ?? ctx.bundle, member.anchor)
     };
   }

@@ -277,3 +277,94 @@ export type TOC<T> = { [K in keyof T]: T[K]; } & ((args: T extends { Args: infer
     expect(bundles).toEqual({});
   });
 });
+
+describe('analyzeDeclarations — blocks typed by reference', () => {
+  test("reads another signature's block, aliases and their type arguments", () => {
+    const result = analyzeDeclarations({
+      'app/menu.gts': `
+import type { TOC } from '@ember/component/template-only';
+import type { Item } from './item';
+export interface MenuSignature {
+    Blocks: {
+        default: [item: typeof Item, index?: number];
+        actions: [{ label?: string; kind: 'primary' | 'secondary' }];
+    };
+}
+export interface ListSignature<T> {
+    Blocks: {
+        default: [item: T, index: number];
+        option: [item?: T];
+        hash: [{ value?: T; label: string }];
+    };
+}
+export type Pair<T> = [first: T, second: T];
+export type Rest<T> = [first: T, /** The rest */ ...rest: string[]];
+export type Dollar<T$> = [item: T$, items: T$[]];
+export declare const Menu: TOC<MenuSignature>;
+`,
+      'app/-menu-button.gts': `
+import type { Dollar, ListSignature, MenuSignature, Pair, Rest } from './menu';
+type Row = [row: string];
+type Loop = Loop2;
+type Loop2 = Loop;
+export interface MenuButtonSignature {
+    Blocks: {
+        default: MenuSignature['Blocks']['default'];
+        actions: MenuSignature['Blocks']['actions'];
+        row: Row;
+        list: ListSignature<string>['Blocks']['default'];
+        option: ListSignature<string>['Blocks']['option'];
+        hash: ListSignature<string>['Blocks']['hash'];
+        pair: Pair<number>;
+        rest: Rest<number>;
+        dollar: Dollar<number>;
+        loop: Loop;
+    };
+}
+`,
+      'app/menu-button.gts': `
+import type { TOC } from '@ember/component/template-only';
+import type { MenuButtonSignature } from './-menu-button';
+export declare const MenuButton: TOC<MenuButtonSignature>;
+`,
+      'app/item.gts': `
+import type { TOC } from '@ember/component/template-only';
+export declare const Item: TOC<{ Element: HTMLLIElement }>;
+`
+    });
+
+    const menu = result['app/menu.gts'].Menu.blocks.default!;
+    const blocks = result['app/menu-button.gts'].MenuButton.blocks;
+
+    expect(blocks.default!.params).toEqual(menu.params);
+    expect(blocks.default!.params).toMatchObject([
+      { name: 'item' },
+      { name: 'index', type: 'number' }
+    ]);
+    expect(blocks.actions!.params).toEqual(
+      result['app/menu.gts'].Menu.blocks.actions!.params
+    );
+    expect(blocks.row!.params).toMatchObject([{ name: 'row', type: 'string' }]);
+    expect(blocks.list!.params).toMatchObject([
+      { name: 'item', type: 'string' },
+      { name: 'index', type: 'number' }
+    ]);
+    expect(blocks.option!.params).toMatchObject([{ name: 'item', type: 'string' }]);
+    expect(blocks.hash!.params).toMatchObject([
+      { value: { type: 'string' }, label: { type: 'string' } }
+    ]);
+    expect(blocks.pair!.params).toMatchObject([
+      { name: 'first', type: 'number' },
+      { name: 'second', type: 'number' }
+    ]);
+    expect(blocks.rest!.params).toMatchObject([
+      { name: 'first', type: 'number' },
+      { name: 'rest', type: 'string[]', description: 'The rest' }
+    ]);
+    expect(blocks.dollar!.params).toMatchObject([
+      { name: 'item', type: 'number' },
+      { name: 'items', type: 'number[]' }
+    ]);
+    expect(blocks.loop!.params).toEqual([]);
+  });
+});
