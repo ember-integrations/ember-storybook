@@ -3,7 +3,7 @@ import { createElement, Fragment, type MouseEvent, type ReactNode, useContext } 
 import { NAVIGATE_URL } from 'storybook/internal/core-events';
 import { styled } from 'storybook/theming';
 
-import { componentDisplayName } from '../signature';
+import { subcomponentName } from '../signature';
 import { TableWrapper } from './ui';
 
 import type { EmberMeta } from '../../../node/types';
@@ -107,13 +107,10 @@ function SubcomponentAnchor({ name, children }: { name: string; children?: React
   );
 }
 
-/** Display name for a block param's type: the referenced component's own
- * name when available, the yield key for local components, otherwise the
- * raw type string. */
-function displayTypeName(param: BlockParam, data?: EmberMeta): string {
-  if (param.componentRef?.local) return param.name;
-
-  return (data ? componentDisplayName(param.componentRef, data) : undefined) ?? param.type;
+/** Display name for a block param's type: a yielded component's name, as
+ * Subcomponents has it, otherwise the raw type string. */
+function displayTypeName(param: BlockParam, data: EmberMeta = {}): string {
+  return param.componentRef ? subcomponentName(param, data) : param.type;
 }
 
 function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {

@@ -1129,3 +1129,25 @@ export class Widget extends Component<WidgetSignature> {
     });
   });
 });
+
+describe('default exports', () => {
+  test('records the name a default export is declared under', async () => {
+    using fix = fixture({
+      'menu-item.gts': `
+import Component from '@glimmer/component';
+
+export default class MenuItem extends Component<{ Element: HTMLLIElement }> {}
+
+export class MenuItemDivider extends Component<{ Element: HTMLLIElement }> {}
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/menu-item.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+
+    expect(sigs['app/menu-item.gts'][Default].name).toBe('MenuItem');
+    expect(sigs['app/menu-item.gts'].MenuItemDivider).not.toHaveProperty('name');
+  });
+});

@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { BlocksTable } from './blocks';
 
+import type { EmberMeta } from '../../../node/types';
 import type { BlockInfo } from 'ember-docgen';
 
 // Storybook's docs blocks need a DOM to load; the table uses none of them.
@@ -33,8 +34,8 @@ function textOf(root: ReactNode): string[] {
   return text;
 }
 
-function blocksTable(blocks: Record<string, BlockInfo>) {
-  return textOf(BlocksTable({ blocks, subcomponentNames: new Set() }));
+function blocksTable(blocks: Record<string, BlockInfo>, data?: EmberMeta) {
+  return textOf(BlocksTable({ blocks, subcomponentNames: new Set(), data }));
 }
 
 describe('BlocksTable', () => {
@@ -56,6 +57,61 @@ describe('BlocksTable', () => {
         }
       })
     ).toEqual(['<:default>', 'The items', '- ', 'item', ': ', 'string', 'The item']);
+  });
+
+  test('names a yielded component from a file without stories of its own', () => {
+    const data = {
+      './app/menu-item.gts': {
+        signatures: {
+          __DEFAULT__: {
+            name: 'MenuItem',
+            args: {},
+            blocks: {},
+            element: undefined,
+            style: { customProperties: {}, parts: {} }
+          }
+        }
+      }
+    } as unknown as EmberMeta;
+
+    expect(
+      blocksTable(
+        {
+          default: {
+            params: [
+              {
+                Item: {
+                  name: 'Item',
+                  type: 'Invokable<(named: PrebindArgs<{ label: string }, "menu">) => unknown>',
+                  componentRef: { filePath: './app/menu-item.gts', exportName: '__DEFAULT__' }
+                }
+              }
+            ],
+            description: ''
+          }
+        },
+        data
+      )
+    ).toEqual(['<:default>', '{', 'Item', ': ', 'MenuItem', '}']);
+  });
+
+  test('names a yielded component without a signature by its yield key', () => {
+    expect(
+      blocksTable({
+        default: {
+          params: [
+            {
+              Axis: {
+                name: 'Axis',
+                type: 'Invokable<(named: PrebindArgs<{ title: string }, "chart">) => unknown>',
+                componentRef: { filePath: './app/axis.gts', exportName: '__DEFAULT__' }
+              }
+            }
+          ],
+          description: ''
+        }
+      })
+    ).toEqual(['<:default>', '{', 'Axis', ': ', 'Axis', '}']);
   });
 
   test('lists the default block first', () => {
