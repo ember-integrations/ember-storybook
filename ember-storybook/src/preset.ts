@@ -72,7 +72,7 @@ export const managerEntries = (entries: string[] = []): string[] => [
   fileURLToPath(import.meta.resolve('ember-storybook/manager'))
 ];
 
-export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserConfig) => {
+export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserConfig, options) => {
   const { mergeConfig } = await import('vite');
 
   config.plugins = await withoutVitePlugins(config.plugins, ['embroider-content-for']);
@@ -85,7 +85,18 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
   );
 
   return mergeConfig(config, {
-    plugins: [...emberStorybookPlugin(), docsRendererPlugin(docsPreviewPatch, docsAddonFactory)],
+    plugins: [
+      ...emberStorybookPlugin({
+        waitForStoryIndex: async () => {
+          // Storybook memoizes the generator, so this is the index the build
+          // is already producing, not a second one.
+          const generator = await options.presets.apply('storyIndexGenerator');
+
+          await generator?.getIndex();
+        }
+      }),
+      docsRendererPlugin(docsPreviewPatch, docsAddonFactory)
+    ],
     optimizeDeps: {
       exclude: ['object-inspect']
     },
