@@ -1,6 +1,6 @@
 import type { BlockInfo, BlockParam, HashBlockParam } from './signature';
 
-function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
+export function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
   return Object.hasOwn(param, 'name') && Object.hasOwn(param, 'type');
 }
 
