@@ -278,6 +278,19 @@ describe('collectSubcomponents', () => {
     expect(componentDisplayName(ref, data)).toBe('NavLink');
   });
 
+  test('names a default export in a transitive file by its declared name', () => {
+    const ref = { filePath: './app/components/menu-item.gts', exportName: Default };
+
+    // The docgen records the declaration name a default export has
+    const data = {
+      './app/components/menu-item.gts': {
+        signatures: { [Default]: { ...OPTION_FULL, name: 'MenuItem' } }
+      }
+    } as unknown as EmberMeta;
+
+    expect(componentDisplayName(ref, data)).toBe('MenuItem');
+  });
+
   test('lists template-only subcomponents without a signature by name only', () => {
     const blocks: Record<string, { params: BlockParam[] }> = {
       default: {

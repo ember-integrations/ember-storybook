@@ -476,6 +476,8 @@ function declaredSignatureWrapper(declarator: AstNode, bundle: Bundle): AstNode 
 
 interface DiscoveredComponent {
   name: string;
+  /** The name a default export is declared under */
+  declaredName?: string;
   signatureNode: AstNode;
 }
 
@@ -491,8 +493,12 @@ function discoverComponents(scope: Scope, bundle: Bundle): DiscoveredComponent[]
     return undefined;
   };
 
-  function push(rawName: string, signatureNode: AstNode): void {
-    components.push({ name: rawName === 'default' ? Default : rawName, signatureNode });
+  function push(rawName: string, localName: string, signatureNode: AstNode): void {
+    components.push(
+      rawName === 'default'
+        ? { name: Default, declaredName: localName, signatureNode }
+        : { name: rawName, signatureNode }
+    );
   }
 
   for (const [exportedName, localName] of bundle.exports) {
@@ -516,7 +522,7 @@ function discoverComponents(scope: Scope, bundle: Bundle): DiscoveredComponent[]
           'default'
         ])
       ) {
-        push(exportedName, arg);
+        push(exportedName, localName, arg);
       }
 
       continue;
@@ -535,7 +541,7 @@ function discoverComponents(scope: Scope, bundle: Bundle): DiscoveredComponent[]
 
     if (!arg) continue;
 
-    push(exportedName, arg);
+    push(exportedName, localName, arg);
   }
 
   return components;
@@ -1129,11 +1135,10 @@ export function analyzeDeclarations(
   for (const bundle of scope.bundles.values()) {
     for (const component of discoverComponents(scope, bundle)) {
       signatures[bundle.id] ??= {};
-      signatures[bundle.id][component.name] = parseSignature(
-        component.signatureNode,
-        bundle,
-        scope
-      );
+      signatures[bundle.id][component.name] = {
+        ...(component.declaredName && { name: component.declaredName }),
+        ...parseSignature(component.signatureNode, bundle, scope)
+      };
     }
   }
 
