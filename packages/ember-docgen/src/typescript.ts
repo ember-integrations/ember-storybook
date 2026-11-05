@@ -1042,8 +1042,12 @@ function extractFileSignatures(
     // Key by the module's export name — this is what consumers
     // (story parser, source decorator) look signatures up by.
     const name = exported.name === 'default' ? Default : exported.name;
+    const declaredName = name === Default ? declarationName(exported, ctx) : undefined;
 
-    entry[name] = parseSignature(signatureType, ctx);
+    entry[name] = {
+      ...(declaredName && { name: declaredName }),
+      ...parseSignature(signatureType, ctx)
+    };
   }
 
   // Local (non-exported) components referenced via `typeof X` in block
@@ -1087,6 +1091,18 @@ function extractFileSignatures(
   if (Object.keys(entry).length > 0) {
     signatures[key] = entry;
   }
+}
+
+/** The name an export is declared under (`MenuItem` for `export default class MenuItem`). */
+function declarationName(exported: TS.Symbol, ctx: ExtractContext): string | undefined {
+  const symbol =
+    (exported.flags & ts.SymbolFlags.Alias) === 0
+      ? exported
+      : ctx.checker.getAliasedSymbol(exported);
+  const declaration = symbol.declarations?.[0];
+  const nameNode = declaration ? ts.getNameOfDeclaration(declaration) : undefined;
+
+  return nameNode && ts.isIdentifier(nameNode) ? nameNode.text : undefined;
 }
 
 /**
