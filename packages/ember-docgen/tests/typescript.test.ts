@@ -1,10 +1,11 @@
+import { utimesSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
 import { tempFixture } from './test-support';
 
-import { Default, parseSignatures } from '../src';
+import { createDocgenSession, Default, parseSignatures } from '../src';
 
 import type { HashBlockParam } from '../src';
 
@@ -1127,5 +1128,50 @@ export class Widget extends Component<WidgetSignature> {
       expect(param.componentRef).toBeDefined();
       expect(param.nested).toBeUndefined();
     });
+  });
+});
+
+describe('createDocgenSession', () => {
+  const greeting = (args: string) => `
+import type { TOC } from '@ember/component/template-only';
+
+export interface GreetingSignature {
+  Args: { ${args} };
+}
+
+export const Greeting: TOC<GreetingSignature> = <template>Hello {{@name}}</template>;
+`;
+
+  test('extracts what parseSignatures does, a file at a time', async () => {
+    using fix = fixture({
+      'greeting.gts': greeting('name: string'),
+      'farewell.gts': greeting('name: string; until?: string').replaceAll('Greeting', 'Farewell')
+    });
+
+    const tsconfigFile = path.join(fix.base, 'tsconfig.json');
+    const files = ['app/greeting.gts', 'app/farewell.gts'].map((file) => path.join(fix.base, file));
+    const session = createDocgenSession({ tsconfigFile })!;
+
+    for (const file of files) {
+      expect(session.parseSignatures([file])).toEqual(
+        await parseSignatures([file], { tsconfigFile })
+      );
+    }
+  });
+
+  test('extracts a file again once it changes', () => {
+    using fix = fixture({ 'greeting.gts': greeting('name: string') });
+
+    const file = path.join(fix.base, 'app/greeting.gts');
+    const session = createDocgenSession({ tsconfigFile: path.join(fix.base, 'tsconfig.json') })!;
+    const argNames = () => Object.keys(session.parseSignatures([file])['app/greeting.gts']!.Greeting!.args);
+
+    expect(argNames()).toEqual(['name']);
+
+    writeFileSync(file, greeting('name: string; polite?: boolean'));
+    // A later modification time, in case the write lands within the last one's resolution.
+    utimesSync(file, new Date(), new Date(Date.now() + 2000));
+
+    expect(argNames()).toEqual(['name', 'polite']);
   });
 });
