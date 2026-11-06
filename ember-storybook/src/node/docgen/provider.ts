@@ -3,9 +3,9 @@ import path from 'node:path';
 import { getComponentIdFromEntry, getStoryImportPathFromEntry } from 'storybook/internal/common';
 
 import { buildArgTypes } from '../../client/docs/extractArgTypes';
-import { byAbsolutePath, componentFileOf, describeComponent } from '../manifest';
+import { componentFileOf, describeComponent } from '../manifest';
 import { parseStoryFile } from '../parser';
-import { createSignatureExtractor, type SignatureExtractor } from './docgen';
+import { batched, createSignatureExtractor } from './docgen';
 
 import type {
   DocgenMiddleware,
@@ -24,17 +24,15 @@ export function emberStoryFileOf(entry: IndexEntry): string | undefined {
   return /\.stories\.g[jt]s$/.test(storyPath) ? storyPath : undefined;
 }
 
-function docgenPayload(
-  extract: SignatureExtractor,
+async function docgenPayload(
+  signaturesOf: ReturnType<typeof batched>,
   entry: IndexEntry,
   storyPath: string
-): DocgenPayload {
+): Promise<DocgenPayload> {
   const id = getComponentIdFromEntry(entry);
   const parsed = parseStoryFile(path.resolve(storyPath));
   const componentFile = componentFileOf(parsed);
-  const signatures = componentFile
-    ? byAbsolutePath(extract([componentFile])).get(componentFile)
-    : undefined;
+  const signatures = componentFile ? await signaturesOf(componentFile) : undefined;
   const { signature, name, description, apiDescription } = describeComponent(
     parsed,
     signatures,
@@ -55,24 +53,28 @@ function docgenPayload(
 
 /**
  * The docgen server's provider (`experimental_docgenProvider`). Storybook
- * loads this module in a worker and asks it for one component at a time; the
- * TypeScript program is built on the first request and reused after that.
+ * loads this module in a worker and asks it for components, one request each;
+ * the TypeScript program is built on the first request and reused after that.
  * Storybook's own `createLazyDocgenMiddleware` takes only `.js`/`.ts` story
  * files before Storybook 11.
  */
 export function createDocgenProvider(): DocgenMiddleware {
   // Created on the first request; `current` is unset without a tsconfig.
-  let extractor: undefined | { current: SignatureExtractor | undefined };
+  let signaturesOf: undefined | { current: ReturnType<typeof batched> | undefined };
 
   return (next) => (input) => {
     const storyPath = emberStoryFileOf(input.entry);
 
     if (!storyPath) return next(input);
 
-    extractor ??= { current: createSignatureExtractor() };
+    if (!signaturesOf) {
+      const extract = createSignatureExtractor();
 
-    return extractor.current
-      ? Promise.resolve(docgenPayload(extractor.current, input.entry, storyPath))
+      signaturesOf = { current: extract ? batched(extract) : undefined };
+    }
+
+    return signaturesOf.current
+      ? docgenPayload(signaturesOf.current, input.entry, storyPath)
       : next(input);
   };
 }

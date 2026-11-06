@@ -6,7 +6,7 @@ import { createDocgenSession, parseSignatures } from 'ember-docgen';
 import { unwrapBlockParams } from '../../client/docs/block-params';
 import { normalizeFilePath } from '../shared';
 
-import type { ComponentSignatureMap } from 'ember-docgen';
+import type { ComponentSignature, ComponentSignatureMap } from 'ember-docgen';
 
 /**
  * Resolve the directory of the project's tsconfig, replicating TypeDoc's
@@ -111,4 +111,46 @@ export async function runTypeDoc(entryPoints: string[]): Promise<ComponentSignat
 
     return {};
   }
+}
+
+type ComponentSignatures = Record<string, ComponentSignature>;
+
+/** Extracted signatures keyed by absolute path; extraction keys them by the tsconfig's directory. */
+export function byAbsolutePath(extracted: ComponentSignatureMap): Map<string, ComponentSignatures> {
+  const base = resolveTsconfigBase() ?? process.cwd();
+
+  return new Map(Object.entries(extracted).map(([file, sigs]) => [path.resolve(base, file), sigs]));
+}
+
+/**
+ * Extracts the component files asked for in the same turn of the event loop
+ * together. `storybook build` asks for every component at once, and a program
+ * per component (each with its own type checker) would take minutes.
+ */
+export function batched(
+  extract: SignatureExtractor
+): (componentFile: string) => Promise<ComponentSignatures | undefined> {
+  let batch: undefined | { files: Set<string>; done: Promise<Map<string, ComponentSignatures>> };
+
+  return async (componentFile) => {
+    if (!batch) {
+      const files = new Set<string>();
+
+      batch = {
+        files,
+        done: new Promise((resolve) => {
+          setImmediate(() => {
+            batch = undefined;
+            resolve(byAbsolutePath(extract([...files])));
+          });
+        })
+      };
+    }
+
+    batch.files.add(componentFile);
+
+    const signatures = await batch.done;
+
+    return signatures.get(componentFile);
+  };
 }

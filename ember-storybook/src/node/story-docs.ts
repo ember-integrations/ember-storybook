@@ -2,14 +2,14 @@ import path from 'node:path';
 
 import { getComponentIdFromEntry } from 'storybook/internal/common';
 
-import { createSignatureExtractor, type SignatureExtractor } from './docgen/docgen';
+import { batched, createSignatureExtractor } from './docgen/docgen';
 import { emberStoryFileOf } from './docgen/provider';
-import { byAbsolutePath, componentFileOf, describeComponent, storyExamples } from './manifest';
+import { componentFileOf, describeComponent, storyExamples } from './manifest';
 import { parseStoryFile } from './parser';
 
 import type { IndexEntry, StoryDocsProvider } from 'storybook/internal/types';
 
-let extractor: SignatureExtractor | undefined;
+let signaturesOf: undefined | { current: ReturnType<typeof batched> | undefined };
 
 /**
  * The docgen server's story docs (`experimental_storyDocsProvider`): each
@@ -29,11 +29,13 @@ export function emberStoryDocsProvider(
     const parsed = parseStoryFile(path.resolve(storyPath));
     const componentFile = componentFileOf(parsed);
 
-    extractor ??= createSignatureExtractor();
+    if (!signaturesOf) {
+      const extract = createSignatureExtractor();
 
-    const signatures = componentFile
-      ? byAbsolutePath(extractor?.([componentFile]) ?? {}).get(componentFile)
-      : undefined;
+      signaturesOf = { current: extract ? batched(extract) : undefined };
+    }
+
+    const signatures = componentFile ? await signaturesOf.current?.(componentFile) : undefined;
     const component = describeComponent(
       parsed,
       signatures,
