@@ -20,7 +20,8 @@ export default defineConfig({
     'src/client/docs/addon-preview.ts',
     'src/client/docs/renderer.ts',
     'src/client/docs/preview-patch.ts',
-    'src/node/index.ts'
+    'src/node/index.ts',
+    'src/node/docgen/provider.ts'
   ],
   sourcemap: true,
   clean: true,

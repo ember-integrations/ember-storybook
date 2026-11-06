@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { parseSignatures } from 'ember-docgen';
+import { createDocgenSession, parseSignatures } from 'ember-docgen';
 
 import { unwrapBlockParams } from '../../client/docs/block-params';
 import { normalizeFilePath } from '../shared';
@@ -45,6 +45,39 @@ function rewriteFilePaths(mapped: ComponentSignatureMap, base: string): void {
       }
     }
   }
+}
+
+export type SignatureExtractor = (entryPoints: string[]) => ComponentSignatureMap;
+
+/**
+ * `runTypeDoc` for callers that ask for a few components at a time, such as
+ * the docgen server's worker: one program is kept and built on across calls.
+ */
+export function createSignatureExtractor(): SignatureExtractor | undefined {
+  const base = resolveTsconfigBase();
+  const session = base
+    ? createDocgenSession({ tsconfigFile: path.join(base, 'tsconfig.json') })
+    : undefined;
+
+  if (!base || !session) return undefined;
+
+  return (entryPoints) => {
+    const existing = entryPoints.filter((entryPoint) => existsSync(entryPoint));
+
+    if (existing.length === 0) return {};
+
+    try {
+      const extracted = session.parseSignatures(existing);
+
+      rewriteFilePaths(extracted, base);
+
+      return extracted;
+    } catch (error) {
+      console.warn('[ember-storybook] Signature extraction failed:', error);
+
+      return {};
+    }
+  };
 }
 
 export async function runTypeDoc(entryPoints: string[]): Promise<ComponentSignatureMap> {

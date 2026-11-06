@@ -6,7 +6,12 @@ import { resolveTsconfigBase, runTypeDoc } from './docgen/docgen';
 import { parseStoryFile, type StoryFile } from './parser';
 import { Default } from './shared';
 
-import type { BlockInfo, BlockParam, ComponentSignature } from 'ember-docgen';
+import type {
+  BlockInfo,
+  BlockParam,
+  ComponentSignature,
+  ComponentSignatureMap
+} from 'ember-docgen';
 import type { ComponentManifest, ComponentsManifest, IndexEntry } from 'storybook/internal/types';
 
 function cell(text: string): string {
@@ -125,33 +130,100 @@ function componentId(storyId: string): string {
   return storyId.split('--', 1)[0] ?? storyId;
 }
 
+/** The absolute path of the component a story file documents, if it imports one. */
+export function componentFileOf(parsed: StoryFile | undefined): string | undefined {
+  return parsed?.component.file ? path.resolve(parsed.component.file) : undefined;
+}
+
+/** Extracted signatures keyed by absolute path; extraction keys them by the tsconfig's directory. */
+export function byAbsolutePath(
+  extracted: ComponentSignatureMap
+): Map<string, Record<string, ComponentSignature>> {
+  const base = resolveTsconfigBase() ?? process.cwd();
+
+  return new Map(Object.entries(extracted).map(([file, sigs]) => [path.resolve(base, file), sigs]));
+}
+
+/** A story file's component, as agents read it. */
+export interface ComponentDocs {
+  name: string;
+  description?: string;
+  import?: string;
+  apiDescription?: string;
+  signature?: ComponentSignature;
+}
+
+/**
+ * `signatures` are those of the component's file. `fallbackName` names a
+ * component the story file doesn't import: the last segment of its title.
+ */
+export function describeComponent(
+  parsed: StoryFile | undefined,
+  signatures: Record<string, ComponentSignature> | undefined,
+  fallbackName: string
+): ComponentDocs {
+  const componentFile = componentFileOf(parsed);
+  const signatureName = parsed?.component.signatureName;
+  const signature = signatureName ? signatures?.[signatureName] : undefined;
+  // Only a default export's real name needs the component file; any other
+  // export is invoked by its signature name.
+  const name =
+    parsed?.component.name ??
+    (signatureName && signatureName !== Default ? signatureName : undefined) ??
+    parsed?.meta.component ??
+    fallbackName;
+
+  return {
+    name,
+    description: parsed?.docs.description,
+    import: componentFile ? importStatement(componentFile, name) : undefined,
+    apiDescription: signature ? apiDescription(signature) : undefined,
+    signature
+  };
+}
+
+export interface StoryExample {
+  id: string;
+  name: string;
+  description?: string;
+  snippet: string;
+}
+
+/** Each story's example: its own template, else the component invoked with its args. */
+export function storyExamples(
+  parsed: StoryFile | undefined,
+  component: ComponentDocs,
+  entries: IndexEntry[]
+): StoryExample[] {
+  return (
+    entries
+      // `Story.test(...)` entries are tests of their parent story, not examples.
+      .filter((entry) => entry.type === 'story' && entry.subtype !== 'test')
+      .map((entry) => {
+        const story = parsed?.stories.find((candidate) => candidate.id === entry.id);
+        const docs = parsed?.docs.stories[entry.id];
+        const args = { ...parsed?.docs.args, ...docs?.args };
+        const snippet = story?.inlineTemplate
+          ? resolveTemplateArgs(story.inlineTemplate, args)
+          : componentSource(component.name, component.signature, args, {});
+
+        return { id: entry.id, name: entry.name, description: docs?.description, snippet };
+      })
+  );
+}
+
 /** Storybook's components manifest, read by `@storybook/addon-mcp` and served at `/manifests/components.json`. */
 export async function buildComponentsManifest(entries: IndexEntry[]): Promise<ComponentsManifest> {
-  const byStoryFile = new Map<string, IndexEntry[]>();
-
-  for (const entry of entries) {
-    const group = byStoryFile.get(entry.importPath) ?? [];
-
-    group.push(entry);
-    byStoryFile.set(entry.importPath, group);
-  }
-
+  const byStoryFile = Map.groupBy(entries, (entry) => entry.importPath);
   const storyFiles = new Map<string, StoryFile | undefined>();
 
   for (const file of byStoryFile.keys()) {
     storyFiles.set(file, parseStoryFile(path.resolve(file)));
   }
 
-  const componentFiles = new Set(
-    storyFiles
-      .values()
-      .flatMap((parsed) => (parsed?.component.file ? [path.resolve(parsed.component.file)] : []))
-  );
-  // runTypeDoc keys files relative to the tsconfig's directory.
-  const base = resolveTsconfigBase() ?? process.cwd();
-  const extracted = await runTypeDoc(componentFiles.values().toArray());
-  const signatures = new Map(
-    Object.entries(extracted).map(([file, sigs]) => [path.resolve(base, file), sigs])
+  const componentFiles = new Set(storyFiles.values().map(componentFileOf).filter(Boolean));
+  const signatures = byAbsolutePath(
+    await runTypeDoc(componentFiles.values().toArray() as string[])
   );
   const components: Record<string, ComponentManifest> = {};
 
@@ -163,40 +235,19 @@ export async function buildComponentsManifest(entries: IndexEntry[]): Promise<Co
     if (group.every((entry) => entry.type !== 'story')) continue;
 
     const id = componentId(first.id);
-    const componentFile = parsed?.component.file ? path.resolve(parsed.component.file) : undefined;
-    const signatureName = parsed?.component.signatureName;
-    const signature =
-      componentFile && signatureName ? signatures.get(componentFile)?.[signatureName] : undefined;
-    // Only a default export's real name needs the component file; any other
-    // export is invoked by its signature name.
-    const name =
-      parsed?.component.name ??
-      (signatureName && signatureName !== Default ? signatureName : undefined) ??
-      parsed?.meta.component ??
-      first.title.split('/').at(-1) ??
-      id;
+    const componentFile = componentFileOf(parsed);
+    const { signature, ...component } = describeComponent(
+      parsed,
+      componentFile ? signatures.get(componentFile) : undefined,
+      first.title.split('/').at(-1) ?? id
+    );
 
     components[id] = {
       id,
-      name,
       path: file,
-      description: parsed?.docs.description,
-      import: componentFile ? importStatement(componentFile, name) : undefined,
-      apiDescription: signature ? apiDescription(signature) : undefined,
+      ...component,
       jsDocTags: {},
-      stories: group
-        // `Story.test(...)` entries are tests of their parent story, not examples.
-        .filter((entry) => entry.type === 'story' && entry.subtype !== 'test')
-        .map((entry) => {
-          const story = parsed?.stories.find((candidate) => candidate.id === entry.id);
-          const docs = parsed?.docs.stories[entry.id];
-          const args = { ...parsed?.docs.args, ...docs?.args };
-          const snippet = story?.inlineTemplate
-            ? resolveTemplateArgs(story.inlineTemplate, args)
-            : componentSource(name, signature, args, {});
-
-          return { id: entry.id, name: entry.name, description: docs?.description, snippet };
-        })
+      stories: storyExamples(parsed, { ...component, signature }, group)
     };
   }
 
