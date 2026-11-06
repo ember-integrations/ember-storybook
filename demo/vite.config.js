@@ -29,7 +29,10 @@ export default defineConfig({
             configDir: path.join(dirname, '.storybook'),
             // This should match your package.json script to run Storybook
             // The --no-open flag will skip the automatic opening of a browser
-            storybookScript: 'pnpm storybook --no-open'
+            storybookScript: 'pnpm storybook --no-open',
+            // With the docgen server, a story's context has only the argTypes the
+            // story declares; Storybook merges the signature's into Controls.
+            tags: process.env.DOCGEN === 'server' ? { skip: ['argtypes-in-context'] } : {}
           })
         ],
         test: {

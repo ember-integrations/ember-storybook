@@ -16,6 +16,7 @@ vi.mock('virtual:ember-storybook', () => {
   // });
 
   return {
+    docgenServer: false,
     default: {
       '/test/hello.stories.gts': {
         component: { signatureName: 'Greeting' },

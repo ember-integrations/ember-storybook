@@ -77,6 +77,10 @@ function readCompilerOptions(
   return ts.getParsedCommandLineOfConfigFile(file, {}, ts.sys as never);
 }
 
+function rootName(file: string): string {
+  return isEmberTemplate(file) ? `${file}.ts` : file;
+}
+
 function createProgram(files: string[], opts?: DocgenOptions) {
   const commandLine = readCompilerOptions(opts);
 
@@ -85,9 +89,78 @@ function createProgram(files: string[], opts?: DocgenOptions) {
   const options = commandLine.options;
   const host = createDocgenHost(ts.createCompilerHost(options, /* setParentNodes */ true), ts);
 
-  const rootNames = files.map((file) => (isEmberTemplate(file) ? `${file}.ts` : file));
+  return ts.createProgram({ rootNames: files.map(rootName), options, host });
+}
 
-  return ts.createProgram({ rootNames, options, host });
+type SourceFileCache = Map<string, { modified: number; sourceFile: TS.SourceFile }>;
+
+/**
+ * Hands out the same parsed source file until the file on disk changes, so the
+ * next program skips parsing and binding it. A file the host can't read or
+ * preprocess (deleted, or a template that doesn't parse) counts as missing
+ * rather than failing the whole program.
+ */
+function createCachingHost(host: TS.CompilerHost, cache: SourceFileCache): TS.CompilerHost {
+  const getSourceFile: TS.CompilerHost['getSourceFile'] = (fileName, ...rest) => {
+    const modified = ts.sys.getModifiedTime?.(normalizeReflectionPath(fileName))?.getTime() ?? 0;
+    const cached = cache.get(fileName);
+
+    if (cached?.modified === modified) return cached.sourceFile;
+
+    cache.delete(fileName);
+
+    try {
+      const sourceFile = host.getSourceFile(fileName, ...rest);
+
+      if (sourceFile) cache.set(fileName, { modified, sourceFile });
+
+      return sourceFile;
+    } catch {
+      return undefined;
+    }
+  };
+
+  // The docgen host is a Proxy that adds members on access, which a spread would drop.
+  return new Proxy(host, {
+    get: (target, prop, receiver) =>
+      prop === 'getSourceFile' ? getSourceFile : Reflect.get(target, prop, receiver)
+  });
+}
+
+export interface DocgenSession {
+  /** `parseSignatures` for these files, reusing the files earlier calls parsed. */
+  parseSignatures(files: string[]): ComponentSignatureMap;
+}
+
+/**
+ * For callers that ask for a few files at a time, such as a docgen server
+ * extracting one component per request. Each call builds a program over the
+ * files asked for, reusing the parsed and bound files of earlier calls that
+ * haven't changed since; module resolution and type checking run again.
+ */
+export function createDocgenSession(opts?: DocgenOptions): DocgenSession | undefined {
+  const tsconfig = resolveTsconfigFile(opts);
+  const commandLine = readCompilerOptions(opts);
+
+  if (!tsconfig || !commandLine) return undefined;
+
+  const { options } = commandLine;
+  const cache: SourceFileCache = new Map();
+
+  return {
+    parseSignatures(files) {
+      if (files.length === 0) return {};
+
+      // A new host each time: the Ember host keeps a template's content for its lifetime.
+      const host = createCachingHost(
+        createDocgenHost(ts.createCompilerHost(options, /* setParentNodes */ true), ts),
+        cache
+      );
+      const program = ts.createProgram({ rootNames: files.map(rootName), options, host });
+
+      return extractSignatures(program, files, path.dirname(tsconfig));
+    }
+  };
 }
 
 // ── Origin tracing ─────────────────────────────────────────────
@@ -1107,8 +1180,16 @@ export async function parseSignatures(
 
   if (!program || !base) return {};
 
+  return extractSignatures(program, files, base);
+}
+
+function extractSignatures(
+  program: TS.Program,
+  files: string[],
+  base: string
+): ComponentSignatureMap {
   const checker = program.getTypeChecker();
-  const anchor = program.getSourceFile(files[0] && (isEmberTemplate(files[0]) ? `${files[0]}.ts` : files[0]))?.fileName
+  const anchor = program.getSourceFile(files[0] && rootName(files[0]))?.fileName
     ?? path.resolve(base, files[0]);
   const ctx: ExtractContext = {
     checker,
@@ -1124,9 +1205,8 @@ export async function parseSignatures(
   const queue: TS.SourceFile[] = [];
 
   for (const file of files) {
-    // Undo the virtual `.gts.ts` naming added for the ember compiler host
-    const rootName = isEmberTemplate(file) ? `${file}.ts` : file;
-    const sourceFile = program.getSourceFile(rootName);
+    // The ember compiler host names a template file `.gts.ts`.
+    const sourceFile = program.getSourceFile(rootName(file));
 
     if (sourceFile) queue.push(sourceFile);
   }

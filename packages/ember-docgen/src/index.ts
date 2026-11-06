@@ -6,7 +6,8 @@ export {
 
 export { analyzeDeclarations, parseDeclarations } from './declarations';
 
-export { parseSignatures } from './typescript';
+export { createDocgenSession, parseSignatures } from './typescript';
+export type { DocgenSession } from './typescript';
 
 export { Default } from './signature';
 

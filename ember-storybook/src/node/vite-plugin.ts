@@ -5,7 +5,11 @@ import { type ContributorAPI, emberStorybookVitePlugin } from './vite-plugin-orc
 
 import type { Plugin } from 'vite';
 
-export function emberStorybookPlugin(): Plugin[] {
+/**
+ * `signatures: false` leaves component signatures out of the bundle, for the
+ * docgen server, which extracts each component when the docs ask for it.
+ */
+export function emberStorybookPlugin({ signatures = true } = {}): Plugin[] {
   const contributions = new Map<string, Record<string, unknown>>();
 
   const api: ContributorAPI = {
@@ -17,9 +21,9 @@ export function emberStorybookPlugin(): Plugin[] {
   };
 
   return [
-    emberStorybookVitePlugin(api),
+    emberStorybookVitePlugin(api, { docgenServer: !signatures }),
     metaContributor(api),
     sourceContributor(api),
-    signaturesContributor(api)
+    ...(signatures ? [signaturesContributor(api)] : [])
   ];
 }
