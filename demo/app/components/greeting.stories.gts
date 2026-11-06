@@ -29,6 +29,7 @@ export const RTL: StoryObj = {
 };
 
 export const Plain: StoryObj = {
+  tags: ['argtypes-in-context'],
   // https://github.com/ember-integrations/ember-storybook/issues/48
   // `name` is required in the signature, but the story's `argTypes` provide a
   // partial `type` (no `required`). The merged argTypes must keep

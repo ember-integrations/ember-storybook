@@ -12,7 +12,12 @@ const config: StorybookConfig = {
 
   framework: 'ember-storybook',
 
-  features: {},
+  // CI builds the demo with the components manifest (`DOCGEN=manifest`) and
+  // with the docgen server (`DOCGEN=server`), and compares what agents get.
+  features: {
+    componentsManifest: process.env.DOCGEN === 'manifest' || process.env.DOCGEN === 'server',
+    experimentalDocgenServer: process.env.DOCGEN === 'server'
+  },
 
   core: {
     disableWhatsNewNotifications: true

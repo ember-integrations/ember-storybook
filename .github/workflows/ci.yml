@@ -79,6 +79,37 @@ jobs:
         run: |
           test "$(readlink -f demo/node_modules/ember-storybook)" != "$PWD/ember-storybook"
 
+  docgen-server:
+    name: docgen server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup
+        uses: ./.github/actions/setup
+      # Storybook's docgen server (opt-in) must give agents what the components
+      # manifest does, and the stories must run with it.
+      - name: Build with the components manifest
+        run: pnpm build-storybook --output-dir storybook-static/manifest
+        working-directory: ./demo
+        env:
+          DOCGEN: manifest
+      - name: Build with the docgen server
+        run: pnpm build-storybook --output-dir storybook-static/docgen-server
+        working-directory: ./demo
+        env:
+          DOCGEN: server
+      - name: Compare
+        run: node ../.github/scripts/compare-docgen.mjs storybook-static/manifest storybook-static/docgen-server
+        working-directory: ./demo
+      - name: Run the stories with the docgen server
+        run: pnpm test
+        working-directory: ./demo
+        env:
+          DOCGEN: server
+
   try-scenarios:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
