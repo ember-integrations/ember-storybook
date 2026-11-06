@@ -1,20 +1,35 @@
 import path from 'node:path';
 
 import { getComponentIdFromEntry } from 'storybook/internal/common';
+import { getService } from 'storybook/internal/core-server';
 
-import { batched, createSignatureExtractor } from './docgen/docgen';
+import { parseEmberSignatures } from '../client/docs/docgen-payload';
 import { emberStoryFileOf } from './docgen/provider';
 import { componentFileOf, describeComponent, storyExamples } from './manifest';
 import { parseStoryFile } from './parser';
+import { normalizeFilePath } from './shared';
 
-import type { IndexEntry, StoryDocsProvider } from 'storybook/internal/types';
+import type { ComponentSignature } from 'ember-docgen';
+import type { DocgenPayload, IndexEntry, StoryDocsProvider } from 'storybook/internal/types';
 
-let signaturesOf: undefined | { current: ReturnType<typeof batched> | undefined };
+/** The component's signatures, from the docgen server's payload (see `./docgen/provider`). */
+async function signaturesOf(
+  componentId: string,
+  componentFile: string
+): Promise<Record<string, ComponentSignature> | undefined> {
+  const docgen = getService('core/docgen', { internal: true }) as {
+    queries: { docgen: { loaded(input: { id: string }): Promise<DocgenPayload | undefined> } };
+  };
+  const payload = await docgen.queries.docgen.loaded({ id: componentId });
+
+  return parseEmberSignatures(payload)[normalizeFilePath(componentFile)];
+}
 
 /**
  * The docgen server's story docs (`experimental_storyDocsProvider`): each
  * story's snippet and the component's import. Snippets of stories without a
- * template of their own need the signature, to tell blocks from arguments.
+ * template of their own need the signature, to tell blocks from arguments; it
+ * comes from the docgen service, so this process runs no TypeScript.
  */
 export function emberStoryDocsProvider(
   next: StoryDocsProvider,
@@ -29,13 +44,7 @@ export function emberStoryDocsProvider(
     const parsed = parseStoryFile(path.resolve(storyPath));
     const componentFile = componentFileOf(parsed);
 
-    if (!signaturesOf) {
-      const extract = createSignatureExtractor();
-
-      signaturesOf = { current: extract ? batched(extract) : undefined };
-    }
-
-    const signatures = componentFile ? await signaturesOf.current?.(componentFile) : undefined;
+    const signatures = componentFile ? await signaturesOf(id, componentFile) : undefined;
     const component = describeComponent(
       parsed,
       signatures,

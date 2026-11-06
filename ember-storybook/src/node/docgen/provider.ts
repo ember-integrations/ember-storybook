@@ -5,7 +5,8 @@ import { getComponentIdFromEntry, getStoryImportPathFromEntry } from 'storybook/
 import { buildArgTypes } from '../../client/docs/extractArgTypes';
 import { componentFileOf, describeComponent } from '../manifest';
 import { parseStoryFile } from '../parser';
-import { batched, createSignatureExtractor } from './docgen';
+import { normalizeFilePath } from '../shared';
+import { batched, createSignatureExtractor, signaturesFor } from './docgen';
 
 import type {
   DocgenMiddleware,
@@ -32,10 +33,12 @@ async function docgenPayload(
   const id = getComponentIdFromEntry(entry);
   const parsed = parseStoryFile(path.resolve(storyPath));
   const componentFile = componentFileOf(parsed);
-  const signatures = componentFile ? await signaturesOf(componentFile) : undefined;
+  const emberSignatures = componentFile
+    ? signaturesFor(componentFile, await signaturesOf(componentFile))
+    : {};
   const { signature, name, description, apiDescription } = describeComponent(
     parsed,
-    signatures,
+    componentFile ? emberSignatures[normalizeFilePath(componentFile)] : undefined,
     entry.title.split('/').at(-1) ?? id
   );
 
@@ -47,7 +50,10 @@ async function docgenPayload(
     jsDocTags: {},
     argTypes: signature ? (buildArgTypes(signature) as StrictArgTypes) : undefined,
     apiDescription,
-    renderer: 'ember'
+    renderer: 'ember',
+    // What the docs page and "Show code" read, in place of a bundle of every
+    // signature. A string, because Storybook's channel cuts deeper values short.
+    emberSignatures: JSON.stringify(emberSignatures)
   };
 }
 

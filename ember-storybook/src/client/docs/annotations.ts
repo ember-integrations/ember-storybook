@@ -1,6 +1,7 @@
 import { SourceType } from 'storybook/internal/docs-tools';
 import emberData from 'virtual:ember-storybook';
 
+import { loadSignatures } from './docgen-service';
 import { buildArgTypes, mergeArgTypes } from './extractArgTypes';
 import { sourceDecorator } from './source-decorator';
 
@@ -9,6 +10,7 @@ import type { EmberRenderer } from '../types';
 import type { ComponentSignature } from 'ember-docgen';
 import type {
   DecoratorFunction,
+  LoaderFunction,
   Parameters,
   StoryContextForEnhancers,
   StrictArgTypes
@@ -83,3 +85,10 @@ export const parameters: Parameters = {
 };
 
 export const decorators: DecoratorFunction<EmberRenderer>[] = [sourceDecorator];
+
+// With the docgen server, a story's signatures arrive before it renders.
+export const loaders: LoaderFunction<EmberRenderer>[] = [
+  async ({ componentId }) => {
+    await loadSignatures(componentId);
+  }
+];

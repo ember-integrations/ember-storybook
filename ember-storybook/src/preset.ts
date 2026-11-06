@@ -84,7 +84,19 @@ export const managerEntries = (entries: string[] = []): string[] => [
   fileURLToPath(import.meta.resolve('ember-storybook/manager'))
 ];
 
-export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserConfig) => {
+/** The docgen server's feature flag, which Storybook 11 renamed. */
+async function docgenServerEnabled(options: Options): Promise<boolean> {
+  const features = (await options.presets.apply('features')) as Record<string, unknown> | undefined;
+  const flag =
+    Number(versions.storybook.split('.', 1)[0]) >= 11 ? 'docgenServer' : 'experimentalDocgenServer';
+
+  return features?.[flag] === true;
+}
+
+export const viteFinal: StorybookConfigVite['viteFinal'] = async (
+  config: UserConfig,
+  options: Options
+) => {
   const { mergeConfig } = await import('vite');
 
   config.plugins = await withoutVitePlugins(config.plugins, ['embroider-content-for']);
@@ -97,7 +109,10 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
   );
 
   return mergeConfig(config, {
-    plugins: [...emberStorybookPlugin(), docsRendererPlugin(docsPreviewPatch, docsAddonFactory)],
+    plugins: [
+      ...emberStorybookPlugin({ signatures: !(await docgenServerEnabled(options)) }),
+      docsRendererPlugin(docsPreviewPatch, docsAddonFactory)
+    ],
     optimizeDeps: {
       exclude: ['object-inspect']
     },
@@ -110,15 +125,6 @@ export const viteFinal: StorybookConfigVite['viteFinal'] = async (config: UserCo
 export const experimental_indexers: StorybookConfig['experimental_indexers'] = (indexers) => {
   return [emberIndexer, ...(indexers ?? [])];
 };
-
-/** The docgen server's feature flag, which Storybook 11 renamed. */
-async function docgenServerEnabled(options: Options): Promise<boolean> {
-  const features = (await options.presets.apply('features')) as Record<string, unknown> | undefined;
-  const flag =
-    Number(versions.storybook.split('.', 1)[0]) >= 11 ? 'docgenServer' : 'experimentalDocgenServer';
-
-  return features?.[flag] === true;
-}
 
 // The docgen server (opt-in) runs these instead of the components manifest.
 export const experimental_docgenProvider = (
