@@ -59,10 +59,9 @@ async function docgenPayload(
 
 /**
  * The docgen server's provider (`experimental_docgenProvider`). Storybook
- * loads this module in a worker and asks it for components, one request each;
- * the TypeScript program is built on the first request and reused after that.
+ * loads this module in a worker and asks it for components, one request each.
  * Storybook's own `createLazyDocgenMiddleware` takes only `.js`/`.ts` story
- * files before Storybook 11.
+ * files (Storybook 11 adds a `storyFileTest` option).
  */
 export function createDocgenProvider(): DocgenMiddleware {
   // Created on the first request; `current` is unset without a tsconfig.

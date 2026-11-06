@@ -51,7 +51,7 @@ export type SignatureExtractor = (entryPoints: string[]) => ComponentSignatureMa
 
 /**
  * `runTypeDoc` for callers that ask for a few components at a time, such as
- * the docgen server's worker: one program is kept and built on across calls.
+ * the docgen server's worker: files parsed by earlier calls are reused.
  */
 export function createSignatureExtractor(): SignatureExtractor | undefined {
   const base = resolveTsconfigBase();
@@ -139,10 +139,15 @@ export function batched(
 
       batch = {
         files,
-        done: new Promise((resolve) => {
+        done: new Promise((resolve, reject) => {
           setImmediate(() => {
             batch = undefined;
-            resolve(byAbsolutePath(extract([...files])));
+
+            try {
+              resolve(byAbsolutePath(extract([...files])));
+            } catch (error) {
+              reject(error instanceof Error ? error : new Error(String(error)));
+            }
           });
         })
       };

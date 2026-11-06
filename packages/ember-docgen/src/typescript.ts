@@ -95,9 +95,10 @@ function createProgram(files: string[], opts?: DocgenOptions) {
 type SourceFileCache = Map<string, { modified: number; sourceFile: TS.SourceFile }>;
 
 /**
- * Hands out the same parsed source file until the file on disk changes, so a
- * program built on the previous one reuses its files instead of parsing them
- * again, as a language service does.
+ * Hands out the same parsed source file until the file on disk changes, so the
+ * next program skips parsing and binding it. A file the host can't read or
+ * preprocess (deleted, or a template that doesn't parse) counts as missing
+ * rather than failing the whole program.
  */
 function createCachingHost(host: TS.CompilerHost, cache: SourceFileCache): TS.CompilerHost {
   const getSourceFile: TS.CompilerHost['getSourceFile'] = (fileName, ...rest) => {
@@ -106,11 +107,17 @@ function createCachingHost(host: TS.CompilerHost, cache: SourceFileCache): TS.Co
 
     if (cached?.modified === modified) return cached.sourceFile;
 
-    const sourceFile = host.getSourceFile(fileName, ...rest);
+    cache.delete(fileName);
 
-    if (sourceFile) cache.set(fileName, { modified, sourceFile });
+    try {
+      const sourceFile = host.getSourceFile(fileName, ...rest);
 
-    return sourceFile;
+      if (sourceFile) cache.set(fileName, { modified, sourceFile });
+
+      return sourceFile;
+    } catch {
+      return undefined;
+    }
   };
 
   // The docgen host is a Proxy that adds members on access, which a spread would drop.
@@ -121,14 +128,15 @@ function createCachingHost(host: TS.CompilerHost, cache: SourceFileCache): TS.Co
 }
 
 export interface DocgenSession {
-  /** `parseSignatures` for these files, reusing what earlier calls parsed. */
+  /** `parseSignatures` for these files, reusing the files earlier calls parsed. */
   parseSignatures(files: string[]): ComponentSignatureMap;
 }
 
 /**
- * Keeps one program across calls, for callers that ask for a few files at a
- * time (a docgen server extracting one component per request). Each call
- * builds on the previous program, and parses only the files that changed.
+ * For callers that ask for a few files at a time, such as a docgen server
+ * extracting one component per request. Each call builds a program over the
+ * files asked for, reusing the parsed and bound files of earlier calls that
+ * haven't changed since; module resolution and type checking run again.
  */
 export function createDocgenSession(opts?: DocgenOptions): DocgenSession | undefined {
   const tsconfig = resolveTsconfigFile(opts);
@@ -138,21 +146,17 @@ export function createDocgenSession(opts?: DocgenOptions): DocgenSession | undef
 
   const { options } = commandLine;
   const cache: SourceFileCache = new Map();
-  const rootNames = new Set<string>();
-  let program: TS.Program | undefined;
 
   return {
     parseSignatures(files) {
       if (files.length === 0) return {};
-
-      for (const file of files) rootNames.add(rootName(file));
 
       // A new host each time: the Ember host keeps a template's content for its lifetime.
       const host = createCachingHost(
         createDocgenHost(ts.createCompilerHost(options, /* setParentNodes */ true), ts),
         cache
       );
-      program = ts.createProgram({ rootNames: [...rootNames], options, host, oldProgram: program });
+      const program = ts.createProgram({ rootNames: files.map(rootName), options, host });
 
       return extractSignatures(program, files, path.dirname(tsconfig));
     }

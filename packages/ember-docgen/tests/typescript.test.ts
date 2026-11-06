@@ -1,4 +1,4 @@
-import { utimesSync, writeFileSync } from 'node:fs';
+import { rmSync, utimesSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, test } from 'vitest';
@@ -1173,5 +1173,39 @@ export const Greeting: TOC<GreetingSignature> = <template>Hello {{@name}}</templ
     utimesSync(file, new Date(), new Date(Date.now() + 2000));
 
     expect(argNames()).toEqual(['name', 'polite']);
+  });
+
+  test('keeps extracting after a file it read stops parsing or is deleted', () => {
+    using fix = fixture({
+      'greeting.gts': greeting('name: string'),
+      'farewell.gts': `
+import type { TOC } from '@ember/component/template-only';
+import type { GreetingSignature } from './greeting.gts';
+
+export interface FarewellSignature {
+  Args: GreetingSignature['Args'];
+}
+
+export const Farewell: TOC<FarewellSignature> = <template>Bye {{@name}}</template>;
+`
+    });
+
+    const greetingFile = path.join(fix.base, 'app/greeting.gts');
+    const farewell = path.join(fix.base, 'app/farewell.gts');
+    const session = createDocgenSession({ tsconfigFile: path.join(fix.base, 'tsconfig.json') })!;
+    const extracted = (file: string) => Object.keys(session.parseSignatures([file]));
+
+    expect(extracted(farewell)).toEqual(['app/farewell.gts']);
+
+    writeFileSync(greetingFile, 'export const Greeting = <template>Hello');
+    utimesSync(greetingFile, new Date(), new Date(Date.now() + 2000));
+
+    expect(extracted(greetingFile)).toEqual([]);
+    expect(extracted(farewell)).toEqual(['app/farewell.gts']);
+
+    rmSync(greetingFile);
+
+    expect(extracted(greetingFile)).toEqual([]);
+    expect(extracted(farewell)).toEqual(['app/farewell.gts']);
   });
 });
