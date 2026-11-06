@@ -17,10 +17,17 @@ async function signaturesOf(
   componentId: string,
   componentFile: string
 ): Promise<Record<string, ComponentSignature> | undefined> {
-  const docgen = getService('core/docgen', { internal: true }) as {
-    queries: { docgen: { loaded(input: { id: string }): Promise<DocgenPayload | undefined> } };
-  };
-  const payload = await docgen.queries.docgen.loaded({ id: componentId });
+  const { docgen } = (
+    getService('core/docgen', { internal: true }) as {
+      queries: {
+        docgen: {
+          get(input: { id: string }): DocgenPayload | undefined;
+          loaded(input: { id: string }): Promise<DocgenPayload | undefined>;
+        };
+      };
+    }
+  ).queries;
+  const payload = docgen.get({ id: componentId }) ?? (await docgen.loaded({ id: componentId }));
 
   return parseEmberSignatures(payload)[normalizeFilePath(componentFile)];
 }

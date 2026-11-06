@@ -3,6 +3,9 @@ declare module 'virtual:ember-storybook' {
 
   const data: EmberMeta;
 
+  /** Whether signatures come from Storybook's docgen server instead of `data`. */
+  export const docgenServer: boolean;
+
   export default data;
 }
 

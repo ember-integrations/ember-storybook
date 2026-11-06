@@ -48,7 +48,7 @@ export function emberStorybookPlugin(options: EmberStorybookPluginOptions = {}):
 
   return [
     buildMode,
-    emberStorybookVitePlugin(api),
+    emberStorybookVitePlugin(api, { docgenServer: !signatures }),
     metaContributor(api),
     sourceContributor(api),
     ...(signatures ? [signaturesContributor(api)] : [])

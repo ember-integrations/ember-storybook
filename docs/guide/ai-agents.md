@@ -86,8 +86,9 @@ const config: StorybookConfig = {
 
 ember-storybook then extracts signatures in a worker, and the docs page, "Show code", the
 args and the MCP tools read them from there. Agents get the same documentation. In
-`storybook dev` the manifest is at `/manifests/components.html` only; `storybook build`
-writes `components.json` with the components' data under `storybook-static/services/`.
+`storybook dev` the manifest is at `/manifests/components.html` only. `storybook build` writes
+`manifests/components.json`, which points to each component's data under
+`services/core/docgen/` and `services/core/story-docs/`.
 
 ::: info
 Storybook's AI features are in preview, and the manifest format may change.

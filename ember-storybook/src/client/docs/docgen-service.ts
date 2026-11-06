@@ -1,5 +1,5 @@
 import { getService } from 'storybook/preview-api';
-import emberData from 'virtual:ember-storybook';
+import emberData, { docgenServer } from 'virtual:ember-storybook';
 
 import { parseEmberSignatures } from './docgen-payload';
 
@@ -7,15 +7,8 @@ import type { ComponentFile, EmberMeta } from '../../node/types';
 import type { DocgenPayload } from 'storybook/internal/types';
 
 const data = emberData as EmberMeta;
-
-/** Whether Storybook's docgen server (opt-in) provides the signatures, rather than the bundle. */
-export function docgenServerEnabled(): boolean {
-  const features = (globalThis as { FEATURES?: Record<string, unknown> }).FEATURES;
-
-  return features?.docgenServer === true || features?.experimentalDocgenServer === true;
-}
-
 const loads = new Map<string, Promise<void>>();
+const loaded = new Set<string>();
 
 async function addSignatures(componentId: string): Promise<void> {
   const docgen = getService('core/docgen', { internal: true }) as {
@@ -31,23 +24,53 @@ async function addSignatures(componentId: string): Promise<void> {
       signatures: { ...entry?.signatures, ...fileSignatures }
     };
   }
+
+  loaded.add(componentId);
 }
 
 async function fetchSignatures(componentId: string): Promise<void> {
   try {
     await addSignatures(componentId);
   } catch (error) {
+    // The next render asks again.
+    loads.delete(componentId);
     console.warn(`[ember-storybook] No signatures for ${componentId}:`, error);
+  }
+}
+
+/** Whether the signatures come from Storybook's docgen server, as the Vite plugin decided. */
+export function usesDocgenServer(): boolean {
+  return docgenServer;
+}
+
+/** Whether a component's signatures are still to come from the docgen server. */
+export function signaturesPending(componentId: string): boolean {
+  return docgenServer && !loaded.has(componentId);
+}
+
+/**
+ * Resolves once Storybook has a component's story docs, which it shows as a
+ * story's code when they arrive.
+ */
+export async function storyDocsLoaded(componentId: string): Promise<void> {
+  try {
+    const storyDocs = getService('core/story-docs', { internal: true }) as {
+      queries: { storyDocs: { loaded(input: { id: string }): Promise<unknown> } };
+    };
+
+    await storyDocs.queries.storyDocs.loaded({ id: componentId });
+  } catch {
+    // Nothing of Storybook's to wait for.
   }
 }
 
 /**
  * With the docgen server, the bundle has no signatures: this fetches a
- * component's from its payload, once, and adds them to the data the docs page,
- * "Show code" and the args read. Without the server it does nothing.
+ * component's from its payload, once, and adds them to the data the docs page
+ * and "Show code" read. Without the server it does nothing.
  */
 export function loadSignatures(componentId: string): Promise<void> {
-  if (!docgenServerEnabled()) return Promise.resolve();
+  if (!signaturesPending(componentId)) return Promise.resolve();
 
   let load = loads.get(componentId);
 
