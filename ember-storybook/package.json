@@ -44,6 +44,10 @@
       "types": "./declarations/client/docs/preview-patch.d.ts",
       "default": "./dist/client/docs/preview-patch.mjs"
     },
+    "./docgen-worker": {
+      "types": "./declarations/node/docgen/provider.d.ts",
+      "default": "./dist/node/docgen/provider.mjs"
+    },
     "./manager": {
       "types": "./declarations/manager/index.d.ts",
       "default": "./dist/manager/index.mjs"
