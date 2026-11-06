@@ -84,13 +84,20 @@ export const managerEntries = (entries: string[] = []): string[] => [
   fileURLToPath(import.meta.resolve('ember-storybook/manager'))
 ];
 
-/** The docgen server's feature flag, which Storybook 11 renamed. */
+async function features(options: Options): Promise<Record<string, unknown>> {
+  return (await options.presets.apply('features')) as Record<string, unknown>;
+}
+
+/**
+ * The docgen server's feature flag, which Storybook 11 renamed. `storybook`
+ * is a peer dependency, so `versions` is the running Storybook's.
+ */
 async function docgenServerEnabled(options: Options): Promise<boolean> {
-  const features = (await options.presets.apply('features')) as Record<string, unknown> | undefined;
   const flag =
     Number(versions.storybook.split('.', 1)[0]) >= 11 ? 'docgenServer' : 'experimentalDocgenServer';
+  const enabled = await features(options);
 
-  return features?.[flag] === true;
+  return enabled[flag] === true;
 }
 
 export const viteFinal: StorybookConfigVite['viteFinal'] = async (
@@ -151,16 +158,21 @@ export const experimental_storyDocsProvider = (next: StoryDocsProvider, options:
 export const experimental_manifests = async (
   existing: Manifests | undefined,
   options: Options & { manifestEntries?: IndexEntry[] }
-): Promise<Manifests> => ({
-  ...existing,
-  components: (await docgenServerEnabled(options))
-    ? ({
-        v: 0,
-        components: {},
-        meta: { docgen: 'ember-docgen', durationMs: 0 }
-      } as unknown as ComponentsManifest)
-    : await buildComponentsManifest(options.manifestEntries ?? [])
-});
+): Promise<Manifests> => {
+  const { componentsManifest } = await features(options);
+
+  // As Storybook decides when to build the manifest from the services.
+  if ((await docgenServerEnabled(options)) && componentsManifest === true) {
+    const meta = { docgen: 'ember-docgen', durationMs: 0 };
+
+    return {
+      ...existing,
+      components: { v: 0, components: {}, meta } as unknown as ComponentsManifest
+    };
+  }
+
+  return { ...existing, components: await buildComponentsManifest(options.manifestEntries ?? []) };
+};
 
 export const core: PresetProperty<'core'> = async (config, options) => {
   const framework = await options.presets.apply('framework');
