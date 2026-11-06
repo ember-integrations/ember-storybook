@@ -7,7 +7,7 @@ import type { Parameters } from 'storybook/internal/types';
 // `previewAnnotations`). In CSF Next mode presets are bypassed — the docs tier
 // there arrives through `definePreview` injecting `./annotations` plus the
 // patched addon-docs factory (see `./addon-preview`).
-export { argTypesEnhancers, decorators } from './annotations';
+export { argTypesEnhancers, decorators, loaders } from './annotations';
 
 const docs = (baseParameters as { docs?: Record<string, unknown> }).docs;
 

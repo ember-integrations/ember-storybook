@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createDocgenSession, parseSignatures } from 'ember-docgen';
 
 import { unwrapBlockParams } from '../../client/docs/block-params';
-import { normalizeFilePath } from '../shared';
+import { normalizeFilePath, PROJECT_ROOT } from '../shared';
 
 import type { ComponentSignature, ComponentSignatureMap } from 'ember-docgen';
 
@@ -124,15 +124,16 @@ export function byAbsolutePath(extracted: ComponentSignatureMap): Map<string, Co
 
 /**
  * Extracts the component files asked for in the same turn of the event loop
- * together. `storybook build` asks for every component at once, and a program
- * per component (each with its own type checker) would take minutes.
+ * together, and gives each caller the whole batch's signatures. `storybook
+ * build` asks for every component at once, and a program per component (each
+ * with its own type checker) would take minutes.
  */
 export function batched(
   extract: SignatureExtractor
-): (componentFile: string) => Promise<ComponentSignatures | undefined> {
+): (componentFile: string) => Promise<Map<string, ComponentSignatures>> {
   let batch: undefined | { files: Set<string>; done: Promise<Map<string, ComponentSignatures>> };
 
-  return async (componentFile) => {
+  return (componentFile) => {
     if (!batch) {
       const files = new Set<string>();
 
@@ -149,8 +150,39 @@ export function batched(
 
     batch.files.add(componentFile);
 
-    const signatures = await batch.done;
-
-    return signatures.get(componentFile);
+    return batch.done;
   };
+}
+
+/**
+ * What the docs read for a component: its file's signatures and those of the
+ * files its blocks yield components from, keyed as the docs data keys files.
+ */
+export function signaturesFor(
+  componentFile: string,
+  extracted: Map<string, ComponentSignatures>
+): Record<string, ComponentSignatures> {
+  const result: Record<string, ComponentSignatures> = {};
+  const queue = [componentFile];
+
+  for (let file = queue.shift(); file; file = queue.shift()) {
+    const key = normalizeFilePath(file);
+    const signatures = extracted.get(file);
+
+    if (Object.hasOwn(result, key) || !signatures) continue;
+
+    result[key] = signatures;
+
+    for (const signature of Object.values(signatures)) {
+      for (const block of Object.values(signature.blocks)) {
+        for (const param of unwrapBlockParams(block.params)) {
+          if (param.componentRef?.filePath) {
+            queue.push(path.resolve(PROJECT_ROOT, param.componentRef.filePath));
+          }
+        }
+      }
+    }
+  }
+
+  return result;
 }
