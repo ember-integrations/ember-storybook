@@ -2,16 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { componentSource, resolveTemplateArgs } from '../client/docs/source-code';
-import { resolveTsconfigBase, runTypeDoc } from './docgen/docgen';
+import { byAbsolutePath, runTypeDoc } from './docgen/docgen';
 import { parseStoryFile, type StoryFile } from './parser';
 import { Default } from './shared';
 
-import type {
-  BlockInfo,
-  BlockParam,
-  ComponentSignature,
-  ComponentSignatureMap
-} from 'ember-docgen';
+import type { BlockInfo, BlockParam, ComponentSignature } from 'ember-docgen';
 import type { ComponentManifest, ComponentsManifest, IndexEntry } from 'storybook/internal/types';
 
 function cell(text: string): string {
@@ -133,15 +128,6 @@ function componentId(storyId: string): string {
 /** The absolute path of the component a story file documents, if it imports one. */
 export function componentFileOf(parsed: StoryFile | undefined): string | undefined {
   return parsed?.component.file ? path.resolve(parsed.component.file) : undefined;
-}
-
-/** Extracted signatures keyed by absolute path; extraction keys them by the tsconfig's directory. */
-export function byAbsolutePath(
-  extracted: ComponentSignatureMap
-): Map<string, Record<string, ComponentSignature>> {
-  const base = resolveTsconfigBase() ?? process.cwd();
-
-  return new Map(Object.entries(extracted).map(([file, sigs]) => [path.resolve(base, file), sigs]));
 }
 
 /** A story file's component, as agents read it. */
