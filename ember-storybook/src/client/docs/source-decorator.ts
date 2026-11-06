@@ -3,6 +3,7 @@ import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 import emberData from 'virtual:ember-storybook';
 
 import { isEmberStoryResult } from '../story-result';
+import { loadSignatures, storyDocsLoaded, usesDocgenServer } from './docgen-service';
 import { componentSource, resolveTemplateArgs } from './source-code';
 
 import type { StorySource } from '../../node/types';
@@ -99,21 +100,46 @@ export function generateSource(
 
 export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, context) => {
   const source = useRef<string | undefined>(undefined);
+  const renders = useRef(0);
   const story = storyFn();
 
   useEffect(() => {
+    if (skipSourceRender(context)) return;
+
     // Always generate the source from the ORIGINAL story, not the decorator-wrapped
     // `storyFn()` result. A decorator wraps the story in another component, so its
     // `.name` (e.g. `IntlDecorator`) would leak into the generated source block.
     const rendered = (context.originalStoryFn as StoryFn)(context.args, context);
     const renderedForSource = isEmberStoryResult(rendered) ? rendered.component : rendered;
-
-    if (!skipSourceRender(context)) {
+    const render = ++renders.current;
+    // Every arg counts as known, as Storybook's argTypes inference makes it;
+    // with the docgen server, the preview doesn't infer them.
+    const argTypes = {
+      ...Object.fromEntries(Object.keys(context.args).map((name) => [name, { name }])),
+      ...context.argTypes
+    };
+    const emit = () => {
       const code =
-        generateSource(renderedForSource, context.args, context.argTypes, context.id) ?? undefined;
+        generateSource(renderedForSource, context.args, argTypes, context.id) ?? undefined;
 
       void emitTransformCode(code, context);
       source.current = code;
+    };
+
+    emit();
+
+    // With the docgen server, the signature can arrive after the story renders,
+    // and Storybook shows the story docs' static snippet when they arrive: emit
+    // again after both, unless a later render has. Portable stories have no server.
+    if (usesDocgenServer() && !context.parameters.__isPortableStory) {
+      void (async () => {
+        await Promise.all([
+          loadSignatures(context.componentId),
+          storyDocsLoaded(context.componentId)
+        ]);
+
+        if (render === renders.current) emit();
+      })();
     }
   });
 

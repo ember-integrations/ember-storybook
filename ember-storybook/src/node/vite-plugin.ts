@@ -21,7 +21,7 @@ export function emberStorybookPlugin({ signatures = true } = {}): Plugin[] {
   };
 
   return [
-    emberStorybookVitePlugin(api),
+    emberStorybookVitePlugin(api, { docgenServer: !signatures }),
     metaContributor(api),
     sourceContributor(api),
     ...(signatures ? [signaturesContributor(api)] : [])
