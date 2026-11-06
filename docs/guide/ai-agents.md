@@ -71,6 +71,24 @@ instead of `param0`.
 of your Storybook, and another Storybook running the MCP addon can include your components
 through [refs](./sharing#side-by-side-refs).
 
+## Docgen Server (Experimental)
+
+Storybook's docgen server extracts each component when something asks for it, instead of
+all of them when Storybook starts. Turn it on with the feature flag, which Storybook 11
+renames:
+
+```ts [.storybook/main.ts]
+const config: StorybookConfig = {
+  // ...
+  features: { experimentalDocgenServer: true }, // `docgenServer` in Storybook 11
+};
+```
+
+ember-storybook then extracts signatures in a worker, and the docs page, "Show code", the
+args and the MCP tools read them from there. Agents get the same documentation. In
+`storybook dev` the manifest is at `/manifests/components.html` only; `storybook build`
+writes `components.json` with the components' data under `storybook-static/services/`.
+
 ::: info
 Storybook's AI features are in preview, and the manifest format may change.
 :::
