@@ -13,7 +13,7 @@ import type { ComponentSignatureMap } from 'ember-docgen';
  * discovery: walk up from cwd. parseSignatures keys its output relative
  * to this directory.
  */
-function resolveTsconfigBase(): string | undefined {
+export function resolveTsconfigBase(): string | undefined {
   const findUp = (dir: string): string | undefined => {
     if (existsSync(path.join(dir, 'tsconfig.json'))) {
       return dir;
