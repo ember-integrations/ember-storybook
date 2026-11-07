@@ -1129,3 +1129,98 @@ export class Widget extends Component<WidgetSignature> {
     });
   });
 });
+
+describe('blocks typed by reference', () => {
+  test("reads another signature's block, aliases and their type arguments", async () => {
+    using fix = fixture({
+      'types.ts': `
+export type Row = [row: string];
+`.trim(),
+      'menu.gts': `
+import Component from '@glimmer/component';
+
+import type { Row } from './types';
+
+class Item extends Component<{ Element: HTMLLIElement }> {}
+
+export interface MenuSignature {
+  Blocks: {
+    default: [item: typeof Item, index?: number];
+    actions: [{ label?: string; kind: 'primary' | 'secondary' }];
+  };
+}
+
+export class Menu extends Component<MenuSignature> {}
+
+interface ListSignature<T> {
+  Blocks: {
+    default: [item: T, index: number];
+    option: [item?: T];
+    hash: [{ value?: T; label: string }];
+  };
+}
+
+type Pair<T> = [first: T, second: T];
+
+type Rest<T> = [first: T, ...rest: string[]];
+
+// Circular, which mustn't hang the docgen
+type Loop = Loop2;
+type Loop2 = Loop;
+
+export interface MenuButtonSignature {
+  Blocks: {
+    default: MenuSignature['Blocks']['default'];
+    actions: MenuSignature['Blocks']['actions'];
+    row: Row;
+    list: ListSignature<string>['Blocks']['default'];
+    option: ListSignature<string>['Blocks']['option'];
+    hash: ListSignature<string>['Blocks']['hash'];
+    pair: Pair<number>;
+    rest: Rest<number>;
+    loop: Loop;
+  };
+}
+
+export class MenuButton extends Component<MenuButtonSignature> {}
+`.trim()
+    });
+
+    const file = path.join(fix.base, 'app/menu.gts');
+    const sigs = await parseSignatures([file], {
+      tsconfigFile: path.join(fix.base, 'tsconfig.json')
+    });
+    const menu = sigs['app/menu.gts'].Menu.blocks.default!;
+    const blocks = sigs['app/menu.gts'].MenuButton.blocks;
+
+    expect(blocks.default!.params).toEqual(menu.params);
+    expect(blocks.default!.params).toMatchObject([
+      { name: 'item' },
+      { name: 'index', type: 'number' }
+    ]);
+    expect(blocks.actions!.params).toEqual(
+      sigs['app/menu.gts'].Menu.blocks.actions!.params
+    );
+    expect(blocks.actions!.params).toMatchObject([
+      { label: { type: 'string' }, kind: { type: '"primary" | "secondary"' } }
+    ]);
+    expect(blocks.row!.params).toMatchObject([{ name: 'row', type: 'string' }]);
+    expect(blocks.list!.params).toMatchObject([
+      { name: 'item', type: 'string' },
+      { name: 'index', type: 'number' }
+    ]);
+    expect(blocks.option!.params).toMatchObject([{ name: 'item', type: 'string' }]);
+    expect(blocks.hash!.params).toMatchObject([
+      { value: { type: 'string' }, label: { type: 'string' } }
+    ]);
+    expect(blocks.pair!.params).toMatchObject([
+      { name: 'first', type: 'number' },
+      { name: 'second', type: 'number' }
+    ]);
+    expect(blocks.rest!.params).toMatchObject([
+      { name: 'first', type: 'number' },
+      { name: 'rest', type: 'string[]' }
+    ]);
+    expect(blocks.loop!.params).toEqual([]);
+  });
+});
