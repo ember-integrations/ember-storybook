@@ -306,3 +306,52 @@ Regression guards: unit tests for both wire shapes, both stub forms and the
 `null` hole; demo stories `MarkedOutlet` (string), `ComponentOutlet`
 (component), `NestedStubOutlet` (inline template whose own `{{outlet}}` must
 stay a hole) run in every `@embroider/try` scenario, covering both backends.
+
+## Follow-up decision (2026-11-07): prime the router's renderer for the Route Manager API
+
+The `@outlet` backend moved again: ember-source 7.5.0 (emberjs/ember.js
+#21460, the Route Manager API per RFC 1169) compiles `{{outlet}}` back into a
+keyword — `{{component (-outlet @outlet)}}`, the template's own `@outlet`
+argument wrapped in a call to the `-outlet` keyword helper, which only ember's
+router-backed resolver (`RouterResolver`, reachable through the container's
+`renderer:-dom`) knows. The base resolver `renderComponent` builds for an
+owner that has never rendered a root asserts outright:
+
+> The `{{outlet}}` keyword requires the router, which is not available here. It
+> is only supported in templates rendered by an Ember application (e.g. not via
+> `renderComponent`).
+
+Every route story failed on `ember-alpha`/`ember-beta` CI with that assert.
+The data flow, though, is what #90 already feeds: the keyword wraps `@outlet`,
+whose value — a curried stub or the `null` hole — `outletHelper` returns
+untouched. Only *resolution* was missing, and the router performs it as a
+side effect of `ApplicationInstance#renderRootComponent`: the method installs
+the instance's `renderer:-dom` as the owner's renderer (`setRenderer`) before
+rendering the app's root component, and `renderComponent` then reuses that one
+renderer per owner.
+
+Chosen: **keep the two backends and the whole `@outlet` story API; prime the
+router's renderer when the build asks for it.**
+
+- `primeRouterRenderer()` renders one empty root through
+  `renderRootComponent` — the exact call the real `Router` makes on first
+  paint. `renderRootComponent` targets a cursor in `rootElement`, so Ember
+  does not clear the canvas, and any later root render (the app's own router,
+  say) replaces the empty one. Its teardown is the app's: the renderer is
+  destroyable with its owner, the same lifecycle the classic outlet root had.
+- The trigger is a probe, not a version — `routerRendererPrimingSupported()`:
+  no classic `view:-outlet`, an instance `renderRootComponent` to call, and a
+  resolved `rootElement`. Builds whose `{{outlet}}` would resolve without the
+  keyword are primed too; `RouterResolver` resolves everything `ResolverImpl`
+  does, so priming is a superset there.
+- The prime runs in `bootApp`, *before the first story render* — `Ember`
+  keeps exactly one renderer per owner, and swapping it while a strict
+  renderer has live roots recreates the opcode-table corruption of #27/#33.
+  Priming at birth keeps every cache reuse in `renderToCanvas` (which route
+  stories on this backend share with component stories) safe unchanged.
+
+Regression guards added with the fix: unit tests for the probe decision and
+the primer's skip conditions, and the demo story `RouteAfterComponent` —
+component → route → component on one booted app — which fails with the router
+assert if the prime is removed or ordered wrong (verified on the
+`ember-alpha` CI scenario).

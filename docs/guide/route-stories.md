@@ -144,20 +144,9 @@ export const MarkedOutlet: StoryObj = {
 };
 ```
 
-The stub is one level only: a <code v-pre>{{outlet}}</code> *inside* the stub renders a
+The stub is one level only: a <code v-pre>{{outlet}}</code> _inside_ the stub renders a
 hole, just like a child route with no child of its own. Ember has no named
 outlets, so there is nothing else to stub.
-
-> [!NOTE] How this works under the hood
->
-> Ember changed the machinery behind `{{outlet}}` with its RFC 1099 route
-> rendering: until 7.4 <code v-pre>{{outlet}}</code> is a keyword that reads its child
-> route from Glimmer's dynamic scope, and `ember-storybook` seeds that scope
-> through Ember's own outlet root (the view `Router._setOutlets()` uses). Since
-> 7.5.0-alpha.2 `{{outlet}}` compiles to `<@outlet />` — the route template's
-> own argument, holding a component — and the addon renders route stories as
-> plain components, passing `@outlet` exactly like Ember's router does. The
-> backend is picked by probing the running build; stories work the same on both.
 
 ## Reference
 
