@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { tempFixture } from './test-support';
 
-import { analyzeDeclarations, parseDeclarations } from '../src';
+import { analyzeDeclarations, Default, parseDeclarations } from '../src';
 
 import type { HashBlockParam } from '../src';
 
@@ -275,5 +275,26 @@ export type TOC<T> = { [K in keyof T]: T[K]; } & ((args: T extends { Args: infer
     const bundles = await parseDeclarations([path.join(fix.base, 'app/a.ts')]);
 
     expect(bundles).toEqual({});
+  });
+});
+
+describe('analyzeDeclarations — default exports', () => {
+  test('records the name a default export is declared under', () => {
+    const result = analyzeDeclarations({
+      'app/menu-item.gts': `
+import Component from '@glimmer/component';
+export default class MenuItem extends Component<{
+    Element: HTMLLIElement;
+}> {
+}
+export declare class MenuItemDivider extends Component<{
+    Element: HTMLLIElement;
+}> {
+}
+`
+    });
+
+    expect(result['app/menu-item.gts'][Default].name).toBe('MenuItem');
+    expect(result['app/menu-item.gts'].MenuItemDivider).not.toHaveProperty('name');
   });
 });

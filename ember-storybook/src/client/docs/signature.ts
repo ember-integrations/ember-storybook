@@ -2,7 +2,7 @@ import { unwrapBlockParams } from './block-params';
 
 import type { ComponentMap } from '../../node/parser';
 import type { ComponentFile, EmberMeta } from '../../node/types';
-import type { BlockInfo, ComponentSignature } from 'ember-docgen';
+import type { BlockInfo, BlockParam, ComponentSignature } from 'ember-docgen';
 
 /**
  * Key used for default exports in signature/component maps. Mirrors
@@ -44,11 +44,16 @@ export function componentDisplayName(
   }
 
   // Transitive component files contribute only `signatures` (no declaration
-  // map) — fall back to the export name instead of the unresolved meta.
+  // map) — fall back to the name the docgen records for a default export, and
+  // to the export name otherwise.
   const meta = (componentEntry as { meta?: ComponentMap }).meta;
 
   if (ref.exportName === DEFAULT_EXPORT) {
-    return meta?.[DEFAULT_EXPORT];
+    const declaredName = Object.hasOwn(componentEntry.signatures, DEFAULT_EXPORT)
+      ? componentEntry.signatures[DEFAULT_EXPORT].name
+      : undefined;
+
+    return meta?.[DEFAULT_EXPORT] ?? declaredName;
   }
 
   return meta?.[ref.exportName] ?? ref.exportName;
@@ -81,6 +86,18 @@ export function applyModifiers(
   return { ...signature, args: filtered };
 }
 
+/**
+ * The name a yielded component goes by in the docs page's Subcomponents and
+ * Blocks table: its own name, else its yield key. Local components (not
+ * exported) are named by the yield key — the declaration name is an
+ * implementation detail.
+ */
+export function subcomponentName(param: BlockParam, data: EmberMeta): string {
+  return param.componentRef?.local
+    ? param.name
+    : (componentDisplayName(param.componentRef, data) ?? param.name);
+}
+
 export function collectSubcomponents(
   blocks: Record<string, BlockInfo>,
   data: EmberMeta
@@ -97,12 +114,7 @@ export function collectSubcomponents(
       }
 
       const { filePath, exportName, importPath, modifiers } = param.componentRef;
-
-      // Local components (non-exported) are named by the yield key — the
-      // declaration name is an implementation detail.
-      const name = param.componentRef.local
-        ? param.name
-        : (componentDisplayName(param.componentRef, data) ?? param.name);
+      const name = subcomponentName(param, data);
 
       if (seen.has(name)) {
         // eslint-disable-next-line unicorn/no-break-in-nested-loop

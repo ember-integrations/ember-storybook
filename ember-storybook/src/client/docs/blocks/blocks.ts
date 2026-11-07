@@ -1,9 +1,9 @@
-import { DocsContext, Subheading } from '@storybook/addon-docs/blocks';
+import { DocsContext, Markdown, Subheading } from '@storybook/addon-docs/blocks';
 import { createElement, Fragment, type MouseEvent, type ReactNode, useContext } from 'react';
 import { NAVIGATE_URL } from 'storybook/internal/core-events';
 import { styled } from 'storybook/theming';
 
-import { componentDisplayName } from '../signature';
+import { subcomponentName } from '../signature';
 import { TableWrapper } from './ui';
 
 import type { EmberMeta } from '../../../node/types';
@@ -26,12 +26,25 @@ export const ParamRow = styled.div(({ theme }) => ({
   marginBottom: 2
 }));
 
+// Markdown wraps a description in a paragraph; keep it at the description's
+// size, whatever the page's styles give paragraphs
+const markdownText = { '& p': { margin: 0, fontSize: 'inherit', lineHeight: 'inherit' } };
+
 const ParamDesc = styled.div(({ theme }) => ({
   color: theme.textMutedColor as string,
   fontSize: theme.typography.size.s1,
   lineHeight: '17px',
   marginBottom: 8,
-  marginLeft: 20
+  marginLeft: 20,
+  ...markdownText
+}));
+
+const BlockDesc = styled.div(({ theme }) => ({
+  color: theme.textMutedColor as string,
+  fontSize: theme.typography.size.s1,
+  lineHeight: '17px',
+  marginBottom: 8,
+  ...markdownText
 }));
 
 const BlocksDiv = styled.div(() => ({
@@ -94,13 +107,10 @@ function SubcomponentAnchor({ name, children }: { name: string; children?: React
   );
 }
 
-/** Display name for a block param's type: the referenced component's own
- * name when available, the yield key for local components, otherwise the
- * raw type string. */
-function displayTypeName(param: BlockParam, data?: EmberMeta): string {
-  if (param.componentRef?.local) return param.name;
-
-  return (data ? componentDisplayName(param.componentRef, data) : undefined) ?? param.type;
+/** Display name for a block param's type: a yielded component's name, as
+ * Subcomponents has it, otherwise the raw type string. */
+function displayTypeName(param: BlockParam, data: EmberMeta = {}): string {
+  return param.componentRef ? subcomponentName(param, data) : param.type;
 }
 
 function isBlockParam(param: BlockParam | HashBlockParam): param is BlockParam {
@@ -145,7 +155,11 @@ function descLine(param: BlockParam, key: string, depth?: number): ReactNode | u
 
   const style = depth === undefined ? undefined : { marginBottom: 0, marginLeft: depth * 20 + 10 };
 
-  return createElement(ParamDesc, { key, style }, param.description);
+  return createElement(
+    ParamDesc,
+    { key, style },
+    createElement(Markdown, undefined, param.description)
+  );
 }
 
 function codeLine(key: string, depth: number, children: ReactNode[]): ReactNode {
@@ -256,12 +270,10 @@ export function BlocksTable({
   subcomponentNames: Set<string>;
   data?: EmberMeta;
 }) {
-  const entries = Object.entries(blocks).toSorted(([nameA, _a], [nameB, _b]) => {
-    if (nameA === 'default') return -1;
-    if (nameB === 'default') return -1;
-
-    return 0;
-  });
+  // The default block first, the rest as declared
+  const entries = Object.entries(blocks).toSorted(
+    ([nameA], [nameB]) => Number(nameB === 'default') - Number(nameA === 'default')
+  );
 
   if (entries.length === 0) return;
 
@@ -274,11 +286,25 @@ export function BlocksTable({
       createElement('tr', { key: name }, createElement(BlocksNameCell, undefined, displayName))
     );
 
-    if (block.params.length > 0) {
-      const params = renderParams(block.params, subcomponentNames, data);
+    const details: ReactNode[] = [];
 
+    if (block.description) {
+      details.push(
+        createElement(
+          BlockDesc,
+          { key: 'description' },
+          createElement(Markdown, undefined, block.description)
+        )
+      );
+    }
+
+    if (block.params.length > 0) {
+      details.push(...renderParams(block.params, subcomponentNames, data));
+    }
+
+    if (details.length > 0) {
       rows.push(
-        createElement('tr', { key: `${name}-params` }, createElement('td', undefined, ...params))
+        createElement('tr', { key: `${name}-details` }, createElement('td', undefined, ...details))
       );
     }
   }

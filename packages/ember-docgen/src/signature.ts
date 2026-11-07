@@ -33,6 +33,8 @@ export interface ArgInfo {
 }
 
 export interface ComponentSignature {
+  /** A default export's own declaration name (`MenuItem` for `export default class MenuItem`). */
+  name?: string;
   args: Record<string, ArgInfo>;
   blocks: Record<string, BlockInfo>;
   element: string | undefined;
