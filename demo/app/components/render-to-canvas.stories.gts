@@ -220,11 +220,12 @@ export const GlobalsUpdate: StoryObj = {
 };
 
 // `{{outlet}}` needs a child route a story does not have: on classic builds
-// `parameters.ember.route` renders through Ember's outlet root (rendering the
-// template as a plain component threw "Cannot destructure property 'tag' of
-// undefined"), and on RFC 1099 route rendering (ember-source >= 7.5.0-alpha.2)
-// through the `@outlet` argument. The `outlet` global (the toolbar's Ember
-// menu) decides hole vs. placeholder; `route.outlet` overrides it.
+// (before ember-source 7.5.0) `parameters.ember.route` renders through Ember's
+// outlet root, on RFC 1099 route rendering (ember-source >= 7.5.0) as a
+// component receiving `@outlet` — the keyword it compiles to resolves through
+// the router's renderer, which the addon installs at app boot. The `outlet`
+// global (the toolbar's Ember menu) decides hole vs. placeholder;
+// `route.outlet` overrides it.
 export const StubbedOutlet: StoryObj = {
   play: async (context) => {
     const parameters = {
@@ -275,6 +276,55 @@ export const StubbedOutlet: StoryObj = {
         'child'
       );
       expect(canvas.querySelectorAll(':scope [data-test-outer-route]')).toHaveLength(1);
+    } finally {
+      unmount?.();
+      canvas.remove();
+    }
+  }
+};
+
+// ember-source >= 7.5.0 resolves the `{{outlet}}` keyword through the router's
+// renderer, and `renderComponent` keeps exactly one renderer per
+// owner — so the app instance must already be primed with it when a route
+// story reuses the app behind a component story (the switch happens without a
+// reboot on these builds). Regression guard for the ember-alpha/ember-beta CI
+// failures: component → route → component, one booted app throughout.
+export const RouteAfterComponent: StoryObj = {
+  args: { name: 'component-first' },
+  play: async (context) => {
+    const canvas = createCanvas();
+    let unmount: (() => void) | undefined;
+
+    const component = (name: string) =>
+      renderTo(
+        canvas,
+        () => context.unboundStoryFn({ ...context, args: { name } }),
+        { ...context, args: { name }, globals: {} },
+        false
+      );
+
+    const route = (title: string) =>
+      renderTo(
+        canvas,
+        () => ({ component: OuterRoute, args: { model: { title } }, route: {} }),
+        { ...context, args: { model: { title } }, globals: { outlet: 'hole' } },
+        false
+      );
+
+    try {
+      unmount = await component('component-first');
+      expect(canvas.textContent).toContain('component-first');
+
+      // The route story reuses the booted app; its renderer must resolve the
+      // outlet keyword (on the classic backend this switch reboots instead —
+      // still correct, just a different path through `canReuseApp`).
+      unmount = await route('shared-app');
+      expect(canvas.textContent).toContain('shared-app');
+      expect(canvas.querySelector(':scope [data-storybook-outlet]')).toBeNull();
+
+      // And back: component stories keep rendering on the same primed app.
+      unmount = await component('component-again');
+      expect(canvas.textContent).toContain('component-again');
     } finally {
       unmount?.();
       canvas.remove();

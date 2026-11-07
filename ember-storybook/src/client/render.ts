@@ -9,6 +9,7 @@ import {
   buildRouteOutletState,
   mountOutletView,
   outletRootSupported,
+  primeRouterRenderer,
   resolveOutletStub,
   templateUsesOutlet,
   updateOutletView
@@ -208,9 +209,12 @@ async function mountStory({
   //   — so the template goes through Ember's own outlet root instead, with the
   //   story as `outlets.main` (the toolbar decides hole vs placeholder, an
   //   explicit `route.outlet` overrides it).
-  // - RFC 1099 (ember-source >= 7.5.0-alpha.2): `{{outlet}}` compiles to
-  //   `<@outlet />`; a route template is a component receiving
-  //   `@model`/`@controller`/`@outlet`, so this is a plain component render.
+  // - RFC 1099 route rendering (ember-source >= 7.5.0): `{{outlet}}`
+  //   compiles to `{{component (-outlet @outlet)}}` — the template's own
+  //   `@outlet` argument, wrapped in a keyword call that resolves through the
+  //   router's renderer, which `bootApp` primes. A route template is a
+  //   component receiving `@model`/`@controller`/`@outlet`, so this is a plain
+  //   component render.
   if (outletRootSupported(application)) {
     const outletView = await mountOutletView(
       application,
@@ -287,6 +291,10 @@ async function bootApp(
   try {
     ember.configure?.(application);
     await application.boot();
+    // ember-source >= 7.5.0 resolves the `{{outlet}}` keyword only
+    // through the router's renderer; this installs it for the owner — before
+    // any story renders, because Ember keeps one renderer per owner.
+    primeRouterRenderer(application);
     ember.updateGlobals?.(storyContext.globals, application);
   } catch (error) {
     // A half-booted app may not survive the failed render: the next render
