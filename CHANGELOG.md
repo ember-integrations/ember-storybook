@@ -1,5 +1,24 @@
 # Changelog
 
+## Release (2026-11-07)
+
+* ember-storybook 0.5.1 (patch)
+
+#### :bug: Bug Fix
+* `ember-storybook`
+  * [#86](https://github.com/ember-integrations/ember-storybook/pull/86) Wait for the story index before building the docs data ([@aklkv](https://github.com/aklkv))
+  * [#85](https://github.com/ember-integrations/ember-storybook/pull/85) Show the inherited or helper render template in "Show code" ([@aklkv](https://github.com/aklkv))
+  * [#118](https://github.com/ember-integrations/ember-storybook/pull/118) Show block descriptions and yielded components' names in the Blocks table ([@aklkv](https://github.com/aklkv))
+  * [#124](https://github.com/ember-integrations/ember-storybook/pull/124) Fix `{{outlet}}` for ember-beta and ember-alpha ([@gossi](https://github.com/gossi))
+
+#### :house: Internal
+* `ember-storybook`
+  * [#87](https://github.com/ember-integrations/ember-storybook/pull/87) Share one @mdx-js/react with the compiled MDX pages ([@aklkv](https://github.com/aklkv))
+
+#### Committers: 2
+- Alexey Kulakov ([@aklkv](https://github.com/aklkv))
+- Thomas Gossmann ([@gossi](https://github.com/gossi))
+
 ## Release (2026-10-12)
 
 * ember-storybook 0.5.0 (minor)
