@@ -118,7 +118,7 @@ export default {
 
 Presence of this key marks the story a [route story](/guide/route-stories): the template
 renders with a working <code v-pre>{{outlet}}</code> — through Ember's outlet root on classic
-builds, or as a component receiving `@outlet` on route rendering
+builds, or as a component receiving `@outlet` on RFC 1099 route rendering
 (ember-source >= 7.5.0). A template that uses <code v-pre>{{outlet}}</code> renders
 that way even with an empty `route: {}`.
 

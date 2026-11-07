@@ -209,7 +209,7 @@ async function mountStory({
   //   — so the template goes through Ember's own outlet root instead, with the
   //   story as `outlets.main` (the toolbar decides hole vs placeholder, an
   //   explicit `route.outlet` overrides it).
-  // - route rendering as `@outlet` (ember-source >= 7.5.0): `{{outlet}}`
+  // - RFC 1099 route rendering (ember-source >= 7.5.0): `{{outlet}}`
   //   compiles to `{{component (-outlet @outlet)}}` — the template's own
   //   `@outlet` argument, wrapped in a keyword call that resolves through the
   //   router's renderer, which `bootApp` primes. A route template is a

@@ -221,10 +221,11 @@ export const GlobalsUpdate: StoryObj = {
 
 // `{{outlet}}` needs a child route a story does not have: on classic builds
 // (before ember-source 7.5.0) `parameters.ember.route` renders through Ember's
-// outlet root, on current builds as a component receiving `@outlet` — the
-// keyword it compiles to resolves through the router's renderer, which the
-// addon installs at app boot. The `outlet` global (the toolbar's Ember
-// menu) decides hole vs. placeholder; `route.outlet` overrides it.
+// outlet root, on RFC 1099 route rendering (ember-source >= 7.5.0) as a
+// component receiving `@outlet` — the keyword it compiles to resolves through
+// the router's renderer, which the addon installs at app boot. The `outlet`
+// global (the toolbar's Ember menu) decides hole vs. placeholder;
+// `route.outlet` overrides it.
 export const StubbedOutlet: StoryObj = {
   play: async (context) => {
     const parameters = {

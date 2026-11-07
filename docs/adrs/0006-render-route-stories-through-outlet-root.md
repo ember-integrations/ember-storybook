@@ -307,11 +307,11 @@ Regression guards: unit tests for both wire shapes, both stub forms and the
 (component), `NestedStubOutlet` (inline template whose own `{{outlet}}` must
 stay a hole) run in every `@embroider/try` scenario, covering both backends.
 
-## Follow-up decision (2026-11-07): prime the router's renderer for the Route Manager API
+## Follow-up decision (2026-11-07): prime the router's renderer for RFC 1099 route rendering
 
-The `@outlet` backend moved again: ember-source 7.5.0 (emberjs/ember.js
-#21460, the Route Manager API per RFC 1169) compiles `{{outlet}}` back into a
-keyword — `{{component (-outlet @outlet)}}`, the template's own `@outlet`
+The `@outlet` backend moved again when RFC 1099 route rendering landed in
+ember-source 7.5.0 (emberjs/ember.js #21460): `{{outlet}}` compiles back into
+a keyword — `{{component (-outlet @outlet)}}`, the template's own `@outlet`
 argument wrapped in a call to the `-outlet` keyword helper, which only ember's
 router-backed resolver (`RouterResolver`, reachable through the container's
 `renderer:-dom`) knows. The base resolver `renderComponent` builds for an

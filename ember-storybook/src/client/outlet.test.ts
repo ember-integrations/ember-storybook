@@ -352,10 +352,10 @@ const classicOutletBlock = [
   ['if', 'component', '-outlet']
 ];
 
-// ember-source >= 7.5.0: `{{outlet}}` compiles to `{{component (-outlet
-// @outlet)}}` — the statement, the `@outlet` argument in the template's
-// argument slots and the `component`/`-outlet` names in `upvars` are verbatim
-// as that compiler emits them for `{{outlet}}`.
+// RFC 1099 route rendering (ember-source >= 7.5.0) compiles `{{outlet}}` to
+// `{{component (-outlet @outlet)}}` — the statement, the `@outlet` argument in
+// the template's argument slots and the `component`/`-outlet` names in
+// `upvars` are verbatim as that compiler emits them for `{{outlet}}`.
 const routeManagerOutletBlock = [
   // eslint-disable-next-line unicorn/no-null -- verbatim wire fixture: empty slots are null
   [[46, [28, [31, 1], [[30, 1]], null], null, null, null]],

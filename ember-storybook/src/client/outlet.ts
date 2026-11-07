@@ -157,8 +157,8 @@ export async function resolveOutletStub({
 const OUTLET_KEYWORD = '-outlet';
 
 /**
- * The name Ember's route-rendering transform compiles `{{outlet}}` to instead
- * (ember-source >= 7.5.0): the template's own `@outlet` argument, wrapped as
+ * The name Ember's RFC 1099 route rendering compiles `{{outlet}}` to (landed
+ * in ember-source 7.5.0): the template's own `@outlet` argument, wrapped as
  * `{{component (-outlet @outlet)}}` — a keyword call that hands the argument
  * to the router's outlet helper.
  */
@@ -200,7 +200,7 @@ function asTemplateFactory(
  *   every use of `{{outlet}}` — and only uses of it — lands in `upvars`;
  *   checking that slot cannot mistake a string literal `"-outlet"` used as an
  *   argument for a real outlet.
- * - route rendering as `@outlet` (`>= 7.5.0`): `{{outlet}}` compiles to the
+ * - RFC 1099 route rendering (`>= 7.5.0`): `{{outlet}}` compiles to the
  *   template's own `@outlet` argument — `{{component (-outlet @outlet)}}` —
  *   which lands in `locals` (strict-mode templates list their arguments there).
  */
@@ -311,9 +311,9 @@ interface OutletContainer {
 /**
  * Whether this Ember build still hosts `{{outlet}}` in the classic outlet root.
  *
- * Until ember-source 7.5.0 the router always registered `view:-outlet`; the
- * route-rendering work (emberjs/ember.js#21460, the Route Manager API per
- * RFC 1169) deleted the view, the `template:-outlet` and the classic `-outlet`
+ * Until ember-source 7.5.0 the router always registered `view:-outlet`; RFC
+ * 1099 route rendering (implemented across emberjs/ember.js#21460 and its
+ * series) deleted the view, the `template:-outlet` and the classic `-outlet`
  * keyword outright. The container entry is the switch between the backends
  * that have a classic outlet root and those that have not — version strings
  * are unreliable across pre-releases, the container probe is not.
@@ -338,13 +338,16 @@ interface RootRenderableInstance {
  * Whether `{{outlet}}` on this build must be resolved through the router's
  * renderer.
  *
- * ember-source 7.5.0 (emberjs/ember.js#21460) moved the keyword: `{{outlet}}`
- * compiles to `{{component (-outlet @outlet)}}`, and the `-outlet` keyword
- * lives only in the router's `RouterResolver`. The base resolver
- * `renderComponent` builds for an owner that never rendered a root asserts:
- * "The `{{outlet}}` keyword requires the router, which is not available here."
- * Classic builds (before 7.5.0) host `{{outlet}}` in the outlet root instead;
- * {@link outletRootSupported} selects that backend for those.
+ * ember-source 7.5.0 completed RFC 1099 route rendering (emberjs/ember.js
+ * #21460) and compiled `{{outlet}}` back into a keyword:
+ * `{{component (-outlet @outlet)}}`, the template's own `@outlet` argument
+ * wrapped in a call to the `-outlet` keyword helper, which only ember's
+ * router-backed resolver (`RouterResolver`, reachable through the container's
+ * `renderer:-dom`) knows. The base resolver `renderComponent` builds for an
+ * owner that never rendered a root asserts: "The `{{outlet}}` keyword requires
+ * the router, which is not available here." Classic builds (before 7.5.0) host
+ * `{{outlet}}` in the outlet root instead; {@link outletRootSupported} selects
+ * that backend for those.
  *
  * The probe — no classic outlet root, but a root-render hook to install the
  * router's renderer with — never reads the version; builds that would resolve
