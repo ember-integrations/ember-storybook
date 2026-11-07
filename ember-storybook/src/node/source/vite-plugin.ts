@@ -39,7 +39,9 @@ export function sourceContributor(api: ContributorAPI): Plugin {
   return {
     name: 'ember-storybook:source',
 
-    buildStart() {
+    async buildStart() {
+      await api.storyFilesReady();
+
       const files = getStoryFiles().filter((f) => isStoryFile(f));
       const data: Record<string, Record<string, StorySource>> = {};
 
