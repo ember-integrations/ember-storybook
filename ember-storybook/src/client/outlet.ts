@@ -157,9 +157,10 @@ export async function resolveOutletStub({
 const OUTLET_KEYWORD = '-outlet';
 
 /**
- * The name Ember's RFC 1099 transform compiles `{{outlet}}` to instead
- * (ember-source >= 7.5.0-alpha.2): `<@outlet />`, the template's own named
- * argument.
+ * The name Ember's route-rendering transform compiles `{{outlet}}` to instead
+ * (ember-source >= 7.5.0): the template's own `@outlet` argument, wrapped as
+ * `{{component (-outlet @outlet)}}` — a keyword call that hands the argument
+ * to the router's outlet helper.
  */
 const OUTLET_ARGUMENT = '@outlet';
 
@@ -195,12 +196,13 @@ function asTemplateFactory(
  * `[statements, locals, upvars]`. Which slot reveals the outlet depends on the
  * compiler that produced the template — the app's ember-source:
  *
- * - classic (`< 7.5.0-alpha.2`): the keyword `-outlet` is a free name, so
+ * - classic (`< 7.5.0`): the keyword `-outlet` is a free name, so
  *   every use of `{{outlet}}` — and only uses of it — lands in `upvars`;
  *   checking that slot cannot mistake a string literal `"-outlet"` used as an
  *   argument for a real outlet.
- * - RFC 1099 (`>= 7.5.0-alpha.2`): `{{outlet}}` compiles to `<@outlet />`, so
- *   `@outlet` shows up as one of the template's own arguments in `locals`.
+ * - route rendering as `@outlet` (`>= 7.5.0`): `{{outlet}}` compiles to the
+ *   template's own `@outlet` argument — `{{component (-outlet @outlet)}}` —
+ *   which lands in `locals` (strict-mode templates list their arguments there).
  */
 export function templateUsesOutlet(component: object): boolean {
   const factory = getComponentTemplate(component) ?? asTemplateFactory(component);
@@ -309,15 +311,99 @@ interface OutletContainer {
 /**
  * Whether this Ember build still hosts `{{outlet}}` in the classic outlet root.
  *
- * Until 7.5.0-alpha.2 the router always registered `view:-outlet`; the route
- * rendering work merged as emberjs/ember.js `4b5d79a` (series: `68fc807`,
- * `c0522c5`, `4b0f767`, ...) deleted the view, the `template:-outlet` and the
- * `-outlet` keyword outright. The container entry is the switch between the
- * two backends: `beta` (7.4) still ships it while `alpha` (7.5) does not, so
- * the version string cannot decide this — the probe can.
+ * Until ember-source 7.5.0 the router always registered `view:-outlet`; the
+ * route-rendering work (emberjs/ember.js#21460, the Route Manager API per
+ * RFC 1169) deleted the view, the `template:-outlet` and the classic `-outlet`
+ * keyword outright. The container entry is the switch between the backends
+ * that have a classic outlet root and those that have not — version strings
+ * are unreliable across pre-releases, the container probe is not.
  */
 export function outletRootSupported(owner: object): boolean {
   return (owner as unknown as OutletContainer).factoryFor('view:-outlet') !== undefined;
+}
+
+/**
+ * The root-render hook ember-source (>= 7.5.0) exposes on
+ * `ApplicationInstance`: it installs the container's `renderer:-dom` — the
+ * renderer whose resolver knows the router keywords — as its owner's renderer,
+ * then renders the component into `rootElement`. Ember's `Router` calls it
+ * exactly once, when it first paints a route tree.
+ */
+interface RootRenderableInstance {
+  rootElement?: unknown;
+  renderRootComponent(component: object): void;
+}
+
+/**
+ * Whether `{{outlet}}` on this build must be resolved through the router's
+ * renderer.
+ *
+ * ember-source 7.5.0 (emberjs/ember.js#21460) moved the keyword: `{{outlet}}`
+ * compiles to `{{component (-outlet @outlet)}}`, and the `-outlet` keyword
+ * lives only in the router's `RouterResolver`. The base resolver
+ * `renderComponent` builds for an owner that never rendered a root asserts:
+ * "The `{{outlet}}` keyword requires the router, which is not available here."
+ * Classic builds (before 7.5.0) host `{{outlet}}` in the outlet root instead;
+ * {@link outletRootSupported} selects that backend for those.
+ *
+ * The probe — no classic outlet root, but a root-render hook to install the
+ * router's renderer with — never reads the version; builds that would resolve
+ * `{{outlet}}` either way are primed too, and priming is harmless: the
+ * router's resolver resolves everything the base one does.
+ */
+export function routerRendererPrimingSupported(application: object): boolean {
+  if (outletRootSupported(application)) {
+    return false;
+  }
+
+  const instance = application as RootRenderableInstance;
+
+  // The primer renders into `instance.rootElement`, so it must actually be a
+  // resolved element. A booted story app gets one from `bootApp`; a bare
+  // string selector or `null` (no document to resolve against) would render
+  // into the wrong place — or crash inside the renderer.
+  const { rootElement } = instance;
+
+  return (
+    typeof instance.renderRootComponent === 'function' &&
+    typeof rootElement === 'object' &&
+    rootElement !== null
+  );
+}
+
+/**
+ * Installs the router's renderer for a booted app instance: one render of an
+ * empty root through {@link RootRenderableInstance.renderRootComponent} — the
+ * same call Ember's `Router` makes when it first paints. A Storybook app
+ * boots but never routes, so without this `renderComponent` builds its own
+ * router-less renderer for the owner and route stories hit the keyword
+ * assert on ember-source >= 7.5.0 builds.
+ *
+ * Called from `bootApp` *before the first story render*, because Ember keeps
+ * exactly one renderer per owner (`RENDERER_FOR_OWNER`) — installing a second
+ * one while the strict renderer has live roots recreates the corrupted
+ * opcode-table crashes of #27/#33.
+ *
+ * The empty root targets a cursor inside `rootElement`, so Ember does not
+ * clear the canvas, and a later root render (the app's own router, say)
+ * replaces it. Teardown is the app's: the renderer is destroyable with its
+ * owner — the same lifecycle the classic outlet root had.
+ */
+export function primeRouterRenderer(application: object): void {
+  if (!routerRendererPrimingSupported(application)) {
+    return;
+  }
+
+  // An empty compiled template via the public `template()` API (ADR 0006): a
+  // raw template factory is a component definition `renderComponent` already
+  // accepts for route stories, and `''` renders nothing. The scope is empty —
+  // this template references nothing.
+  (application as RootRenderableInstance).renderRootComponent(
+    template('', {
+      moduleName: 'ember-storybook/client/router-root-primer',
+      scope: () => ({})
+    })
+  );
 }
 
 /**
@@ -342,7 +428,7 @@ function createOutletView(
     throw new Error(
       'ember-storybook: this story renders a route template, but `view:-outlet` ' +
         'is not registered on this Ember build, so the classic outlet root cannot ' +
-        'be used. Ember >= 7.5.0-alpha.2 renders {{outlet}} as the `@outlet` ' +
+        'be used. Ember >= 7.5.0 renders {{outlet}} through the `@outlet` ' +
         'argument instead; ember-storybook selects that backend automatically.'
     );
   }

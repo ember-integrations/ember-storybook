@@ -4,7 +4,9 @@ import { OUTLET_GLOBAL_KEY } from '../outlet-key';
 import {
   buildRouteOutletState,
   outletRootSupported,
+  primeRouterRenderer,
   resolveOutletStub,
+  routerRendererPrimingSupported,
   templateUsesOutlet
 } from './outlet';
 
@@ -251,10 +253,87 @@ describe('outletRootSupported', () => {
     expect(outletRootSupported(classic)).toBe(true);
   });
 
-  test('false when the build dropped it (ember-source >= 7.5.0-alpha.2)', () => {
-    const rfc1099 = { factoryFor: vi.fn() };
+  test('false when the build dropped it (ember-source >= 7.5.0)', () => {
+    const modern = { factoryFor: vi.fn() };
 
-    expect(outletRootSupported(rfc1099)).toBe(false);
+    expect(outletRootSupported(modern)).toBe(false);
+  });
+});
+
+// An `ApplicationInstance` surface for the primer: the `factoryFor` probe, the
+// private `renderRootComponent` hook, and the resolved `rootElement` — all as
+// spies/fakes so the decision logic runs under node.
+function fakeInstance(
+  opts: { classic?: boolean; hasRootRender?: boolean; rootElement?: unknown } = {}
+) {
+  const { classic = false, hasRootRender = true } = opts;
+
+  // `rootElement: undefined` must stay undefined (defaults would mask the
+  // unresolvable case), so distinguish "not passed" from "passed undefined".
+  const rootElement = 'rootElement' in opts ? opts.rootElement : { tag: 'element' };
+
+  return {
+    factoryFor: (name: string) => (classic && name === 'view:-outlet' ? {} : undefined),
+    renderRootComponent: hasRootRender ? vi.fn() : undefined,
+    rootElement
+  };
+}
+
+describe('routerRendererPrimingSupported', () => {
+  test('classic builds render through the outlet root and are never primed', () => {
+    expect(routerRendererPrimingSupported(fakeInstance({ classic: true }))).toBe(false);
+  });
+
+  test('builds without the root-render hook are left alone', () => {
+    expect(routerRendererPrimingSupported(fakeInstance({ hasRootRender: false }))).toBe(false);
+  });
+
+  test('an unresolved root element skips priming', () => {
+    // `renderRootComponent` paints into `rootElement`: a bare selector string
+    // or a missing element must not trigger a root render.
+    expect(routerRendererPrimingSupported(fakeInstance({ rootElement: '#app' }))).toBe(false);
+    // eslint-disable-next-line unicorn/no-null -- asserting the guard rejects null
+    expect(routerRendererPrimingSupported(fakeInstance({ rootElement: null }))).toBe(false);
+    expect(routerRendererPrimingSupported(fakeInstance({ rootElement: undefined }))).toBe(false);
+  });
+
+  test('a router-renderer build with a resolved element primes', () => {
+    expect(routerRendererPrimingSupported(fakeInstance())).toBe(true);
+  });
+});
+
+describe('primeRouterRenderer', () => {
+  beforeEach(() => {
+    templateSpy.mockClear();
+  });
+
+  test('renders one empty root through the instance hook', () => {
+    const instance = fakeInstance();
+
+    primeRouterRenderer(instance);
+
+    expect(instance.renderRootComponent).toHaveBeenCalledOnce();
+    // The payload is an empty compiled template — `template()` with an empty
+    // source, so nothing renders and no bare keyword is ever spelled.
+    expect(templateSpy.mock.calls.at(-1)?.[0]).toBe('');
+  });
+
+  test('classic builds are skipped', () => {
+    const instance = fakeInstance({ classic: true });
+
+    primeRouterRenderer(instance);
+
+    expect(instance.renderRootComponent).not.toHaveBeenCalled();
+    expect(templateSpy).not.toHaveBeenCalled();
+  });
+
+  test('builds without the hook are skipped', () => {
+    const instance = fakeInstance({ hasRootRender: false });
+
+    primeRouterRenderer(instance);
+
+    expect(instance.renderRootComponent).toBeUndefined();
+    expect(templateSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -273,11 +352,25 @@ const classicOutletBlock = [
   ['if', 'component', '-outlet']
 ];
 
-// RFC 1099 compiler (ember-source >= 7.5.0-alpha.2): `{{outlet}}` became
-// `<@outlet />` — verbatim the block of ember-source's own top-level
-// `OutletTemplate`, with `@outlet` among the template's argument slots.
-// eslint-disable-next-line unicorn/no-null -- verbatim wire fixture: empty slots are null
-const rfc1099OutletBlock = [[[8, [30, 1], null, null, null]], ['@outlet'], []];
+// ember-source >= 7.5.0: `{{outlet}}` compiles to `{{component (-outlet
+// @outlet)}}` — the statement, the `@outlet` argument in the template's
+// argument slots and the `component`/`-outlet` names in `upvars` are verbatim
+// as that compiler emits them for `{{outlet}}`.
+const routeManagerOutletBlock = [
+  // eslint-disable-next-line unicorn/no-null -- verbatim wire fixture: empty slots are null
+  [[46, [28, [31, 1], [[30, 1]], null], null, null, null]],
+  ['@outlet'],
+  ['component', '-outlet']
+];
+
+// The same statement with `upvars` cleared: the `@outlet` argument alone marks
+// a route template (strict-mode templates list their arguments in `locals`).
+const outletArgumentBlock = [
+  // eslint-disable-next-line unicorn/no-null -- verbatim wire fixture: empty slots are null
+  [[46, [28, [31, 1], [[30, 1]], null], null, null, null]],
+  ['@outlet'],
+  []
+];
 
 describe('templateUsesOutlet', () => {
   test('detects the -outlet keyword in the template upvars (classic)', () => {
@@ -288,10 +381,18 @@ describe('templateUsesOutlet', () => {
     expect(templateUsesOutlet(component)).toBe(true);
   });
 
-  test('detects the @outlet argument in the template locals (RFC 1099)', () => {
+  test('detects the route-rendering block of ember-source >= 7.5.0', () => {
     const component = {};
 
-    templateRegistry.set(component, compiledFactory(rfc1099OutletBlock));
+    templateRegistry.set(component, compiledFactory(routeManagerOutletBlock));
+
+    expect(templateUsesOutlet(component)).toBe(true);
+  });
+
+  test('detects the @outlet argument in the template locals', () => {
+    const component = {};
+
+    templateRegistry.set(component, compiledFactory(outletArgumentBlock));
 
     expect(templateUsesOutlet(component)).toBe(true);
   });

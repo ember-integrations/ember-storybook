@@ -61,8 +61,8 @@ export interface EmberParameters {
     updateGlobals?: (globals: Record<string, unknown>, owner: Owner) => void;
     /**
      * Present => render so that `{{outlet}}` works: through Ember's outlet root
-     * on builds that have it, as a component receiving `@outlet` on RFC 1099
-     * route rendering (ember-source >= 7.5.0-alpha.2).
+     * on builds that have it, as a component receiving `@outlet` since
+     * ember-source 7.5.0.
      * A template that uses `{{outlet}}` is rendered that way even without
      * this parameter — then with empty route parameters (#62).
      */
