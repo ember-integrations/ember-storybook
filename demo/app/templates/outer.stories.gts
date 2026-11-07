@@ -9,7 +9,7 @@ import type { Meta, StoryObj } from 'ember-storybook';
 // route, and a story has no router to supply one. ember-storybook renders route
 // stories through whichever outlet backend the Ember build provides — Ember's
 // own outlet root on classic builds (`view:-outlet`), or the `@outlet` argument
-// on RFC 1099 route rendering (ember-source >= 7.5.0-alpha.2) — so rendering
+// on route rendering (ember-source >= 7.5.0) — so rendering
 // `Outer` through a plain component story never touches the outlet machinery.
 // Since #62 an `{{outlet}}` template is also detected *without* any annotation
 // (see `outer-unannotated.stories.gts`); `parameters.ember.route` is what
