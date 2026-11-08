@@ -1,5 +1,10 @@
 # Changelog
 
+
+
+
+
+
 ## Release (2026-11-07)
 
 * ember-storybook 0.5.1 (patch)

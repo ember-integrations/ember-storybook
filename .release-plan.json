@@ -1,25 +1,11 @@
 {
   "solution": {
     "ember-storybook": {
-      "impact": "patch",
-      "oldVersion": "0.5.0",
-      "newVersion": "0.5.1",
-      "tagName": "latest",
-      "constraints": [
-        {
-          "impact": "patch",
-          "reason": "Appears in changelog section :bug: Bug Fix"
-        },
-        {
-          "impact": "patch",
-          "reason": "Appears in changelog section :house: Internal"
-        }
-      ],
-      "pkgJSONPath": "./ember-storybook/package.json"
+      "oldVersion": "0.5.1"
     },
     "typedoc-plugin-ember": {
       "oldVersion": "0.0.3"
     }
   },
-  "description": "## Release (2026-11-07)\n\n* ember-storybook 0.5.1 (patch)\n\n#### :bug: Bug Fix\n* `ember-storybook`\n  * [#86](https://github.com/ember-integrations/ember-storybook/pull/86) Wait for the story index before building the docs data ([@aklkv](https://github.com/aklkv))\n  * [#85](https://github.com/ember-integrations/ember-storybook/pull/85) Show the inherited or helper render template in \"Show code\" ([@aklkv](https://github.com/aklkv))\n  * [#118](https://github.com/ember-integrations/ember-storybook/pull/118) Show block descriptions and yielded components' names in the Blocks table ([@aklkv](https://github.com/aklkv))\n  * [#124](https://github.com/ember-integrations/ember-storybook/pull/124) Fix `{{outlet}}` for ember-beta and ember-alpha ([@gossi](https://github.com/gossi))\n\n#### :house: Internal\n* `ember-storybook`\n  * [#87](https://github.com/ember-integrations/ember-storybook/pull/87) Share one @mdx-js/react with the compiled MDX pages ([@aklkv](https://github.com/aklkv))\n\n#### Committers: 2\n- Alexey Kulakov ([@aklkv](https://github.com/aklkv))\n- Thomas Gossmann ([@gossi](https://github.com/gossi))\n"
+  "description": "\n\n\n\n"
 }
