@@ -145,6 +145,43 @@ describe('buildArgTypes', () => {
       summary: 'World'
     });
   });
+
+  test('places options at the top level of the argType for enum args', () => {
+    const sig: ComponentSignature = {
+      args: {
+        scrollIndicators: {
+          type: {
+            category: 'enum',
+            raw: "'always' | 'hover' | 'none'",
+            options: ['always', 'hover', 'none']
+          },
+          required: false,
+          description: 'When to show scroll indicators',
+          defaultValue: undefined
+        }
+      },
+      blocks: {},
+      element: undefined,
+      style: { customProperties: {}, parts: {} }
+    };
+
+    const result = buildArgTypes(sig);
+
+    expect(result.scrollIndicators).toEqual({
+      name: 'scrollIndicators',
+      description: 'When to show scroll indicators',
+      type: {
+        name: "'always' | 'hover' | 'none'",
+        required: false
+      },
+      control: { type: 'select' },
+      options: ['always', 'hover', 'none'],
+      table: {
+        type: { summary: "'always' | 'hover' | 'none'" },
+        defaultValue: undefined
+      }
+    });
+  });
 });
 
 describe('mergeArgTypes', () => {
@@ -210,20 +247,35 @@ describe('mergeArgTypes', () => {
     // fields only the signature defines are preserved
     expect(result.size).toMatchObject({
       type: { name: 'small | medium | large', required: false },
+      options: ['small', 'medium', 'large'],
       table: { type: { summary: 'small | medium | large' } }
+    });
+  });
+
+  test('preserves signature options when a story only overrides control', () => {
+    const storyArgTypes = {
+      size: { control: { type: 'inline-radio' } }
+    };
+
+    const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
+
+    expect(result.size).toMatchObject({
+      control: { type: 'inline-radio' },
+      options: ['small', 'medium', 'large']
     });
   });
 
   test('does not overwrite signature values with undefined story values', () => {
     const storyArgTypes = {
-      size: { description: undefined, control: undefined }
+      size: { description: undefined, control: undefined, options: undefined }
     };
 
     const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
 
     expect(result.size).toMatchObject({
       description: 'How large should the button be?',
-      control: { type: 'select', options: ['small', 'medium', 'large'] }
+      control: { type: 'select' },
+      options: ['small', 'medium', 'large']
     });
   });
 
