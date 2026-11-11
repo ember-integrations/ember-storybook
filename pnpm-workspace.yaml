@@ -55,11 +55,11 @@ catalogs:
     storybook: ^10.6.0
     typedoc: ^0.28.0
   frontend:
-    "@ember-intl/vite": ^1.1.1
+    "@ember-intl/vite": ^2.0.0
     "@embroider/macros": 1.21.1
     "@embroider/router": 3.0.6
     "@glimmer/component": ^2.1.1
-    ember-intl: ^8.2.9
+    ember-intl: ^9.0.0
     ember-modifier: 4.3.0
     ember-strict-application-resolver: 0.1.1
     react: ^19.2.7
