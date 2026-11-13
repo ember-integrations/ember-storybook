@@ -7,7 +7,7 @@ function mapTypeToControl(
   | { type: 'text' }
   | { type: 'number' }
   | { type: 'boolean' }
-  | { type: 'select'; options: string[] }
+  | { type: 'select' }
   | { type: 'object' }
   | { type: 'function' }
   | { type: 'date' } {
@@ -25,7 +25,7 @@ function mapTypeToControl(
       return { type: 'function' };
     }
     case 'enum': {
-      return { type: 'select', options: type.options ?? [] };
+      return { type: 'select' };
     }
 
     default: {
@@ -46,6 +46,7 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
         required: arg.required
       },
       control: mapTypeToControl(arg.type),
+      ...(arg.type.category === 'enum' && { options: arg.type.options ?? [] }),
       table: {
         type: { summary: arg.type.raw },
         defaultValue: arg.defaultValue ? { summary: arg.defaultValue } : undefined

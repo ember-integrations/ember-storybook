@@ -11,10 +11,8 @@ const meta = preview.meta({
   // defined, both in the Controls panel and the docs Controls block.
   argTypes: {
     label: { control: 'text' },
-    size: {
-      control: { type: 'select' },
-      options: ['small', 'medium', 'large']
-    },
+    // Kept as an empty object to preserve order while inheriting control and options from the signature.
+    size: {},
     primary: { control: 'boolean' },
     backgroundColor: { control: 'color' },
     push: { action: 'push' }
@@ -44,6 +42,16 @@ Primary.test('merges argTypes user-first', async ({ argTypes }) => {
   ]);
 });
 
+// Regression: enum args extracted from the signature must expose `options` at
+// the top level of the argType so Storybook's select control is populated.
+// eslint-disable-next-line unicorn/no-top-level-side-effects -- CSF Next attaches tests to stories
+Primary.test('extracts enum options at the top level of argType', async ({ argTypes }) => {
+  await expect(argTypes.size).toMatchObject({
+    control: { type: 'select' },
+    options: ['small', 'medium', 'large']
+  });
+});
+
 // eslint-disable-next-line unicorn/no-top-level-side-effects -- CSF Next attaches tests to stories
 Primary.test('calls push when clicked', async ({ canvas, userEvent, args }) => {
   const button = await canvas.findByRole('button');
@@ -54,12 +62,28 @@ Primary.test('calls push when clicked', async ({ canvas, userEvent, args }) => {
 });
 
 export const Secondary = meta.story({
+  // Overriding only `control` switches the UI widget while preserving the
+  // enum `options` extracted from the component signature.
+  argTypes: {
+    size: { control: { type: 'inline-radio' } }
+  },
   args: {
     label: 'Buttons',
     primary: false,
     size: 'large'
   }
 });
+
+// eslint-disable-next-line unicorn/no-top-level-side-effects -- CSF Next attaches tests to stories
+Secondary.test(
+  'preserves signature enum options when overriding control type',
+  async ({ argTypes }) => {
+    await expect(argTypes.size).toMatchObject({
+      control: { type: 'inline-radio' },
+      options: ['small', 'medium', 'large']
+    });
+  }
+);
 
 // `.extend()` reuses `Primary` and overrides a single arg.
 /* eslint-disable ember/avoid-leaking-state-in-ember-objects -- Storybook's `.extend()`, not Ember's `Klass.extend()` */
