@@ -84,6 +84,11 @@ describe('buildArgTypes', () => {
       control: { type: 'function' },
       table: { type: { summary: '(value: string) => void' } }
     });
+
+    // Non-enum args must not receive a top-level `options` property.
+    expect(result.greeting).not.toHaveProperty('options');
+    expect(result.count).not.toHaveProperty('options');
+    expect(result.push).not.toHaveProperty('options');
   });
 
   test('returns empty object for empty signature', () => {
@@ -167,6 +172,9 @@ describe('buildArgTypes', () => {
 
     const result = buildArgTypes(sig);
 
+    // Storybook 7+ expects `options` at the top level of the argType rather
+    // than nested inside `control.options` (which `OptionsControl` overwrites
+    // when normalizing `argType.options`).
     expect(result.scrollIndicators).toEqual({
       name: 'scrollIndicators',
       description: 'When to show scroll indicators',
@@ -210,9 +218,12 @@ describe('mergeArgTypes', () => {
   });
 
   // https://github.com/ember-integrations/ember-storybook/issues/45 (Case 1)
-  test('keeps signature-derived type, table and description when the story only enhances control/options', () => {
+  // Because `buildArgTypes` places `options` at the top level of `signatureArgTypes.size`,
+  // a story that only overrides `control` (without repeating `options`) must
+  // preserve the signature-derived `options` alongside `description`, `type`, and `table`.
+  test('keeps signature-derived type, options, table and description when the story only enhances control', () => {
     const storyArgTypes = {
-      size: { control: { type: 'radio' }, options: ['small', 'medium', 'large'] }
+      size: { control: { type: 'radio' } }
     };
 
     const result = mergeArgTypes(signatureArgTypes, storyArgTypes);
@@ -227,11 +238,14 @@ describe('mergeArgTypes', () => {
   });
 
   test('lets story-provided values win where both sides define the same field', () => {
+    // Pass a different `options` array than the signature's `['small', 'medium', 'large']`
+    // to verify that story-provided `options` overrides signature-derived `options`.
     const storyArgTypes = {
       size: {
         name: 'Size',
         description: 'Custom size description',
-        control: { type: 'radio' }
+        control: { type: 'radio' },
+        options: ['small', 'large']
       }
     };
 
@@ -241,13 +255,13 @@ describe('mergeArgTypes', () => {
     expect(result.size).toMatchObject({
       name: 'Size',
       description: 'Custom size description',
-      control: { type: 'radio' }
+      control: { type: 'radio' },
+      options: ['small', 'large']
     });
 
     // fields only the signature defines are preserved
     expect(result.size).toMatchObject({
       type: { name: 'small | medium | large', required: false },
-      options: ['small', 'medium', 'large'],
       table: { type: { summary: 'small | medium | large' } }
     });
   });
