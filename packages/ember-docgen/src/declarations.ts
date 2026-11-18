@@ -832,10 +832,15 @@ function describeType(node: AstNode | undefined, ctx: EvalContext, depth = 0): A
           : [];
 
       if (members.length > 0) {
-        const properties: Record<string, ArgTypeInfo> = {};
+        const properties: Record<string, ArgInfo> = {};
 
         for (const member of members) {
-          properties[member.name] = describeType(member.typeNode, ctx, depth + 1);
+          properties[member.name] = {
+            type: describeType(member.typeNode, ctx, depth + 1),
+            required: !member.optional,
+            description: descriptionFor(member.sourceBundle, member.anchor),
+            defaultValue: defaultValueFor(member.sourceBundle, member.anchor)
+          };
         }
 
         return { category: 'object', raw, properties };

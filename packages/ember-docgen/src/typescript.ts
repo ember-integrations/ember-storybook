@@ -39,9 +39,6 @@ const BOUND_ARGS_WRAPPER = 'WithBoundArgs';
 /** Component wrappers whose type argument may reference a component (`typeof X`). */
 const COMPONENT_WRAPPER_NAMES = new Set(['ComponentLike', 'TOC', 'TemplateOnlyComponent', 'Invokable']);
 
-/** TypeScript lib globals — ambient, matched by name (no import exists). */
-const LIB_WRAPPERS = new Set(['Omit', 'Pick']);
-
 interface ExtractContext {
   checker: TS.TypeChecker;
   /** tsconfig directory — anchor for relative output paths */
@@ -134,8 +131,8 @@ function resolveKnownModules(
 
   const withAmbientFallback =
     (specifier: string) =>
-    (resolved: string | undefined): string | undefined =>
-      resolved ?? resolveAmbient(specifier);
+      (resolved: string | undefined): string | undefined =>
+        resolved ?? resolveAmbient(specifier);
 
   return {
     templateOnly: withAmbientFallback(TEMPLATE_ONLY_MODULE)(resolve(TEMPLATE_ONLY_MODULE)),
@@ -149,7 +146,7 @@ function canonicalSymbol(symbol: TS.Symbol | undefined, checker: TS.TypeChecker)
   let current = symbol;
   const visited = new Set<TS.Symbol>();
 
-  for (;;) {
+  for (; ;) {
     if (!current || visited.has(current)) return current;
 
     visited.add(current);
@@ -330,6 +327,28 @@ const STRUCTURAL_OBJECT_FLAGS =
   ts.ObjectFlags.Mapped |
   ts.ObjectFlags.Reference;
 
+/** An object type, or an intersection of object types (`Button & { tooltip?: … }`). */
+function isStructuralObject(type: TS.Type): boolean {
+  if ((type.flags & ts.TypeFlags.Intersection) !== 0) {
+    return (type as TS.IntersectionType).types.every((member) => isStructuralObject(member));
+  }
+
+  return (
+    (type.flags & ts.TypeFlags.Object) !== 0 &&
+    ((type as TS.ObjectType).objectFlags & STRUCTURAL_OBJECT_FLAGS) !== 0
+  );
+}
+
+/** Declared only in TypeScript's own lib files (`Date`, `HTMLElement`, …): not worth unfolding. */
+function isDefaultLibType(type: TS.Type): boolean {
+  const declarations = (type.aliasSymbol ?? type.getSymbol())?.declarations ?? [];
+
+  return (
+    declarations.length > 0 &&
+    declarations.every((declaration) => declaration.getSourceFile().hasNoDefaultLib)
+  );
+}
+
 function buildArgTypeInfo(input: TS.Type, ctx: ExtractContext, depth = 0): ArgTypeInfo {
   // Optional members carry `| undefined` — classify the underlying type
   let type = input;
@@ -386,25 +405,16 @@ function buildArgTypeInfo(input: TS.Type, ctx: ExtractContext, depth = 0): ArgTy
     };
   }
 
-  if (
-    depth < 3 &&
-    (type.flags & ts.TypeFlags.Object) !== 0 &&
-    ((type as TS.ObjectType).objectFlags & STRUCTURAL_OBJECT_FLAGS) !== 0
-  ) {
-    const properties: Record<string, ArgTypeInfo> = {};
+  if (depth < 3 && isStructuralObject(type) && !isDefaultLibType(type)) {
+    const properties: Record<string, ArgInfo> = {};
 
     for (const prop of ctx.checker.getPropertiesOfType(type)) {
       if ((prop.flags & ts.SymbolFlags.Method) !== 0) continue;
+      if (!prop.declarations?.[0]) continue;
 
-      const declaration = prop.declarations?.[0];
-
-      if (!declaration) continue;
-
-      properties[prop.name] = buildArgTypeInfo(
-        ctx.checker.getTypeOfSymbolAtLocation(prop, declaration),
-        ctx,
-        depth + 1
-      );
+      // Built like a top-level arg, so the property keeps its optionality, description and default.
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define -- hoisted
+      properties[prop.name] = buildArgInfo(prop, ctx, depth + 1);
     }
 
     if (Object.keys(properties).length > 0) {
@@ -422,11 +432,11 @@ function symbolType(symbol: TS.Symbol, ctx: ExtractContext): TS.Type | undefined
   return ctx.checker.getTypeOfSymbolAtLocation(symbol, location);
 }
 
-function buildArgInfo(prop: TS.Symbol, ctx: ExtractContext): ArgInfo {
+function buildArgInfo(prop: TS.Symbol, ctx: ExtractContext, depth = 0): ArgInfo {
   const type = symbolType(prop, ctx);
 
   return {
-    type: type ? buildArgTypeInfo(type, ctx) : { category: 'other', raw: 'unknown' },
+    type: type ? buildArgTypeInfo(type, ctx, depth) : { category: 'other', raw: 'unknown' },
     required: (prop.flags & ts.SymbolFlags.Optional) === 0,
     description: symbolDescription(prop, ctx),
     defaultValue: symbolDefaultValue(prop)

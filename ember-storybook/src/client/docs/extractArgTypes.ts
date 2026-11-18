@@ -34,6 +34,45 @@ function mapTypeToControl(
   }
 }
 
+const IDENTIFIER = /^[$A-Z_a-z][\w$]*$/;
+
+function printType(type: ArgTypeInfo, indent = ''): string {
+  if (type.category === 'enum' && (type.options ?? []).length) {
+    return type.options.map((option) => JSON.stringify(option)).join(' | ');
+  }
+
+  if (type.category === 'array' && type.elementType) {
+    const element = printType(type.elementType, indent);
+    // `("sm" | "md")[]` and `(() => void)[]`, but `{ size: "sm" | "md" }[]`
+    const { category } = type.elementType;
+    const needsParentheses =
+      category === 'function' ||
+      (category !== 'object' && category !== 'array' && element.includes(' | '));
+
+    return needsParentheses ? `(${element})[]` : `${element}[]`;
+  }
+
+  if (type.category === 'object' && type.properties) {
+    const inner = `${indent}  `;
+    const lines = Object.entries(type.properties).map(([name, prop]) => {
+      const key = IDENTIFIER.test(name) ? name : JSON.stringify(name);
+      const doc = prop.description ? `${inner}/** ${prop.description} */\n` : '';
+
+      return `${doc}${inner}${key}${prop.required ? '' : '?'}: ${printType(prop.type, inner)};`;
+    });
+
+    return `{\n${lines.join('\n')}\n${indent}}`;
+  }
+
+  return type.raw;
+}
+
+function typeDetail(type: ArgTypeInfo): string | undefined {
+  const unfolded = type.category === 'array' ? type.elementType : type;
+
+  return unfolded?.category === 'object' && unfolded.properties ? printType(type) : undefined;
+}
+
 export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> {
   const argTypes: Record<string, unknown> = {};
 
@@ -47,7 +86,7 @@ export function buildArgTypes(sig: ComponentSignature): Record<string, unknown> 
       },
       control: mapTypeToControl(arg.type),
       table: {
-        type: { summary: arg.type.raw },
+        type: { summary: arg.type.raw, detail: typeDetail(arg.type) },
         defaultValue: arg.defaultValue ? { summary: arg.defaultValue } : undefined
       }
     };

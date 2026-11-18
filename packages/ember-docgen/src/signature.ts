@@ -21,8 +21,8 @@ export interface ArgTypeInfo {
   options?: string[];
   /** For 'array': the element type */
   elementType?: ArgTypeInfo;
-  /** For 'object': known property names mapped to their types */
-  properties?: Record<string, ArgTypeInfo>;
+  /** For 'object': known property names mapped to their type, optionality, description and default */
+  properties?: Record<string, ArgInfo>;
 }
 
 export interface ArgInfo {
