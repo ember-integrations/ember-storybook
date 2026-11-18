@@ -1128,6 +1128,102 @@ export class Widget extends Component<WidgetSignature> {
       expect(param.nested).toBeUndefined();
     });
   });
+
+  describe('unfolds object-typed args', () => {
+    async function argsOf(source: string) {
+      using fix = fixture({ 'option.gts': source.trim() });
+      const sigs = await parseSignatures([path.join(fix.base, 'app/option.gts')], {
+        tsconfigFile: path.join(fix.base, 'tsconfig.json')
+      });
+
+      return sigs['app/option.gts'].Option.args;
+    }
+
+    test('keeps the optionality, description and default of nested properties', async () => {
+      const args = await argsOf(`
+import type { TOC } from '@ember/component/template-only';
+
+interface WidgetArgs {
+  /** Label of the widget */
+  label: string;
+  /** Shown for extra details about the widget */
+  subtitle?: string;
+  /**
+   * Size of the widget
+   *
+   * @defaultValue 'md'
+   */
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export const Option = {} as unknown as TOC<{
+  Args: {
+    widget: WidgetArgs;
+    additionalWidgets?: WidgetArgs[];
+  };
+}>;
+`);
+
+      const widgetProperties = {
+        label: { type: { category: 'string' }, required: true, description: 'Label of the widget' },
+        subtitle: { type: { category: 'string' }, required: false, description: 'Shown for extra details about the widget' },
+        size: {
+          type: { category: 'enum', options: ['sm', 'md', 'lg'] },
+          required: false,
+          description: 'Size of the widget',
+          defaultValue: "'md'"
+        }
+      };
+
+      expect(args.widget.type).toMatchObject({
+        category: 'object',
+        raw: 'WidgetArgs',
+        properties: widgetProperties
+      });
+      expect(args.additionalWidgets.type).toMatchObject({
+        category: 'array',
+        elementType: { category: 'object', properties: widgetProperties }
+      });
+    });
+
+    test('unfolds an intersection of object types', async () => {
+      const args = await argsOf(`
+import type { TOC } from '@ember/component/template-only';
+
+type IconSpec = { icon: string } & {
+  tooltip?: {
+    /** Text of the tooltip */
+    title: string;
+  };
+};
+
+export const Option = {} as unknown as TOC<{
+  Args: { icon: IconSpec };
+}>;
+`);
+
+      expect(args.icon.type).toMatchObject({
+        category: 'object',
+        raw: 'IconSpec',
+        properties: {
+          icon: { type: { category: 'string' }, required: true },
+          tooltip: {
+            type: {
+              category: 'object',
+              properties: {
+                title: {
+                  type: { category: 'string' },
+                  required: true,
+                  description: 'Text of the tooltip'
+                }
+              }
+            },
+            required: false
+          }
+        }
+      });
+    });
+  });
 });
 
 describe('default exports', () => {
