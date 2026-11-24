@@ -2,9 +2,21 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { buildArgTypes, mergeArgTypes, shouldShowArgsSection } from './extractArgTypes';
 
-import type { ComponentSignature } from 'ember-docgen';
+import type { ArgTypeInfo, ComponentSignature } from 'ember-docgen';
 
 vi.mock('virtual:ember-storybook', () => ({ default: {} }));
+
+/** The `table.type.detail` built for a single arg of the given type. */
+function typeDetailOf(type: ArgTypeInfo): string | undefined {
+  const result = buildArgTypes({
+    args: { arg: { type, required: false, description: '' } },
+    blocks: {},
+    element: undefined,
+    style: { customProperties: {}, parts: {} }
+  });
+
+  return (result.arg as { table: { type: { detail?: string } } }).table.type.detail;
+}
 
 describe('buildArgTypes', () => {
   const fullSignature: ComponentSignature = {
@@ -143,6 +155,150 @@ describe('buildArgTypes', () => {
 
     expect((result.name as { table: { defaultValue: unknown } }).table.defaultValue).toEqual({
       summary: 'World'
+    });
+  });
+
+  // Same shapes as the ember-docgen `unfolds object-typed args` tests produce
+  describe('type detail', () => {
+    const widgetArgs: ArgTypeInfo = {
+      category: 'object',
+      raw: 'WidgetArgs',
+      properties: {
+        label: {
+          type: { category: 'string', raw: 'string' },
+          required: true,
+          description: 'Label of the widget'
+        },
+        subtitle: {
+          type: { category: 'string', raw: 'string' },
+          required: false,
+          description: 'Shown for extra details about the widget'
+        },
+        size: {
+          type: { category: 'enum', raw: '"sm" | "md" | "lg"', options: ['sm', 'md', 'lg'] },
+          required: false,
+          description: 'Size of the widget',
+          defaultValue: "'md'"
+        }
+      }
+    };
+
+    const widgetFields = [
+      '  /** Label of the widget */',
+      '  label: string;',
+      '  /** Shown for extra details about the widget */',
+      '  subtitle?: string;',
+      '  /** Size of the widget */',
+      '  size?: "sm" | "md" | "lg";'
+    ];
+
+    test('prints the fields of an object-typed arg', () => {
+      expect(typeDetailOf(widgetArgs)).toBe(['{', ...widgetFields, '}'].join('\n'));
+
+      // Same for the element type of an array of objects
+      expect(
+        typeDetailOf({ category: 'array', raw: 'WidgetArgs[]', elementType: widgetArgs })
+      ).toBe(['{', ...widgetFields, '}[]'].join('\n'));
+    });
+
+    test('prints nested objects', () => {
+      // `{ icon: string } & { tooltip?: { title: string } }`, once ember-docgen unfolds it
+      const detail = typeDetailOf({
+        category: 'object',
+        raw: 'IconSpec',
+        properties: {
+          icon: { type: { category: 'string', raw: 'string' }, required: true, description: '' },
+          tooltip: {
+            type: {
+              category: 'object',
+              raw: '{ title: string; }',
+              properties: {
+                title: {
+                  type: { category: 'string', raw: 'string' },
+                  required: true,
+                  description: 'Text of the tooltip'
+                }
+              }
+            },
+            required: false,
+            description: ''
+          }
+        }
+      });
+
+      expect(detail).toBe(
+        [
+          '{',
+          '  icon: string;',
+          '  tooltip?: {',
+          '    /** Text of the tooltip */',
+          '    title: string;',
+          '  };',
+          '}'
+        ].join('\n')
+      );
+    });
+
+    test('quotes the keys that are not identifiers', () => {
+      const detail = typeDetailOf({
+        category: 'object',
+        raw: 'WidgetAttributes',
+        properties: {
+          'data-test-widget': {
+            type: { category: 'string', raw: 'string' },
+            required: false,
+            description: ''
+          }
+        }
+      });
+
+      expect(detail).toBe(['{', '  "data-test-widget"?: string;', '}'].join('\n'));
+    });
+
+    test('wraps union and function array elements in parentheses', () => {
+      const detail = typeDetailOf({
+        category: 'object',
+        raw: 'WidgetGroup',
+        properties: {
+          sizes: {
+            type: {
+              category: 'array',
+              raw: '("sm" | "md")[]',
+              elementType: { category: 'enum', raw: '"sm" | "md"', options: ['sm', 'md'] }
+            },
+            required: true,
+            description: ''
+          },
+          handlers: {
+            type: {
+              category: 'array',
+              raw: '(() => void)[]',
+              elementType: { category: 'function', raw: '() => void' }
+            },
+            required: true,
+            description: ''
+          }
+        }
+      });
+
+      expect(detail).toBe(
+        ['{', '  sizes: ("sm" | "md")[];', '  handlers: (() => void)[];', '}'].join('\n')
+      );
+    });
+
+    test('has no type detail for args that are not objects', () => {
+      expect(typeDetailOf({ category: 'string', raw: 'string' })).toBeUndefined();
+      expect(
+        typeDetailOf({ category: 'enum', raw: '"sm" | "md"', options: ['sm', 'md'] })
+      ).toBeUndefined();
+      expect(typeDetailOf({ category: 'function', raw: '() => void' })).toBeUndefined();
+      expect(
+        typeDetailOf({
+          category: 'array',
+          raw: 'string[]',
+          elementType: { category: 'string', raw: 'string' }
+        })
+      ).toBeUndefined();
     });
   });
 });

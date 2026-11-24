@@ -816,12 +816,16 @@ function typeToArgTypeInfo(type: TypeDocType | undefined): ArgTypeInfo {
       }
 
       if (type.declaration?.children?.length) {
-        const props: Record<string, ArgTypeInfo> = {};
+        const props: Record<string, ArgInfo> = {};
 
         for (const child of type.declaration.children) {
           if (child.kind === ReflectionKind.Property) {
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define -- hoisted
-            props[child.name] = buildArgTypeInfo(child);
+            props[child.name] = {
+              // eslint-disable-next-line @typescript-eslint/no-use-before-define -- hoisted
+              type: buildArgTypeInfo(child),
+              required: !isOptional(child),
+              description: extractSummaryText(child.comment)
+            };
           }
         }
 
