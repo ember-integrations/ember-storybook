@@ -37,7 +37,7 @@ function mapTypeToControl(
 const IDENTIFIER = /^[$A-Z_a-z][\w$]*$/;
 
 function printType(type: ArgTypeInfo, indent = ''): string {
-  if (type.category === 'enum' && (type.options ?? []).length) {
+  if (type.category === 'enum' && type.options && type.options.length > 0) {
     return type.options.map((option) => JSON.stringify(option)).join(' | ');
   }
 
