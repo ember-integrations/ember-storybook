@@ -16,7 +16,10 @@ export interface ContributorAPI {
   storyFilesReady(): Promise<void>;
 }
 
-export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
+export function emberStorybookVitePlugin(
+  api: ContributorAPI,
+  { docgenServer = false } = {}
+): Plugin {
   let server: ViteDevServer | undefined;
 
   function invalidate() {
@@ -66,7 +69,7 @@ export function emberStorybookVitePlugin(api: ContributorAPI): Plugin {
       }
 
       return {
-        code: `export default ${JSON.stringify(merged)};`,
+        code: `export const docgenServer = ${String(docgenServer)};\nexport default ${JSON.stringify(merged)};`,
         map: undefined
       };
     },

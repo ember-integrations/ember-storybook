@@ -8,7 +8,7 @@ import {
   Title,
   useOf
 } from '@storybook/addon-docs/blocks';
-import { createElement, Fragment, type ReactNode } from 'react';
+import { createElement, Fragment, type ReactNode, useEffect, useReducer } from 'react';
 import emberData from 'virtual:ember-storybook';
 
 import { BlocksSection } from './blocks/blocks';
@@ -16,6 +16,7 @@ import { ElementBlock } from './blocks/element';
 import { CssPropertiesTable, PartsTable } from './blocks/style';
 import { SubcomponentsArea } from './blocks/subcomponents';
 import { H2 } from './blocks/ui';
+import { loadSignatures } from './docgen-service';
 import { shouldShowArgsSection } from './extractArgTypes';
 import { collectSubcomponents } from './signature';
 
@@ -88,11 +89,25 @@ function addSignature(
 export default function Page() {
   const resolved: {
     preparedMeta?: {
+      id?: string;
       argTypes?: Record<string, unknown>;
       title?: string;
       parameters?: Record<string, unknown>;
     };
   } = useOf('meta', ['meta']);
+
+  const componentId = resolved.preparedMeta?.id;
+  const [, signaturesLoaded] = useReducer((count: number) => count + 1, 0);
+
+  // With the docgen server, the signatures arrive after the page first renders.
+  useEffect(() => {
+    if (!componentId) return;
+
+    void (async () => {
+      await loadSignatures(componentId);
+      signaturesLoaded();
+    })();
+  }, [componentId]);
 
   const data = emberData as EmberMeta;
   const storyFile = resolved.preparedMeta?.parameters?.fileName as string | undefined;

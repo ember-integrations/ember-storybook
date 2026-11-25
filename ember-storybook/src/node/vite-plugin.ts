@@ -11,9 +11,15 @@ export interface EmberStorybookPluginOptions {
    * the story files (see `emberIndexer`).
    */
   waitForStoryIndex?: () => Promise<unknown>;
+  /**
+   * `false` leaves component signatures out of the bundle, for the docgen
+   * server, which extracts each component when the docs ask for it.
+   */
+  signatures?: boolean;
 }
 
 export function emberStorybookPlugin(options: EmberStorybookPluginOptions = {}): Plugin[] {
+  const { signatures = true } = options;
   const contributions = new Map<string, Record<string, unknown>>();
   let isBuild = false;
 
@@ -42,9 +48,9 @@ export function emberStorybookPlugin(options: EmberStorybookPluginOptions = {}):
 
   return [
     buildMode,
-    emberStorybookVitePlugin(api),
+    emberStorybookVitePlugin(api, { docgenServer: !signatures }),
     metaContributor(api),
     sourceContributor(api),
-    signaturesContributor(api)
+    ...(signatures ? [signaturesContributor(api)] : [])
   ];
 }

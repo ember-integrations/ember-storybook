@@ -3,13 +3,16 @@ import { emitTransformCode, useEffect, useRef } from 'storybook/preview-api';
 import emberData from 'virtual:ember-storybook';
 
 import { isEmberStoryResult } from '../story-result';
-import { unwrapBlockParamsShallow } from './block-params';
+import { loadSignatures, storyDocsLoaded, usesDocgenServer } from './docgen-service';
+import { componentSource, resolveTemplateArgs } from './source-code';
 
 import type { StorySource } from '../../node/types';
 import type { StoryFn } from '../public-types';
 import type { EmberRenderer } from '../types';
-import type { BlockInfo, ComponentSignature } from 'ember-docgen';
+import type { ComponentSignature } from 'ember-docgen';
 import type { Args, ArgTypes, DecoratorFunction } from 'storybook/internal/types';
+
+export { resolveTemplateArgs, toArgument } from './source-code';
 
 const data = emberData as Record<
   string,
@@ -33,78 +36,6 @@ function skipSourceRender(context: Parameters<DecoratorFunction<EmberRenderer>>[
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
   return (!isArgsStory || sourceParams?.code) ?? sourceParams?.type === SourceType.CODE;
-}
-
-export function toArgument(key: string, value: unknown, argTypes: ArgTypes): string | undefined {
-  if (value !== undefined && value !== null) {
-    if (typeof value === 'string') {
-      return `@${key}=${JSON.stringify(value)}`;
-    }
-
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return `@${key}={{${String(value)}}}`;
-    }
-
-    if (Object.hasOwn(argTypes, key)) {
-      return `@${key}={{@${key}}}`;
-    }
-
-    return undefined;
-  }
-
-  if (value === undefined && Object.hasOwn(argTypes, key)) {
-    return `@${key}={{@${key}}}`;
-  }
-
-  return undefined;
-}
-
-function generateBlockContent(blockInfo: BlockInfo): string {
-  if (blockInfo.params.length === 0) {
-    return '...';
-  }
-
-  const paramNames = unwrapBlockParamsShallow(blockInfo.params)
-    .map((p) => p.name)
-    .join(', ');
-
-  return `{{yield ${paramNames}}}`;
-}
-
-export function generateBlockSourceCode(
-  sig: ComponentSignature,
-  args: Args,
-  indent: string
-): string {
-  const blockNames = Object.keys(sig.blocks);
-
-  if (blockNames.length === 0) return '';
-
-  const blocks: string[] = [];
-
-  for (const blockName of blockNames) {
-    const blockInfo = sig.blocks[blockName];
-    const arg = (args as Record<string, unknown>)[blockName];
-
-    if (arg === undefined && blockInfo.params.length === 0) {
-      continue;
-    }
-
-    const params = unwrapBlockParamsShallow(blockInfo.params)
-      .map((p) => p.name)
-      .join(' ');
-    const slotBindings = params ? ` as |${params}|` : '';
-
-    const content = generateBlockContent(blockInfo);
-
-    if (blockName === 'default' && !slotBindings) {
-      blocks.push(content);
-    } else {
-      blocks.push(`${indent}  <:${blockName}${slotBindings}>${content}</:${blockName}>`);
-    }
-  }
-
-  return blocks.join('\n');
 }
 
 let byStoryId: Record<string, StorySource> | undefined;
@@ -141,23 +72,6 @@ function signatureForComponent(name: string): ComponentSignature | undefined {
   return undefined;
 }
 
-export function resolveTemplateArgs(template: string, args: Args): string {
-  return template.replaceAll(/\{\{args\.(\w+)\}\}/g, (_match, key) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const value = (args as Record<string, unknown>)[key];
-
-    if (typeof value === 'string') {
-      return JSON.stringify(value);
-    }
-
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return `{{${String(value)}}}`;
-    }
-
-    return `{{@${key}}}`;
-  });
-}
-
 export function generateSource(
   component: { name?: string },
   args: Args,
@@ -181,51 +95,51 @@ export function generateSource(
   // up by the sentinel so blocks/args still resolve.
   const sig = signatureForComponent(meta?.signatureName ?? name);
 
-  const propsArray = Object.entries(args)
-    .filter(([k]) => !sig || !Object.hasOwn(sig.blocks, k))
-    .map(([k, v]) => toArgument(k, v, argTypes))
-    .filter(Boolean);
-
-  const blockCode = sig ? generateBlockSourceCode(sig, args, '') : '';
-
-  const propsStr = propsArray.join(' ');
-
-  if (!blockCode) {
-    if (propsArray.length === 0) {
-      return `<${name} />`;
-    }
-
-    if (propsArray.length > 3) {
-      return `<${name}\n  ${propsArray.join('\n  ')}\n/>`;
-    }
-
-    return `<${name} ${propsStr} />`;
-  }
-
-  if (propsArray.length === 0) {
-    return `<${name}>\n${blockCode}\n</${name}>`;
-  }
-
-  return `<${name} ${propsStr}>\n${blockCode}\n</${name}>`;
+  return componentSource(name, sig, args, argTypes);
 }
 
 export const sourceDecorator: DecoratorFunction<EmberRenderer> = (storyFn, context) => {
   const source = useRef<string | undefined>(undefined);
+  const renders = useRef(0);
   const story = storyFn();
 
   useEffect(() => {
+    if (skipSourceRender(context)) return;
+
     // Always generate the source from the ORIGINAL story, not the decorator-wrapped
     // `storyFn()` result. A decorator wraps the story in another component, so its
     // `.name` (e.g. `IntlDecorator`) would leak into the generated source block.
     const rendered = (context.originalStoryFn as StoryFn)(context.args, context);
     const renderedForSource = isEmberStoryResult(rendered) ? rendered.component : rendered;
-
-    if (!skipSourceRender(context)) {
+    const render = ++renders.current;
+    // Every arg counts as known, as Storybook's argTypes inference makes it;
+    // with the docgen server, the preview doesn't infer them.
+    const argTypes = {
+      ...Object.fromEntries(Object.keys(context.args).map((name) => [name, { name }])),
+      ...context.argTypes
+    };
+    const emit = () => {
       const code =
-        generateSource(renderedForSource, context.args, context.argTypes, context.id) ?? undefined;
+        generateSource(renderedForSource, context.args, argTypes, context.id) ?? undefined;
 
       void emitTransformCode(code, context);
       source.current = code;
+    };
+
+    emit();
+
+    // With the docgen server, the signature can arrive after the story renders,
+    // and Storybook shows the story docs' static snippet when they arrive: emit
+    // again after both, unless a later render has. Portable stories have no server.
+    if (usesDocgenServer() && !context.parameters.__isPortableStory) {
+      void (async () => {
+        await Promise.all([
+          loadSignatures(context.componentId),
+          storyDocsLoaded(context.componentId)
+        ]);
+
+        if (render === renders.current) emit();
+      })();
     }
   });
 
