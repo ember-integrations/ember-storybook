@@ -760,20 +760,44 @@ function blockParamFromNode(
   };
 }
 
-/** Params of a single block, derived from its declared tuple/object shape. */
+/**
+ * Params of a single block, derived from its declared tuple/object shape.
+ * `elementTypes` are the tuple's element types as a block typed by
+ * reference instantiates them, with a generic declaration's type arguments
+ * filled in.
+ */
 function parseBlockParams(
   typeNode: TS.TypeNode,
   ctx: ExtractContext,
-  stack: Set<string> = new Set()
+  stack: Set<string> = new Set(),
+  elementTypes?: readonly TS.Type[]
 ): BlockInfo['params'] {
   const params: BlockInfo['params'] = [];
 
   if (ts.isTupleTypeNode(typeNode)) {
-    for (const element of typeNode.elements) {
+    // The tuple's type flattens rest elements, so its instantiated types line
+    // up with the declared elements only before the first of them
+    const rest = typeNode.elements.findIndex(
+      (element) =>
+        ts.isRestTypeNode(element) || (ts.isNamedTupleMember(element) && element.dotDotDotToken)
+    );
+    const instantiated =
+      rest === -1
+        ? elementTypes?.length === typeNode.elements.length
+          ? elementTypes
+          : undefined
+        : elementTypes?.slice(0, rest);
+    const typeOf = (node: TS.TypeNode, index: number, optional: boolean) =>
+      ctx.checker.typeToString(
+        instantiatedType(node, instantiated?.[index], optional, ctx) ??
+          ctx.checker.getTypeAtLocation(node)
+      );
+
+    for (const [index, element] of typeNode.elements.entries()) {
       if (ts.isNamedTupleMember(element)) {
         params.push({
           name: element.name.getText(),
-          type: ctx.checker.typeToString(ctx.checker.getTypeAtLocation(element.type)),
+          type: typeOf(element.type, index, Boolean(element.questionToken)),
           description: nodeDescription(element),
           componentRef: componentRefFromTypeNode(element.type, ctx),
           nested: nestedFromTypeNode(element.type, ctx, stack)
@@ -790,9 +814,19 @@ function parseBlockParams(
           if (!innerType) continue;
 
           const symbol = ctx.checker.getSymbolAtLocation(member.name);
+          const property = instantiated?.[index]
+            ? ctx.checker.getPropertyOfType(instantiated[index], member.name.getText())
+            : undefined;
+          const type = instantiatedType(
+            innerType,
+            property && ctx.checker.getTypeOfSymbol(property),
+            Boolean(member.questionToken),
+            ctx
+          );
 
           hash[member.name.getText()] = {
             ...blockParamFromNode(member.name.getText(), innerType, ctx, stack),
+            ...(type && { type: ctx.checker.typeToString(type) }),
             description:
               symbol && symbolDescription(symbol, ctx)
                 ? symbolDescription(symbol, ctx)
@@ -802,7 +836,10 @@ function parseBlockParams(
 
         if (Object.keys(hash).length > 0) params.push(hash);
       } else {
-        params.push(blockParamFromNode(`param${params.length}`, element, ctx, stack));
+        params.push({
+          ...blockParamFromNode(`param${params.length}`, element, ctx, stack),
+          type: typeOf(element, index, ts.isOptionalTypeNode(element))
+        });
       }
     }
 
@@ -821,9 +858,107 @@ function parseBlockParams(
         description: symbol ? symbolDescription(symbol, ctx) : ''
       });
     }
+
+    return params;
   }
 
-  return params;
+  // A block typed by reference (`OtherSignature['Blocks']['default']`, an
+  // alias): read the declaration it names
+  const referenced = referencedTypeNode(typeNode, ctx);
+
+  if (!referenced) return params;
+
+  const key = `${referenced.getSourceFile().fileName}:${referenced.pos}`;
+
+  if (stack.has(key)) return params;
+
+  stack.add(key);
+
+  try {
+    return parseBlockParams(
+      referenced,
+      ctx,
+      stack,
+      elementTypes ?? tupleElementTypes(typeNode, ctx)
+    );
+  } finally {
+    stack.delete(key);
+  }
+}
+
+/**
+ * The instantiated type to document for a declared type node, where the node
+ * mentions a type parameter for it to fill in. An optional element's or
+ * member's instantiated type has `undefined` added, which its declared type
+ * doesn't show.
+ */
+function instantiatedType(
+  node: TS.TypeNode,
+  type: TS.Type | undefined,
+  optional: boolean,
+  ctx: ExtractContext
+): TS.Type | undefined {
+  if (!type || !mentionsTypeParameter(node, ctx)) return undefined;
+
+  return optional && !(type.isUnion() && type.types.some((t) => t.flags & ts.TypeFlags.Null))
+    ? ctx.checker.getNonNullableType(type)
+    : type;
+}
+
+function mentionsTypeParameter(node: TS.Node, ctx: ExtractContext): boolean {
+  if (ts.isTypeReferenceNode(node)) {
+    const symbol = ctx.checker.getSymbolAtLocation(node.typeName);
+
+    if (symbol && (symbol.flags & ts.SymbolFlags.TypeParameter) !== 0) return true;
+  }
+
+  return ts.forEachChild(node, (child) => mentionsTypeParameter(child, ctx) || undefined) ?? false;
+}
+
+/** A tuple type node's element types, as it instantiates them. */
+function tupleElementTypes(
+  typeNode: TS.TypeNode,
+  ctx: ExtractContext
+): readonly TS.Type[] | undefined {
+  const type = ctx.checker.getTypeFromTypeNode(typeNode);
+
+  return ctx.checker.isTupleType(type)
+    ? ctx.checker.getTypeArguments(type as TS.TypeReference)
+    : undefined;
+}
+
+/**
+ * The declared type node a reference names: the property's for an indexed
+ * access (`OtherSignature['Blocks']['default']`), the right-hand side for a
+ * type alias. Its syntax keeps tuple labels and docs that the resolved
+ * type loses.
+ */
+function referencedTypeNode(typeNode: TS.TypeNode, ctx: ExtractContext): TS.TypeNode | undefined {
+  if (ts.isIndexedAccessTypeNode(typeNode)) {
+    const index = typeNode.indexType;
+
+    if (!ts.isLiteralTypeNode(index) || !ts.isStringLiteral(index.literal)) return undefined;
+
+    const objectType = ctx.checker.getTypeFromTypeNode(typeNode.objectType);
+    const declaration = ctx.checker.getPropertyOfType(objectType, index.literal.text)
+      ?.declarations?.[0];
+
+    return declaration && ts.isPropertySignature(declaration) ? declaration.type : undefined;
+  }
+
+  if (ts.isTypeReferenceNode(typeNode)) {
+    const symbol = ctx.checker.getSymbolAtLocation(typeNode.typeName);
+    const resolved =
+      symbol && (symbol.flags & ts.SymbolFlags.Alias) !== 0
+        ? ctx.checker.getAliasedSymbol(symbol)
+        : symbol;
+
+    const declaration = resolved?.declarations?.find((d) => ts.isTypeAliasDeclaration(d));
+
+    return declaration && ts.isTypeAliasDeclaration(declaration) ? declaration.type : undefined;
+  }
+
+  return undefined;
 }
 
 function parseBlocks(blocksType: TS.Type, ctx: ExtractContext): Record<string, BlockInfo> {
